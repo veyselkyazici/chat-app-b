@@ -1,0 +1,46 @@
+ext {
+    versions = [
+            springBoot              : "3.1.2",
+            lombok                  : "1.18.28",
+            postgresql              : "42.6.0",
+            springCloud             : "4.0.3",
+            mapstruct               : "1.5.5.Final",
+            lombokMapstructBinding  : "0.2.0",
+            openApi                 : "2.1.0",
+            javaJWT                 : "4.4.0",
+
+
+    ]
+
+    libs = [
+            springBoot                             : "org.springframework.boot:spring-boot-starter:$versions.springBoot",
+            springBootWeb                          : "org.springframework.boot:spring-boot-starter-web:$versions.springBoot",
+            springBootActuator                     : "org.springframework.boot:spring-boot-starter-actuator:$versions.springBoot",
+            springBootSecurity                     : "org.springframework.boot:spring-boot-starter-security:$versions.springBoot",
+            springBootDataJpa                      : "org.springframework.boot:spring-boot-starter-data-jpa:$versions.springBoot",
+            springBootValidation                   : "org.springframework.boot:spring-boot-starter-validation:$versions.springBoot",
+            springBootDevtools                     : "org.springframework.boot:spring-boot-devtools:$versions.springBoot",
+
+            springOpenFeign                        : "org.springframework.cloud:spring-cloud-starter-openfeign:$versions.springCloud",
+
+            springBootRabbitMQ                     : "org.springframework.boot:spring-boot-starter-amqp:$versions.springBoot",
+
+            springBootWebSocket                    : "org.springframework.boot:spring-boot-starter-websocket:$versions.springBoot",
+
+            springCloudConfigServer                : "org.springframework.cloud:spring-cloud-config-server:$versions.springCloud",
+            springCloudStarterSleuth               : "org.springframework.cloud:spring-cloud-starter-sleuth:$versions.springCloud",
+            springCloudConfigClient                : "org.springframework.cloud:spring-cloud-config-client:$versions.springCloud",
+            springCloudStarterConfig               : "org.springframework.cloud:spring-cloud-starter-config:$versions.springCloud",
+
+            springBootStarterMail                  : "org.springframework.boot:spring-boot-starter-mail:$versions.springBoot",
+            springBootStarterThymeleaf             : "org.springframework.boot:spring-boot-starter-thymeleaf:$versions.springBoot",
+
+            lombok                                 : "org.projectlombok:lombok:$versions.lombok",
+            postgresql                             : "org.postgresql:postgresql:$versions.postgresql",
+            mapstruct                              : "org.mapstruct:mapstruct:$versions.mapstruct",
+            mapstructProcessor                     : "org.mapstruct:mapstruct-processor:$versions.mapstruct",
+            lombokMapstructBinding                 : "org.projectlombok:lombok-mapstruct-binding:$versions.lombokMapstructBinding",
+            openApi                                : "org.springdoc:springdoc-openapi-starter-webmvc-ui:$versions.openApi",
+            javaJWT                                : "com.auth0:java-jwt:$versions.javaJWT"
+    ]
+}
