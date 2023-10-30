@@ -4,8 +4,6 @@ import com.vky.entity.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
-import org.apache.commons.lang3.builder.ToStringBuilder;
-import org.apache.commons.lang3.builder.ToStringStyle;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -22,11 +20,15 @@ import java.util.List;
 public class Auth extends BaseEntity implements UserDetails{
     private String password;
     private String email;
+    @Builder.Default
+    @Column(name = "is_first_entry")
+    private boolean isFirstEntry = true;
     @OneToMany(mappedBy = "auth")
     private List<Token> tokens;
     @Enumerated(EnumType.STRING)
     private Role role;
-    private boolean isEnabled;
+    @Column(name = "is_approved")
+    private boolean isApproved;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

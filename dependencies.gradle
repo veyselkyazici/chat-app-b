@@ -8,6 +8,8 @@ ext {
             lombokMapstructBinding  : "0.2.0",
             openApi                 : "2.1.0",
             javaJWT                 : "4.4.0",
+            eurekaServer            : "4.0.3",
+            eurekaClient            : "4.0.3"
 
 
     ]
@@ -34,6 +36,9 @@ ext {
 
             springBootStarterMail                  : "org.springframework.boot:spring-boot-starter-mail:$versions.springBoot",
             springBootStarterThymeleaf             : "org.springframework.boot:spring-boot-starter-thymeleaf:$versions.springBoot",
+
+            eurekaServer                           : "org.springframework.cloud:spring-cloud-starter-netflix-eureka-server:$versions.eurekaServer",
+            eurekaClient                           : "org.springframework.cloud:spring-cloud-starter-netflix-eureka-client:$versions.eurekaClient",
 
             lombok                                 : "org.projectlombok:lombok:$versions.lombok",
             postgresql                             : "org.postgresql:postgresql:$versions.postgresql",

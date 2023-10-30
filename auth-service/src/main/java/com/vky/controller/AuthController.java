@@ -1,7 +1,6 @@
 package com.vky.controller;
 
-import com.vky.dto.request.AuthLoginRequestDTO;
-import com.vky.dto.request.AuthRegisterRequestDTO;
+import com.vky.dto.request.AuthRequestDTO;
 import com.vky.dto.request.CheckOtpRequestDTO;
 import com.vky.dto.request.ForgotPasswordResetPasswordRequestDTO;
 import com.vky.dto.response.*;
@@ -32,14 +31,14 @@ public class AuthController {
     private final IAuthRepository authRepository;
 
     @PostMapping("/login")
-    public ResponseEntity<AuthLoginResponseDTO> login(@RequestBody @Valid AuthLoginRequestDTO loginDto) {
-        return ResponseEntity.ok(authService.doLoginn(loginDto));
+    public ResponseEntity<AuthResponseDTO> login(@RequestBody @Valid AuthRequestDTO authRequestDTO) {
+        return ResponseEntity.ok(authService.doLoginn(authRequestDTO));
     }
 
     @PostMapping("/register")
-    public ResponseEntity<AuthRegisterResponseDTO> register(@RequestBody @Valid AuthRegisterRequestDTO registerDto) {
-        System.out.println(registerDto.getEmail() + "Zaman: " + LocalDateTime.now());
-        return ResponseEntity.ok(authService.register(registerDto));
+    public ResponseEntity<AuthResponseDTO> register(@RequestBody @Valid AuthRequestDTO authRequestDTO) {
+        System.out.println(authRequestDTO.getEmail() + "Zaman: " + LocalDateTime.now());
+        return ResponseEntity.ok(authService.register(authRequestDTO));
     }
 
     @GetMapping("/username")

@@ -1,14 +1,8 @@
 package com.vky;
 
-import com.vky.dto.AdminGenerateRequestDTO;
-import com.vky.service.AuthService;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.openfeign.EnableFeignClients;
-import org.springframework.context.annotation.Bean;
-
-import static com.vky.entity.enums.Role.ADMIN;
 
 @SpringBootApplication
 @EnableFeignClients

@@ -9,6 +9,7 @@ import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.vky.entity.Auth;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -55,33 +56,34 @@ public class JwtTokenManager {
 //            return Optional.empty();
 //        }
 //    }
-    public String generateToken(UserDetails userDetails) {
-        return generateToken(new HashMap<>(), userDetails);
+    public String generateToken(Authentication auth) {
+        return generateToken(new HashMap<>(), auth);
     }
 
     public String generateToken(
             Map<String, Object> extraClaims,
-            UserDetails userDetails
+            Authentication auth
     ) {
-        return buildToken(extraClaims, userDetails, jwtExpiration);
+        return buildToken(extraClaims, auth, jwtExpiration);
     }
 
     public String generateRefreshToken(
-            UserDetails userDetails
+            Authentication auth
     ) {
-        return buildToken(new HashMap<>(), userDetails, refreshExpiration);
+        return buildToken(new HashMap<>(), auth, refreshExpiration);
     }
 
 
     public String buildToken(Map<String, Object> extraClaims,
-                             UserDetails userDetails,
+                             Authentication auth,
                              long expiration) {
         Algorithm signKey = Algorithm.HMAC256(secretKey);
-        JWTCreator.Builder jwt = JWT.create()
-                .withSubject(userDetails.getUsername())
+        String jwt = JWT.create()
+                .withSubject(auth.getName())
                 .withIssuedAt(new Date(System.currentTimeMillis()))
-                .withExpiresAt(new Date(System.currentTimeMillis() + expiration));
-        return jwt.sign(signKey);
+                .withExpiresAt(new Date(System.currentTimeMillis() + expiration))
+                .sign(signKey);
+        return jwt;
     }
 
     public String extractUsername(String token) {

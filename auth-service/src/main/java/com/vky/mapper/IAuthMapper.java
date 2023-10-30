@@ -2,6 +2,7 @@ package com.vky.mapper;
 
 import com.vky.dto.request.CreateConfirmationRequestDTO;
 import com.vky.dto.response.AuthDTO;
+import com.vky.dto.response.AuthResponseDTO;
 import com.vky.entity.Auth;
 import org.mapstruct.Mapper;
 import org.mapstruct.ReportingPolicy;
@@ -13,7 +14,7 @@ public interface IAuthMapper {
 
     AuthDTO toAuthDTO(final Auth auth);
     Auth toAuth(final AuthDTO authDTO);
-
+    AuthResponseDTO toResponseDTO(final Auth auth);
     CreateConfirmationRequestDTO toAuthDTOO(final Auth auth);
     Auth toAuth(final CreateConfirmationRequestDTO authDTOO);
 }

@@ -1,6 +1,5 @@
 package com.vky.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vky.config.security.JwtTokenManager;
 import com.vky.dto.AdminGenerateRequestDTO;
 import com.vky.dto.AdminGenerateResponseDTO;
@@ -16,15 +15,17 @@ import com.vky.manager.IForgotPasswordManager;
 import com.vky.manager.IUserManager;
 import com.vky.mapper.IAuthMapper;
 import com.vky.repository.IAuthRepository;
-import org.springframework.boot.actuate.autoconfigure.observation.ObservationProperties;
+import jdk.swing.interop.SwingInterOpUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -61,61 +62,73 @@ public class AuthService {
 //    }
 
 
-    public AuthLoginResponseDTO doLoginn(AuthLoginRequestDTO loginDto) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        loginDto.getEmail(),
-                        loginDto.getPassword()
-                ));
-        var auth = authRepository.findByEmail(loginDto.getEmail()).orElseThrow();
-        var jwt = jwtTokenManager.generateToken(auth);
-        var refreshToken = jwtTokenManager.generateRefreshToken(auth);
-        this.tokenService.revokeAllAuthTokens(auth);
-        this.tokenService.saveToken(auth, jwt);
-        return AuthLoginResponseDTO.builder()
-                .accessToken(jwt)
-                .refreshToken(refreshToken)
-                .message("Giriş İşlemi Başarılı")
-                .responsecode(200L)
-                .build();
+    public AuthResponseDTO doLoginn(AuthRequestDTO authRequestDTO) {
+        try {
+            Optional<Auth> user = authRepository.findAuthByIsDeletedFalseAndEmail(authRequestDTO.getEmail());
+            if (!user.isPresent()) {
+                throw new AuthManagerException(ErrorType.USER_DOES_NOT_EXIST);
+            } else if (user.isPresent() && !user.get().isApproved()) {
+                throw new AuthManagerException(ErrorType.Email_Confirmation_Not_Completed);
+            }
+            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(authRequestDTO.getEmail(), authRequestDTO.getPassword());
+            Authentication auth = authenticationManager.authenticate(authToken);
+
+            SecurityContextHolder.getContext().setAuthentication(auth);
+
+            String jwtToken = jwtTokenManager.generateToken(auth);
+
+
+            AuthResponseDTO authResponseDTO = IAuthMapper.INSTANCE.toResponseDTO(user.get());
+            System.out.println("AUTHIDDDD: " + authResponseDTO.getId());
+            authResponseDTO.setAccessToken("Bearer " + jwtToken);
+            authResponseDTO.setRefreshToken(jwtTokenManager.generateRefreshToken(auth));
+            authResponseDTO.setResponsecode(200L);
+            return authResponseDTO;
+        } catch (BadCredentialsException ex) {
+            // Hata yakalandı, istemciye uygun hata mesajını döndürün
+            AuthResponseDTO authResponseDTO = new AuthResponseDTO();
+            authResponseDTO.setResponsecode(400L);
+            authResponseDTO.setMessage("Kullanıcı adı veya şifre yanlış");
+            return authResponseDTO;
+        }
     }
 
 //    public record RegisterRequestDto (String userName, String password, @Email String email){
 //
 //    }
 
-    public AuthRegisterResponseDTO register(AuthRegisterRequestDTO authRegisterRequestDto) {
-        Optional<Auth> auth = authRepository.findByEmail(authRegisterRequestDto.getEmail());
-        Auth registerAuth = Auth.builder()
-                .email(authRegisterRequestDto.getEmail())
-                .password(passwordEncoder.encode(authRegisterRequestDto.getPassword()))
-                .role(Role.USER)
-                .build();
+    public AuthResponseDTO register(AuthRequestDTO authRequestDTO) {
+        Optional<Auth> optionalAuth = authRepository.findAuthByIsDeletedFalseAndEmail(authRequestDTO.getEmail());
 
-        if (auth.isPresent() && auth.get().isEnabled())
+        if (optionalAuth.isPresent() && optionalAuth.get().isApproved())
             throw new AuthManagerException(ErrorType.EMAIL_ALLREADY_EXISTS_ERROR);
-        else if (auth.isPresent() && !auth.get().isEnabled()) {
-            CreateConfirmationRequestDTO createConfirmationRequestDTO = IAuthMapper.INSTANCE.toAuthDTOO(auth.get());
+        else if (optionalAuth.isPresent() && !optionalAuth.get().isApproved()) {
+            CreateConfirmationRequestDTO createConfirmationRequestDTO = IAuthMapper.INSTANCE.toAuthDTOO(optionalAuth.get());
             emailVerifyManager.createConfirmation(createConfirmationRequestDTO);
             throw new AuthManagerException(ErrorType.EMAIL_ALLREADY_EXISTS_ERROR_VERIFIY);
         }
 
-        //auth.setId(UUID.randomUUID());
+        Auth registerAuth = Auth.builder()
+                .email(authRequestDTO.getEmail())
+                .password(passwordEncoder.encode(authRequestDTO.getPassword()))
+                .role(Role.USER)
+                .build();
         this.authRepository.save(registerAuth);
-        var jwt = jwtTokenManager.generateToken(registerAuth);
-        var refreshToken = jwtTokenManager.generateRefreshToken(registerAuth);
+
+        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(authRequestDTO.getEmail(), authRequestDTO.getPassword());
+        Authentication auth = authenticationManager.authenticate(authToken);
+        SecurityContextHolder.getContext().setAuthentication(auth);
+        String jwt = jwtTokenManager.generateToken(auth);
+        System.out.println("AUTH :" + auth);
+        System.out.println("RegisterAUTH :" + registerAuth);
         this.tokenService.saveToken(registerAuth, jwt);
-//        User service e kullanicinin profilini olusturmasi icin istek gonderiri
         userManager.newUserCreate(
                 NewUserCreateDTO.builder()
                         .authId(registerAuth.getId())
-                        .email(authRegisterRequestDto.getEmail())
+                        .email(authRequestDTO.getEmail())
                         .build()
         );
-//        SaveConfirmationResponseDTO.builder()
-//                .email(auth.getEmail())
-//                .id(auth.getId())
-//                .build();
+
         CreateConfirmationRequestDTO createConfirmationRequestDTO = IAuthMapper.INSTANCE.toAuthDTOO(registerAuth);
         emailVerifyManager.createConfirmation(createConfirmationRequestDTO);
 //        createUserProducer.sendCreateUserMessage(CreateUser.builder()
@@ -124,39 +137,39 @@ public class AuthService {
 //                .username(registerDto.getUsername())
 //                .password(encodedPassword)
 //                .build());
-
-        return AuthRegisterResponseDTO.builder()
-                .accessToken(jwt)
-                .refreshToken(refreshToken)
+        return AuthResponseDTO.builder()
+                .accessToken("Bearer " + jwt)
+                .refreshToken(jwtTokenManager.generateRefreshToken(auth))
                 .message("Kayit İşlemi Başarılı")
                 .responsecode(200L)
+                .id(registerAuth.getId())
                 .build();
     }
 
-    public AdminGenerateResponseDTO generateAdmin(AdminGenerateRequestDTO adminGenerateRequestDto) {
-        Optional<Auth> admin = authRepository.findByEmail(adminGenerateRequestDto.getEmail());
-        System.out.println("ADMIN: " + admin);
-        if (!admin.isPresent()) {
-            Auth auth = Auth.builder()
-                    .email(adminGenerateRequestDto.getEmail())
-                    .password(passwordEncoder.encode(adminGenerateRequestDto.getPassword()))
-                    .role(adminGenerateRequestDto.getRole())
-                    .build();
-            authRepository.save(auth);
-            var jwt = jwtTokenManager.generateToken(auth);
-            var refreshToken = jwtTokenManager.generateRefreshToken(auth);
-            System.out.println("UUID: " + auth.getId());
-            this.tokenService.saveToken(auth, jwt);
-            return AdminGenerateResponseDTO.builder()
-                    .accessToken(jwt)
-                    .build();
-        }
-        System.out.println("ADMIN ID: " + admin.get().getId());
-        Optional<Token> adminAccessToken = this.tokenService.findByAuthId(admin.get().getId());
-        return AdminGenerateResponseDTO.builder()
-                .accessToken(adminAccessToken.get().getToken())
-                .build();
-    }
+//    public AdminGenerateResponseDTO generateAdmin(AdminGenerateRequestDTO adminGenerateRequestDto) {
+//        Optional<Auth> admin = authRepository.findByEmail(adminGenerateRequestDto.getEmail());
+//        System.out.println("ADMIN: " + admin);
+//        if (!admin.isPresent()) {
+//            Auth auth = Auth.builder()
+//                    .email(adminGenerateRequestDto.getEmail())
+//                    .password(passwordEncoder.encode(adminGenerateRequestDto.getPassword()))
+//                    .role(adminGenerateRequestDto.getRole())
+//                    .build();
+//            authRepository.save(auth);
+//            var jwt = jwtTokenManager.generateToken(auth);
+//            var refreshToken = jwtTokenManager.generateRefreshToken(auth);
+//            System.out.println("UUID: " + auth.getId());
+//            this.tokenService.saveToken(auth, jwt);
+//            return AdminGenerateResponseDTO.builder()
+//                    .accessToken(jwt)
+//                    .build();
+//        }
+//        System.out.println("ADMIN ID: " + admin.get().getId());
+//        Optional<Token> adminAccessToken = this.tokenService.findByAuthId(admin.get().getId());
+//        return AdminGenerateResponseDTO.builder()
+//                .accessToken(adminAccessToken.get().getToken())
+//                .build();
+//    }
 
     public Auth findById(UUID id) {
         return this.authRepository.findById(id).orElseThrow();
@@ -164,13 +177,13 @@ public class AuthService {
 
 
     public Auth loadUserByUsername(String email) {
-        return this.authRepository.findByEmail(email).orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        return this.authRepository.findAuthByIsDeletedFalseAndEmail(email).orElseThrow(() -> new UsernameNotFoundException("User not found"));
     }
 
     public void saveVerifiedAccount(UUID id) {
         Auth existingAuth = authRepository.findById(id).orElse(null);
         if (existingAuth != null) {
-            existingAuth.setEnabled(true);
+            existingAuth.setApproved(true);
             this.authRepository.save(existingAuth);
         } else {
             System.out.println("hataaaaaaaaaaaaaaaaaaaaaaaaaaa");
@@ -193,7 +206,7 @@ public class AuthService {
     }
 
     public HttpResponse findByEmailOtp(CheckOtpRequestDTO checkOtpRequestDTO) {
-        Optional<Auth> auth = this.authRepository.findByEmail(checkOtpRequestDTO.getEmail());
+        Optional<Auth> auth = this.authRepository.findAuthByIsDeletedFalseAndEmail(checkOtpRequestDTO.getEmail());
         if (auth.isPresent()) {
             ForgotPasswordCheckOtpRequestDTO forgotPasswordCheckOtpRequestDTO = ForgotPasswordCheckOtpRequestDTO.builder()
                     .email(auth.get().getEmail())
@@ -217,7 +230,7 @@ public class AuthService {
         UUID authUUID = UUID.fromString(authId);
         Optional<Auth> auth = authRepository.findById(authUUID);
 
-        if(auth.isPresent()) {
+        if (auth.isPresent()) {
             auth.get().setPassword(newPassword);
             this.authRepository.save(auth.get());
         }

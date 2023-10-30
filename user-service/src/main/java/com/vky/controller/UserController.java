@@ -7,10 +7,9 @@ import com.vky.service.UserProfileService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Optional;
 
 
 @RestController
@@ -31,5 +30,17 @@ public class UserController {
             throw new UserManagerException(ErrorType.USER_DONT_CREATE);
         }
     }
+
+//    @PostMapping("/update-user")
+//    public ResponseEntity<Boolean> updateProfile(@RequestBody @Valid EditProfileRequestDto dto){
+//
+//        try{
+//            Optional<Long> authid  =jwtTokenManager.getUserId(dto.getToken());
+//            if(authid.isEmpty())  throw new UserManagerException(ErrorType.INVALID_TOKEN);
+//            return ResponseEntity.ok(userProfileService.updateUserProfile(dto,authid.get()));
+//        }catch (Exception exception){
+//            throw new UserManagerException(ErrorType.INVALID_TOKEN);
+//        }
+//    }
 
 }

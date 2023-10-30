@@ -20,9 +20,18 @@ public class UserProfileService {
             .build());
     }
 
-    public void saveUser(UserProfile userProfile) {
-        userProfileRepository.save(userProfile);
-    }
+//    public Boolean updateUserProfile(EditProfileRequestDto dto, Long authid){
+//        UserProfile userProfile = IUserProfileMapper.INSTANCE.toUserProfile(dto);
+//        UserProfile optionalUserProfile = repository.findByAuthid(authid);
+//        if(optionalUserProfile==null) return false;
+//        try{
+//            userProfile.setId(optionalUserProfile.getId());
+//            update(userProfile);
+//            return true;
+//        }catch (Exception e){
+//            return false;
+//        }
+//    }
 
 
 }

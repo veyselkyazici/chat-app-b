@@ -1,10 +1,8 @@
 package com.vky.repository.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.util.UUID;
 
@@ -12,19 +10,17 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-@Builder
+@SuperBuilder
 @Table(name = "users")
 @Entity
-public class UserProfile{
-    @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
-    private Long id;
+@EqualsAndHashCode(callSuper = false)
+public class UserProfile extends BaseEntity{
     private UUID authId;
     private String phone;
     private String photo;
     private String about;
-    private Long created;
-    private Long updated;
-    private boolean isActive;
 
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "image_id")
+    private Image image;
 }

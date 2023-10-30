@@ -42,14 +42,18 @@ public class JwtTokenFilter extends OncePerRequestFilter {
         /**
          * Gelen string ve request icindeki oturum bilgisini kontrol ederek isleme devam ediyorum.
          */
-
+        System.out.println("BEARER ONCESIIIIIIIIIIIIIIIIIIIIIIIII");
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
         String token = authorizationHeader.substring(7);
+        System.out.println("TOKENNNNNNNNN: " + token);
         Map<String, Claim> claimMap = jwtTokenManager.getClaims(token);
+        claimMap.forEach( (key, value) -> System.out.println("CLAIMMMMMMMMMMMM: " + key + " -> " + value));
         String email = jwtUserDetails.loadUserByUserId(claimMap).getUsername();
+
+        System.out.println("EMAILLLLLLLLLLLL: " + email);
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = this.jwtUserDetails.loadUserByUsername(email);
             var isTokenValid = tokenRepository.findByToken(token)

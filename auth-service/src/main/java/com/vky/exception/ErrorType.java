@@ -21,8 +21,9 @@ public enum ErrorType {
 
     EMAIL_ALLREADY_EXISTS_ERROR(1004, "Email adresi zaten kullanılıyor", INTERNAL_SERVER_ERROR),
     EMAIL_NOT_FOUND(1005, "Email adresi bulunamadı", INTERNAL_SERVER_ERROR),
-    EMAIL_ALLREADY_EXISTS_ERROR_VERIFIY(1006, "Bu email adresi ile zaten kayit işlemi yapılmış. Lütfen mailinize gelen linkten onaylama işlemini yapınız.", INTERNAL_SERVER_ERROR);
-
+    EMAIL_ALLREADY_EXISTS_ERROR_VERIFIY(1006, "Bu email adresi ile zaten kayit işlemi yapılmış. Lütfen mailinize gelen linkten onaylama işlemini yapınız.", INTERNAL_SERVER_ERROR),
+    USER_DOES_NOT_EXIST(1007, "Kullanıcı mevcut değil", INTERNAL_SERVER_ERROR),
+    Email_Confirmation_Not_Completed(1008, "Email onaylaması gerçekleştirilmemiş.", INTERNAL_SERVER_ERROR);
     private int code;
     private String message;
     HttpStatus httpStatus;

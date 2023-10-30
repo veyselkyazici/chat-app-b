@@ -10,6 +10,7 @@ dependencies {
     implementation libs.springBootSecurity
 //    implementation libs.springBootRabbitMQ
     implementation libs.springCloudConfigClient
+    implementation libs.eurekaClient
     testImplementation "org.springframework.boot:spring-boot-starter-test"
 }
 
