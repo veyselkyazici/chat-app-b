@@ -16,11 +16,12 @@ import java.util.UUID;
 @EqualsAndHashCode(callSuper = false)
 public class UserProfile extends BaseEntity{
     private UUID authId;
+    private String email;
     private String phone;
     private String photo;
     private String about;
 
-    @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "image_id")
-    private Image image;
+//    @OneToOne(cascade = CascadeType.ALL)
+//    @JoinColumn(name = "image_id")
+//    private Image image;
 }

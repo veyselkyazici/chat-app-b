@@ -9,6 +9,6 @@ dependencies {
     implementation libs.springBootDataJpa
     implementation libs.springCloudConfigClient
     implementation libs.eurekaClient
-//    implementation libs.springBootRabbitMQ
+    implementation libs.springBootRabbitMQ
 }
 

@@ -14,6 +14,8 @@ import com.vky.manager.IEmailVerifyManager;
 import com.vky.manager.IForgotPasswordManager;
 import com.vky.manager.IUserManager;
 import com.vky.mapper.IAuthMapper;
+import com.vky.rabbitmq.model.CreateUser;
+import com.vky.rabbitmq.producer.CreateUserProducer;
 import com.vky.repository.IAuthRepository;
 import jdk.swing.interop.SwingInterOpUtils;
 import org.springframework.http.ResponseEntity;
@@ -36,7 +38,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final TokenService tokenService;
-    //    private final CreateUserProducer createUserProducer;
+    private final CreateUserProducer createUserProducer;
     private final IUserManager userManager;
     private final IEmailVerifyManager emailVerifyManager;
     private final IForgotPasswordManager forgotPasswordManager;
@@ -44,13 +46,13 @@ public class AuthService {
 //    private final ObjectMapper objectMapper;
 
 
-    public AuthService(IAuthRepository authRepository, JwtTokenManager jwtTokenManager, PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager, TokenService tokenService, IUserManager userManager, IEmailVerifyManager emailVerifyManager, IForgotPasswordManager forgotPasswordManager) {
+    public AuthService(IAuthRepository authRepository, JwtTokenManager jwtTokenManager, PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager, TokenService tokenService, IUserManager userManager, IEmailVerifyManager emailVerifyManager, IForgotPasswordManager forgotPasswordManager, CreateUserProducer createUserProducer) {
         this.authRepository = authRepository;
         this.jwtTokenManager = jwtTokenManager;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.tokenService = tokenService;
-//        this.createUserProducer = createUserProducer;
+        this.createUserProducer = createUserProducer;
         this.userManager = userManager;
         this.emailVerifyManager = emailVerifyManager;
         this.forgotPasswordManager = forgotPasswordManager;
@@ -122,21 +124,19 @@ public class AuthService {
         System.out.println("AUTH :" + auth);
         System.out.println("RegisterAUTH :" + registerAuth);
         this.tokenService.saveToken(registerAuth, jwt);
-        userManager.newUserCreate(
-                NewUserCreateDTO.builder()
-                        .authId(registerAuth.getId())
-                        .email(authRequestDTO.getEmail())
-                        .build()
-        );
+//        userManager.newUserCreate(
+//                NewUserCreateDTO.builder()
+//                        .authId(registerAuth.getId())
+//                        .email(authRequestDTO.getEmail())
+//                        .build()
+//        );
 
         CreateConfirmationRequestDTO createConfirmationRequestDTO = IAuthMapper.INSTANCE.toAuthDTOO(registerAuth);
         emailVerifyManager.createConfirmation(createConfirmationRequestDTO);
-//        createUserProducer.sendCreateUserMessage(CreateUser.builder()
-//                .authId(auth.getId())
-//                .email(registerDto.getEmail())
-//                .username(registerDto.getUsername())
-//                .password(encodedPassword)
-//                .build());
+        createUserProducer.sendCreateUserMessage(CreateUser.builder()
+                .authId(registerAuth.getId())
+                .email(registerAuth.getEmail())
+                .build());
         return AuthResponseDTO.builder()
                 .accessToken("Bearer " + jwt)
                 .refreshToken(jwtTokenManager.generateRefreshToken(auth))

@@ -8,7 +8,7 @@ dependencies {
     implementation libs.postgresql
     implementation libs.springBootDataJpa
     implementation libs.springBootSecurity
-//    implementation libs.springBootRabbitMQ
+    implementation libs.springBootRabbitMQ
     implementation libs.springCloudConfigClient
     implementation libs.eurekaClient
     testImplementation "org.springframework.boot:spring-boot-starter-test"
