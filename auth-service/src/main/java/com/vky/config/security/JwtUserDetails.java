@@ -5,16 +5,14 @@ import com.vky.entity.Auth;
 import com.vky.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 public class JwtUserDetails implements UserDetailsService {
@@ -28,13 +26,19 @@ public class JwtUserDetails implements UserDetailsService {
 
 
     public UserDetails loadUserByUserId(Map<String,Claim> claimMap) throws UsernameNotFoundException {
+
         /**
          * id si verilen kullanıcının var olup olmadığına bakılmalıdır.
          */
-        UUID userId = UUID.fromString(claimMap.get("id").asString());
-        boolean isUserExist = authService.findById(userId) != null;
+        UUID userId = UUID.fromString(claimMap.get("authId").asString());
+        for (Map.Entry<String, Claim> entry : claimMap.entrySet()) {
+            String key = entry.getKey();
+            Claim value = entry.getValue();
+            System.out.println("Key: " + key + ", Value: " + value);
+        }
+        Auth auth = authService.findById(userId);
         //boolean isUserExist = authService.findById(claimMap.get("id").asLong()).getId() != null;
-        if(isUserExist){
+        if(auth != null){
             /**
              * Burada oluşturulan kullanıcı, hangi sayfalara griş yapabileceğinin
              * anlaşılabilmedi konytorl edilebilmesi için bir yetki listesininin
@@ -42,8 +46,11 @@ public class JwtUserDetails implements UserDetailsService {
              * listeyi burada belirtmeliyiz.
              */
             List<GrantedAuthority> authorities = new ArrayList<>();
+            authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+
             return User.builder()
-                    .username(claimMap.get("id").asLong().toString())
+                    .username(auth.getUsername())
+                    .password(auth.getPassword())
                     .accountExpired(false)
                     .accountLocked(false)
                     .authorities(authorities)

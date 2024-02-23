@@ -67,24 +67,30 @@ public class AuthService {
     public AuthResponseDTO doLoginn(AuthRequestDTO authRequestDTO) {
         try {
             Optional<Auth> user = authRepository.findAuthByIsDeletedFalseAndEmail(authRequestDTO.getEmail());
-            if (!user.isPresent()) {
+            if (user.isEmpty()) {
                 throw new AuthManagerException(ErrorType.USER_DOES_NOT_EXIST);
-            } else if (user.isPresent() && !user.get().isApproved()) {
+            } else if (!user.get().isApproved()) {
                 throw new AuthManagerException(ErrorType.Email_Confirmation_Not_Completed);
             }
             UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(authRequestDTO.getEmail(), authRequestDTO.getPassword());
             Authentication auth = authenticationManager.authenticate(authToken);
 
-            SecurityContextHolder.getContext().setAuthentication(auth);
+        //    if (auth.isAuthenticated()){
+         //       System.out.println("AUTHTOKEN: " + authToken);
+        //        System.out.println("AUTH: " + auth);
+         //   }
 
-            String jwtToken = jwtTokenManager.generateToken(auth);
+            SecurityContextHolder.getContext().setAuthentication(auth);
+         //   System.out.println(("GETAUTHENTICATION: ") + SecurityContextHolder.getContext().getAuthentication());
+            String jwtToken = jwtTokenManager.generateToken(auth,user.get().getId());
 
 
             AuthResponseDTO authResponseDTO = IAuthMapper.INSTANCE.toResponseDTO(user.get());
             System.out.println("AUTHIDDDD: " + authResponseDTO.getId());
             authResponseDTO.setAccessToken("Bearer " + jwtToken);
-            authResponseDTO.setRefreshToken(jwtTokenManager.generateRefreshToken(auth));
+            authResponseDTO.setRefreshToken(jwtTokenManager.generateRefreshToken(auth, user.get().getId()));
             authResponseDTO.setResponsecode(200L);
+            this.tokenService.saveToken(user.get(),jwtToken);
             return authResponseDTO;
         } catch (BadCredentialsException ex) {
             // Hata yakalandı, istemciye uygun hata mesajını döndürün
@@ -120,16 +126,16 @@ public class AuthService {
         UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(authRequestDTO.getEmail(), authRequestDTO.getPassword());
         Authentication auth = authenticationManager.authenticate(authToken);
         SecurityContextHolder.getContext().setAuthentication(auth);
-        String jwt = jwtTokenManager.generateToken(auth);
+        String jwt = jwtTokenManager.generateToken(auth, registerAuth.getId());
         System.out.println("AUTH :" + auth);
         System.out.println("RegisterAUTH :" + registerAuth);
         this.tokenService.saveToken(registerAuth, jwt);
-//        userManager.newUserCreate(
-//                NewUserCreateDTO.builder()
-//                        .authId(registerAuth.getId())
-//                        .email(authRequestDTO.getEmail())
-//                        .build()
-//        );
+      //  userManager.newUserCreate(
+       //         NewUserCreateDTO.builder()
+       //                 .authId(registerAuth.getId())
+        //                .email(authRequestDTO.getEmail())
+        //                .build()
+      //  );
 
         CreateConfirmationRequestDTO createConfirmationRequestDTO = IAuthMapper.INSTANCE.toAuthDTOO(registerAuth);
         emailVerifyManager.createConfirmation(createConfirmationRequestDTO);
@@ -139,7 +145,7 @@ public class AuthService {
                 .build());
         return AuthResponseDTO.builder()
                 .accessToken("Bearer " + jwt)
-                .refreshToken(jwtTokenManager.generateRefreshToken(auth))
+                .refreshToken(jwtTokenManager.generateRefreshToken(auth, registerAuth.getId()))
                 .message("Kayit İşlemi Başarılı")
                 .responsecode(200L)
                 .id(registerAuth.getId())

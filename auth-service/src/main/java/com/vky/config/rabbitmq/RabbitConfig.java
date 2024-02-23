@@ -10,7 +10,6 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class RabbitConfig {
-
     private String exchangeNameAuth = "exchange-auth";
     private String bindingKeyAuth = "key-auth";
     private String queueNameAuth = "queue-auth-create-user";
@@ -22,8 +21,10 @@ public class RabbitConfig {
     Queue queueCreateUser(){
         return new Queue(queueNameAuth);
     }
+
     @Bean
     public Binding bindingCreateUser(final Queue queueCreateUser, final DirectExchange exchangeAuth){
         return BindingBuilder.bind(queueCreateUser).to(exchangeAuth).with(bindingKeyAuth);
     }
+
 }

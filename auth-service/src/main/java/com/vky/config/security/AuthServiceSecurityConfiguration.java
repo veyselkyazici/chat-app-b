@@ -22,7 +22,6 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
-@EnableMethodSecurity
 public class AuthServiceSecurityConfiguration{
 
     private final AuthenticationProvider authenticationProvider;
@@ -42,8 +41,7 @@ public class AuthServiceSecurityConfiguration{
         http    .cors(c -> c.configurationSource(corsConfigurationSource()))
                 .csrf(CsrfConfigurer::disable)
                 .authorizeHttpRequests(r -> r.requestMatchers(
-                                "/api/v1/auth/**",
-                                "/api/v1/greetings/hello",
+                                "/api/v1/auth/**","/api/v1/auth/login","/api/v1/greetings/hello","/api/v1/token/**",
                                 "/v2/api-docs",
                                 "/v3/api-docs",
                                 "/v3/api-docs/**",
@@ -60,7 +58,7 @@ public class AuthServiceSecurityConfiguration{
                         .authenticated()).sessionManagement(httpSecuritySessionManagementConfigurer ->
                         httpSecuritySessionManagementConfigurer.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider).addFilterBefore(getJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
-
+        System.out.println("HELLOOOOOOOOOOOOOOOOOOOO");
         return http.build();
     }
 
@@ -71,7 +69,6 @@ public class AuthServiceSecurityConfiguration{
         configuration.setAllowCredentials(true);
         configuration.setAllowedOriginPatterns(allowedOriginPatterns);
         configuration.addAllowedHeader("*");
-        configuration.addAllowedMethod("OPTIONS");
         configuration.addAllowedMethod("HEAD");
         configuration.addAllowedMethod("GET");
         configuration.addAllowedMethod("PUT");

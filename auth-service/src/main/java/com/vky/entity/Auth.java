@@ -72,20 +72,8 @@ public class Auth extends BaseEntity implements UserDetails{
                 ", email='" + getEmail() + '\'' +
                 ", role=" + getRole() +
                 ", isEnabled=" + isEnabled() +
-                ", tokens=" + tokensToString() +
                 '}';
     }
 
-    private String tokensToString() {
-        if (tokens == null || tokens.isEmpty()) {
-            return "[]";
-        }
-        StringBuilder builder = new StringBuilder("[");
-        for (Token token : tokens) {
-            builder.append(token.toString()).append(", ");
-        }
-        builder.delete(builder.length() - 2, builder.length());
-        builder.append("]");
-        return builder.toString();
-    }
+
 }

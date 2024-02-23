@@ -9,7 +9,10 @@ ext {
             openApi                 : "2.1.0",
             javaJWT                 : "4.4.0",
             eurekaServer            : "4.0.3",
-            eurekaClient            : "4.0.3"
+            eurekaClient            : "4.0.3",
+            springCloudCircuitBreaker: "3.0.3",
+            mongoDB                 : "3.2.1",
+            webSocket               : "3.2.1",
 
 
     ]
@@ -37,10 +40,17 @@ ext {
             springBootStarterMail                  : "org.springframework.boot:spring-boot-starter-mail:$versions.springBoot",
             springBootStarterThymeleaf             : "org.springframework.boot:spring-boot-starter-thymeleaf:$versions.springBoot",
 
+            springCloudStarterGateway              : "org.springframework.cloud:spring-cloud-starter-gateway:$versions.springCloud",
+            springCloudStarterCircuitBreaker       : "org.springframework.cloud:spring-cloud-circuitbreaker-resilience4j:$versions.springCloudCircuitBreaker",
+            springCloudStarterCircuitBreakerReactor: "org.springframework.cloud:spring-cloud-starter-circuitbreaker-reactor-resilience4j:$versions.springCloudCircuitBreaker",
+
+            webSocket                              : "org.springframework.boot:spring-boot-starter-websocket:$versions.webSocket",
+
             eurekaServer                           : "org.springframework.cloud:spring-cloud-starter-netflix-eureka-server:$versions.eurekaServer",
             eurekaClient                           : "org.springframework.cloud:spring-cloud-starter-netflix-eureka-client:$versions.eurekaClient",
 
             lombok                                 : "org.projectlombok:lombok:$versions.lombok",
+            mongoDB                                : "org.springframework.boot:spring-boot-starter-data-mongodb:$versions.mongoDB",
             postgresql                             : "org.postgresql:postgresql:$versions.postgresql",
             mapstruct                              : "org.mapstruct:mapstruct:$versions.mapstruct",
             mapstructProcessor                     : "org.mapstruct:mapstruct-processor:$versions.mapstruct",
