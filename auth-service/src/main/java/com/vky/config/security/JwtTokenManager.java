@@ -1,23 +1,19 @@
 package com.vky.config.security;
 
 import com.auth0.jwt.JWT;
-import com.auth0.jwt.JWTCreator;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
-import com.auth0.jwt.impl.ClaimsHolder;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import com.vky.entity.Auth;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
-import java.security.MessageDigest;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Function;
 
 @Service
@@ -56,30 +52,31 @@ public class JwtTokenManager {
 //            return Optional.empty();
 //        }
 //    }
-    public String generateToken(Authentication auth) {
-        return generateToken(new HashMap<>(), auth);
+    public String generateToken(Authentication auth, UUID authId) {
+        return generateToken(new HashMap<>(), auth, authId);
     }
 
     public String generateToken(
             Map<String, Object> extraClaims,
-            Authentication auth
+            Authentication auth, UUID authId
     ) {
-        return buildToken(extraClaims, auth, jwtExpiration);
+        return buildToken(extraClaims, auth, authId, jwtExpiration);
     }
 
     public String generateRefreshToken(
-            Authentication auth
+            Authentication auth, UUID authId
     ) {
-        return buildToken(new HashMap<>(), auth, refreshExpiration);
+        return buildToken(new HashMap<>(), auth, authId , refreshExpiration);
     }
 
 
     public String buildToken(Map<String, Object> extraClaims,
-                             Authentication auth,
+                             Authentication auth, UUID authId,
                              long expiration) {
         Algorithm signKey = Algorithm.HMAC256(secretKey);
         String jwt = JWT.create()
                 .withSubject(auth.getName())
+                .withClaim("authId", authId.toString())
                 .withIssuedAt(new Date(System.currentTimeMillis()))
                 .withExpiresAt(new Date(System.currentTimeMillis() + expiration))
                 .sign(signKey);

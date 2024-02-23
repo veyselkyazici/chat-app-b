@@ -4,6 +4,7 @@ package com.vky.config.security;
 import com.auth0.jwt.interfaces.Claim;
 import com.vky.entity.Auth;
 import com.vky.repository.ITokenRepository;
+import com.vky.service.TokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,11 +23,11 @@ import java.util.Optional;
 
 public class JwtTokenFilter extends OncePerRequestFilter {
     @Autowired
-    JwtTokenManager jwtTokenManager;
+    private JwtTokenManager jwtTokenManager;
     @Autowired
-    JwtUserDetails jwtUserDetails;
+    private JwtUserDetails jwtUserDetails;
     @Autowired
-    ITokenRepository tokenRepository;
+    private TokenService tokenService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -36,7 +37,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
          * Gelen istegin header kisminin icinde Authorization anahtari var mi var ise icinde ne var bu bilgiyi aliyorum
          * bu bilgi icinde Bearer ile baslayan bir token bilgisi olabilidir.
          */
-
+        System.out.println("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB");
         final String authorizationHeader = request.getHeader("Authorization");
 //        final String getBodyToken =  request.getParameter("Token");
         /**
@@ -52,12 +53,17 @@ public class JwtTokenFilter extends OncePerRequestFilter {
         Map<String, Claim> claimMap = jwtTokenManager.getClaims(token);
         claimMap.forEach( (key, value) -> System.out.println("CLAIMMMMMMMMMMMM: " + key + " -> " + value));
         String email = jwtUserDetails.loadUserByUserId(claimMap).getUsername();
-
+        System.out.println("SECURITYCONTEXTHOLDER: " + SecurityContextHolder.getContext().getAuthentication());
         System.out.println("EMAILLLLLLLLLLLL: " + email);
+        System.out.println("REMOTEADR: " + request.getRemoteAddr());
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = this.jwtUserDetails.loadUserByUsername(email);
-            var isTokenValid = tokenRepository.findByToken(token)
-                    .map(t -> !t.isExpired() && !t.isRevoked()).orElse(false);
+            System.out.println("userDetails" + userDetails);
+            System.out.println("userDetailsAuthorities" + userDetails.getAuthorities());
+            System.out.println("userDetailsUsername" + userDetails.getUsername());
+            System.out.println("userDetailsPassword" + userDetails.getPassword());
+
+            Boolean isTokenValid = tokenService.findByToken(token);
             if (jwtTokenManager.isValidToken(token, userDetails) && isTokenValid) {
                 UsernamePasswordAuthenticationToken authenticationToken =
                         new UsernamePasswordAuthenticationToken(
@@ -67,6 +73,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                         new WebAuthenticationDetailsSource().buildDetails(request)
                 );
                 SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+                System.out.println("SECURITYCONTEXTHOLDER: " + SecurityContextHolder.getContext().getAuthentication());
             }
         }
         filterChain.doFilter(request, response);

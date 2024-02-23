@@ -5,4 +5,6 @@ include 'chat-service'
 include 'config-server'
 include 'mail-service'
 include 'eureka-server'
+include 'api-gateway-service'
+include 'friendships-service'
 

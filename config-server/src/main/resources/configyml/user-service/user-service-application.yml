@@ -30,11 +30,20 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
+  web:
+    cors:
+      allowed-origins: "*"
+      allowed-methods: "*"
+      allowed-headers: "*"
 
 raceapplication:
   url:
     auth: http://localhost:${AUTH_PORT}/
     mail: http://localhost:${MAIL_PORT}/
     user: http://localhost:${USER_PORT}/
+    friendships: http://localhost:${FRIENDSHIPS_PORT}/
 
-
+application:
+  security:
+    jwt:
+      secret-key: ${SECRET_KEY}

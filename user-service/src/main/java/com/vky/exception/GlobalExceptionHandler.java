@@ -111,5 +111,13 @@ public class GlobalExceptionHandler {
                 .build();
     }
 
+    @ExceptionHandler(AuthenticationException.class)
+    @ResponseBody
+    public final ResponseEntity<ErrorMessage> handleAuthenticationException(
+            AuthenticationException exception) {
+
+        ErrorType errorType = exception.getErrorType();
+        return new ResponseEntity<>(createError(errorType, exception), errorType.getHttpStatus());
+    }
 
 }

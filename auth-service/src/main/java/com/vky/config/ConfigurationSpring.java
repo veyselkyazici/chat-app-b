@@ -2,6 +2,7 @@ package com.vky.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vky.repository.IAuthRepository;
+import feign.Logger;
 import feign.codec.Decoder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -46,5 +47,10 @@ public class ConfigurationSpring {
     @Bean
     public ObjectMapper objectMapper() {
         return new ObjectMapper();
+    }
+
+    @Bean
+    Logger.Level feignLoggerLevel() {
+        return Logger.Level.FULL; // Veya DEBUG veya başka bir seviye
     }
 }

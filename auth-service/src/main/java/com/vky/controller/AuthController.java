@@ -10,9 +10,12 @@ import com.vky.repository.IAuthRepository;
 import com.vky.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.apache.tomcat.util.http.parser.Authorization;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -25,21 +28,84 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
-@CrossOrigin(originPatterns = "*")
 public class AuthController {
     private final AuthService authService;
     private final IAuthRepository authRepository;
 
+
+    @PostMapping("/register")
+    public ResponseEntity<AuthResponseDTO> register(@RequestBody @Valid AuthRequestDTO authRequestDTO) {
+        System.out.println(authRequestDTO.getEmail() + "Zaman: " + LocalDateTime.now());
+
+        return ResponseEntity.ok(authService.register(authRequestDTO));
+    }
     @PostMapping("/login")
     public ResponseEntity<AuthResponseDTO> login(@RequestBody @Valid AuthRequestDTO authRequestDTO) {
         return ResponseEntity.ok(authService.doLoginn(authRequestDTO));
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<AuthResponseDTO> register(@RequestBody @Valid AuthRequestDTO authRequestDTO) {
-        System.out.println(authRequestDTO.getEmail() + "Zaman: " + LocalDateTime.now());
-        return ResponseEntity.ok(authService.register(authRequestDTO));
+    @GetMapping("/hello")
+    public ResponseEntity<String>  sayHello()
+    {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication.isAuthenticated()  && !authentication.getName().equals("anonymousUser")) {
+            System.out.println("DOGRULANMIS: ");
+            System.out.println("SECURTIYCONTEXTHOLDER AUTH: " + authentication);
+            System.out.println("AUTH NAME: " + authentication.getName());
+            System.out.println("AUTH PRINCIPAL: " + authentication.getPrincipal());
+            System.out.println("AUTH CREDENTIALS: " + authentication.getCredentials());
+            System.out.println("AUTH DETAILS: " + authentication.getDetails());
+            Auth auth = (Auth) authentication.getPrincipal();
+            System.out.println("AUTHID: " + auth.getId());
+        }
+        else {
+            System.out.println("DOGRULANMAMIS: ");
+            System.out.println("SECURTIYCONTEXTHOLDER AUTH: " + authentication);
+            System.out.println("AUTH NAME: " + authentication.getName());
+            System.out.println("AUTH PRINCIPAL: " + authentication.getPrincipal());
+            System.out.println("AUTH CREDENTIALS: " + authentication.getCredentials());
+            System.out.println("AUTH DETAILS: " + authentication.getDetails());
+        }
+
+        System.out.println("helloooo");
+        return ResponseEntity.ok("Hello, ");
     }
+
+    @GetMapping("/authenticate")
+    public ResponseEntity<Boolean>  authenticate()
+    {
+        boolean isAuthenticated;
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication.isAuthenticated()  && !authentication.getName().equals("anonymousUser")) {
+            System.out.println("DOGRULANMIS: ");
+            System.out.println("SECURTIYCONTEXTHOLDER AUTH: " + authentication);
+            System.out.println("AUTH NAME: " + authentication.getName());
+            System.out.println("AUTH PRINCIPAL: " + authentication.getPrincipal());
+            System.out.println("AUTH CREDENTIALS: " + authentication.getCredentials());
+            System.out.println("AUTH DETAILS: " + authentication.getDetails());
+            Auth auth = (Auth) authentication.getPrincipal();
+            System.out.println("AUTHID: " + auth.getId());
+            isAuthenticated = true;
+        }
+        else {
+            System.out.println("DOGRULANMAMIS: ");
+            System.out.println("SECURTIYCONTEXTHOLDER AUTH: " + authentication);
+            System.out.println("AUTH NAME: " + authentication.getName());
+            System.out.println("AUTH PRINCIPAL: " + authentication.getPrincipal());
+            System.out.println("AUTH CREDENTIALS: " + authentication.getCredentials());
+            System.out.println("AUTH DETAILS: " + authentication.getDetails());
+            isAuthenticated = false;
+        }
+
+        return ResponseEntity.ok(isAuthenticated);
+    }
+
+    @GetMapping("/load-user-by-username")
+    public UserDetails loadUserByUsername(@RequestParam String email) {
+        System.out.println("asdfasdfasdf");
+        return authService.loadUserByUsername(email);
+    }
+
 
     @GetMapping("/username")
     public Object getUsername(Authentication authentication) {
@@ -129,4 +195,7 @@ public class AuthController {
         this.authService.resetPassword(forgotPasswordResetPasswordRequestDTO);
         return ResponseEntity.ok().build();
     }
+
+
+
 }

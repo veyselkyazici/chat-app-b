@@ -5,6 +5,7 @@ import com.vky.entity.Token;
 import com.vky.repository.ITokenRepository;
 import lombok.Getter;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.GetMapping;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -40,5 +41,9 @@ public class TokenService {
 
     public Optional<Token> findByAuthId(UUID id) {
         return this.tokenRepository.findByAuthId(id);
+    }
+
+    public Boolean findByToken(String token) {
+        return tokenRepository.findByToken(token).map(t -> !t.isExpired() && !t.isRevoked()).orElse(false);
     }
 }

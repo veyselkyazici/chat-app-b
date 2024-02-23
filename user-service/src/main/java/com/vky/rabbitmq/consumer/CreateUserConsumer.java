@@ -25,6 +25,7 @@ public class CreateUserConsumer {
         try {
             CreateUser userObject = objectMapper.readValue(user, CreateUser.class);
             System.out.println("AUTHIDDDDDDDDDDDDDDDDDDD" + userObject.getAuthId());
+            System.out.println("EMAILLLLLL" + userObject.getEmail());
             userProfileService.createUserProfile(NewUserCreateDTO.builder()
                     .authId(userObject.getAuthId())
                     .email(userObject.getEmail())

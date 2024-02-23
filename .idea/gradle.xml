@@ -8,10 +8,12 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/api-gateway-service" />
             <option value="$PROJECT_DIR$/auth-service" />
             <option value="$PROJECT_DIR$/chat-service" />
             <option value="$PROJECT_DIR$/config-server" />
             <option value="$PROJECT_DIR$/eureka-server" />
+            <option value="$PROJECT_DIR$/friendships-service" />
             <option value="$PROJECT_DIR$/mail-service" />
             <option value="$PROJECT_DIR$/user-service" />
           </set>
