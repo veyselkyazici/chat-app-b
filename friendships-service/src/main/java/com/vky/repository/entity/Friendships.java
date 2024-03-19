@@ -16,7 +16,7 @@ import java.util.UUID;
 @SuperBuilder
 @Table(name = "friendships")
 @Entity
-@EqualsAndHashCode(callSuper = false)
+@EqualsAndHashCode(callSuper = true)
 public class Friendships extends BaseEntity{
     private UUID userId;
     private String userEmail;

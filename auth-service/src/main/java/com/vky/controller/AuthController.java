@@ -116,7 +116,6 @@ public class AuthController {
     @GetMapping("/find-by-id-with-tokens/{id}")
     public ResponseEntity<AuthWithTokensDTO> findByIdWithTokens(@PathVariable UUID id) {
         Auth auth = authService.findById(id);
-
         if (auth  != null) {
 
             List<TokenDTO> tokenDTOs = auth.getTokens().stream()

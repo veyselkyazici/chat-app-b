@@ -9,7 +9,7 @@ import lombok.experimental.SuperBuilder;
 @Data
 @Entity
 @Table(name  = "confirmations")
-@EqualsAndHashCode(callSuper = false)
+@EqualsAndHashCode(callSuper = true)
 public class Confirmation extends BaseEntityEmail{
     @Override
     public String toString() {

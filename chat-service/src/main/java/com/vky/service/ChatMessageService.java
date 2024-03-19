@@ -23,7 +23,7 @@ public class ChatMessageService {
     private final ChatRoomService chatRoomService;
     private final SimpMessagingTemplate messagingTemplate;
 
-    public void processMessage(MessageRequestDTO messageRequestDTO) {
+    public void sendMessage(MessageRequestDTO messageRequestDTO) {
         Optional<String> optionalChatRoomId = chatRoomService.getChatRoomId(messageRequestDTO.getSenderId(), messageRequestDTO.getRecipientId());
         ChatMessage chatMessage;
         if(optionalChatRoomId.isPresent()) {
@@ -34,7 +34,8 @@ public class ChatMessageService {
         }
         MessageFriendResponseDTO messageFriendResponseDTO = IChatMapper.INSTANCE.toResponseDTO(chatMessage);
         System.out.println(messageRequestDTO.getRecipientId());
-        messagingTemplate.convertAndSendToUser(messageRequestDTO.getRecipientId(),"queue/message-friend-response", messageFriendResponseDTO);
+        System.out.println("messageResponse: " + messageFriendResponseDTO);
+        messagingTemplate.convertAndSendToUser(messageRequestDTO.getRecipientId(),"queue/received-message", messageFriendResponseDTO);
     }
 
     public List<ChatMessage> findChatMessages(FindChatMessagesDTO findChatMessagesDTO) {
@@ -43,10 +44,11 @@ public class ChatMessageService {
     }
 
 
-    public Map<ChatRoomResponseDTO, List<ChatRoomMessageResponseDTO>> getChatRoomsAndMessagesForUser(String userId) {
+    public List<ChatRoomResponseDTO> getChatList(String userId) {
         List<ChatRoom> chatRooms = chatRoomService.findBySenderIdOrRecipientId(userId, userId);
-
-        Map<ChatRoomResponseDTO, List<ChatRoomMessageResponseDTO>> chatRoomsAndMessages = new HashMap<>();
+        System.out.println("userId" + userId);
+        System.out.println("chatRooms: " + chatRooms);
+        List<ChatRoomResponseDTO> chatRoomResponseDTOs = new ArrayList<>();
 
         for (ChatRoom chatRoom : chatRooms) {
             List<ChatMessage> messages = chatMessageRepository.findByChatRoomId(chatRoom.getId());
@@ -54,9 +56,11 @@ public class ChatMessageService {
                     .map(IChatMapper.INSTANCE::chatMessageToDTO)
                     .collect(Collectors.toList());
             ChatRoomResponseDTO chatRoomDTO = IChatMapper.INSTANCE.chatRoomToDTO(chatRoom, messageDTOs);
-            chatRoomsAndMessages.put(chatRoomDTO, messageDTOs);
+            chatRoomResponseDTOs.add(chatRoomDTO);
         }
-
-        return chatRoomsAndMessages;
+        System.out.println("chatRoomsAndMessages: " + chatRoomResponseDTOs);
+        return chatRoomResponseDTOs;
     }
+
+
 }

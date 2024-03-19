@@ -8,17 +8,15 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @SuperBuilder
-@Data
 @NoArgsConstructor
-public class BaseEntity {
+@Data
+public class ChatRoomBaseEntity {
     @Id
     private String id;
 
     private LocalDateTime createdAt;
-
 
     private LocalDateTime updatedAt;
     private boolean isDeleted;
@@ -34,4 +32,5 @@ public class BaseEntity {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
+
 }

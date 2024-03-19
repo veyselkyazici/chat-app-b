@@ -15,7 +15,7 @@ import lombok.experimental.SuperBuilder;
 @Data
 @Table(name = "images")
 @Entity
-@EqualsAndHashCode(callSuper = false)
+@EqualsAndHashCode(callSuper = true)
 public class Image extends BaseEntity{
     private String name;
     private String path;

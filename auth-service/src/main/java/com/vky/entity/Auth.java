@@ -16,7 +16,7 @@ import java.util.List;
 @Data
 @Table(name = "auths")
 @Entity
-@EqualsAndHashCode(callSuper = false)
+@EqualsAndHashCode(callSuper = true)
 public class Auth extends BaseEntity implements UserDetails{
     private String password;
     private String email;

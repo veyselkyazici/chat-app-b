@@ -48,6 +48,7 @@ public class FriendshipsService {
         System.out.println(responseDTO);
         System.out.println(!this.friendshipsRepository.existsByUserIdAndFriendUserId(responseDTO.getUserId(), responseDTO.getFriendUserId()));
         if(!this.friendshipsRepository.existsByUserIdAndFriendUserId(responseDTO.getUserId(), responseDTO.getFriendUserId())) {
+            System.out.println("iffffffffffffffffffff");
             friendshipsRepository.save(Friendships.builder()
                     .userId(responseDTO.getUserId())
                     .friendUserId(responseDTO.getFriendUserId())
@@ -60,6 +61,7 @@ public class FriendshipsService {
                     .message("Arkadaş Ekleme İsteği Gönderildi")
                     .statusCode(200).build());
         } else {
+            System.out.println("elseeeeeeeeeeeeeeeeeeeeeeeee");
             messagingTemplate.convertAndSendToUser(responseDTO.getUserId().toString(),"/queue/friend-request-user-response", HttpResponse.builder()
                     .message("Arkadaş Ekleme İsteği Zaten Gönderilmiş")
                     .statusCode(400).build());
