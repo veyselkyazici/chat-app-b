@@ -32,6 +32,9 @@ public class GatewayConfig {
                 .route("friendships-service", r -> r.path("/api/v1/friendships/**")
                         .filters(f -> f.filter(customFilter()))
                         .uri("lb://friendships-service"))
+                .route("chat-service", r -> r.path("/api/v1/chat/**")
+                        .filters(f -> f.filter(customFilter()))
+                        .uri("lb://chat-service"))
                 .build();
     }
     @Bean

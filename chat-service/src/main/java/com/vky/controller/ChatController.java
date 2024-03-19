@@ -1,5 +1,6 @@
 package com.vky.controller;
 
+import com.vky.dto.request.ChatListRequestDTO;
 import com.vky.dto.request.FindChatMessagesDTO;
 import com.vky.dto.request.MessageRequestDTO;
 import com.vky.dto.response.ChatRoomMessageResponseDTO;
@@ -11,9 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
@@ -21,14 +20,14 @@ import java.util.UUID;
 
 @Controller
 @RequiredArgsConstructor
-@CrossOrigin(originPatterns = ("*"))
+@RequestMapping("/api/v1/chat")
 public class ChatController {
 
     private final ChatMessageService chatMessageService;
 
     @MessageMapping("/send-message")
-    public void processMessage(@Payload MessageRequestDTO messageRequestDTO) {
-        chatMessageService.processMessage(messageRequestDTO);
+    public void sendMessage(@Payload MessageRequestDTO messageRequestDTO) {
+        chatMessageService.sendMessage(messageRequestDTO);
     }
 
     @PostMapping("/find-chat-messages")
@@ -37,8 +36,11 @@ public class ChatController {
                 .ok(chatMessageService.findChatMessages(findChatMessagesDTO));
     }
 
-    @PostMapping("/get-chat-rooms-and-messages-for-user")
-    public Map<ChatRoomResponseDTO, List<ChatRoomMessageResponseDTO>> getChatRoomsAndMessagesForUser(@RequestBody String userId) {
-        return ResponseEntity.ok(chatMessageService.getChatRoomsAndMessagesForUser(userId)).getBody();
+    @PostMapping("/get-chat-list")
+    public ResponseEntity<List<ChatRoomResponseDTO>> getChatList(@RequestBody ChatListRequestDTO chatListRequestDTO) {
+        List<ChatRoomResponseDTO> chatRoomResponseDTOs = chatMessageService.getChatList(chatListRequestDTO.getUserId());
+        return ResponseEntity.ok(chatRoomResponseDTOs);
     }
+
+
 }

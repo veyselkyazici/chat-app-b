@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 @Data
 @Entity
 @Table(name  = "forgot_password")
-@EqualsAndHashCode(callSuper = false)
+@EqualsAndHashCode(callSuper = true)
 public class ForgotPassword extends BaseEntityEmail{
     private String password;
     private String newPassword;

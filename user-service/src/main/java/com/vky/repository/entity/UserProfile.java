@@ -14,7 +14,7 @@ import java.util.UUID;
 @SuperBuilder
 @Table(name = "users")
 @Entity
-@EqualsAndHashCode(callSuper = false)
+@EqualsAndHashCode(callSuper = true)
 public class UserProfile extends BaseEntity{
     private UUID authId;
     private String email;
