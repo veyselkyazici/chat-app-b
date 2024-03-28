@@ -10,5 +10,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ChatListRequestDTO {
-    private String userId;
+    private String token;
 }

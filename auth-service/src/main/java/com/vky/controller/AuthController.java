@@ -17,6 +17,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -39,16 +40,16 @@ public class AuthController {
 
         return ResponseEntity.ok(authService.register(authRequestDTO));
     }
+
     @PostMapping("/login")
     public ResponseEntity<AuthResponseDTO> login(@RequestBody @Valid AuthRequestDTO authRequestDTO) {
         return ResponseEntity.ok(authService.doLoginn(authRequestDTO));
     }
 
     @GetMapping("/hello")
-    public ResponseEntity<String>  sayHello()
-    {
+    public ResponseEntity<String> sayHello() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication.isAuthenticated()  && !authentication.getName().equals("anonymousUser")) {
+        if (authentication.isAuthenticated() && !authentication.getName().equals("anonymousUser")) {
             System.out.println("DOGRULANMIS: ");
             System.out.println("SECURTIYCONTEXTHOLDER AUTH: " + authentication);
             System.out.println("AUTH NAME: " + authentication.getName());
@@ -57,8 +58,7 @@ public class AuthController {
             System.out.println("AUTH DETAILS: " + authentication.getDetails());
             Auth auth = (Auth) authentication.getPrincipal();
             System.out.println("AUTHID: " + auth.getId());
-        }
-        else {
+        } else {
             System.out.println("DOGRULANMAMIS: ");
             System.out.println("SECURTIYCONTEXTHOLDER AUTH: " + authentication);
             System.out.println("AUTH NAME: " + authentication.getName());
@@ -72,32 +72,10 @@ public class AuthController {
     }
 
     @GetMapping("/authenticate")
-    public ResponseEntity<Boolean>  authenticate()
-    {
-        boolean isAuthenticated;
+    public Boolean authenticate() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication.isAuthenticated()  && !authentication.getName().equals("anonymousUser")) {
-            System.out.println("DOGRULANMIS: ");
-            System.out.println("SECURTIYCONTEXTHOLDER AUTH: " + authentication);
-            System.out.println("AUTH NAME: " + authentication.getName());
-            System.out.println("AUTH PRINCIPAL: " + authentication.getPrincipal());
-            System.out.println("AUTH CREDENTIALS: " + authentication.getCredentials());
-            System.out.println("AUTH DETAILS: " + authentication.getDetails());
-            Auth auth = (Auth) authentication.getPrincipal();
-            System.out.println("AUTHID: " + auth.getId());
-            isAuthenticated = true;
-        }
-        else {
-            System.out.println("DOGRULANMAMIS: ");
-            System.out.println("SECURTIYCONTEXTHOLDER AUTH: " + authentication);
-            System.out.println("AUTH NAME: " + authentication.getName());
-            System.out.println("AUTH PRINCIPAL: " + authentication.getPrincipal());
-            System.out.println("AUTH CREDENTIALS: " + authentication.getCredentials());
-            System.out.println("AUTH DETAILS: " + authentication.getDetails());
-            isAuthenticated = false;
-        }
-
-        return ResponseEntity.ok(isAuthenticated);
+         return (authentication != null && authentication.isAuthenticated() &&
+                !authentication.getName().equals("anonymousUser")) ?  true :  false;
     }
 
     @GetMapping("/load-user-by-username")
@@ -116,7 +94,7 @@ public class AuthController {
     @GetMapping("/find-by-id-with-tokens/{id}")
     public ResponseEntity<AuthWithTokensDTO> findByIdWithTokens(@PathVariable UUID id) {
         Auth auth = authService.findById(id);
-        if (auth  != null) {
+        if (auth != null) {
 
             List<TokenDTO> tokenDTOs = auth.getTokens().stream()
                     .map(token -> TokenDTO.builder()
@@ -189,12 +167,12 @@ public class AuthController {
     }
 
     @PostMapping("/reset-password")
-    ResponseEntity<HttpResponse> resetPassword(@RequestBody ForgotPasswordResetPasswordRequestDTO forgotPasswordResetPasswordRequestDTO) {
+    ResponseEntity<HttpResponse> resetPassword(@RequestBody ForgotPasswordResetPasswordRequestDTO
+                                                       forgotPasswordResetPasswordRequestDTO) {
         System.out.println("authService: " + forgotPasswordResetPasswordRequestDTO.toString());
         this.authService.resetPassword(forgotPasswordResetPasswordRequestDTO);
         return ResponseEntity.ok().build();
     }
-
 
 
 }

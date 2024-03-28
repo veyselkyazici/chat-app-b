@@ -11,7 +11,6 @@ import java.util.UUID;
 @NoArgsConstructor
 @Data
 @Builder
-public class FriendRequestReplyNotificationsResponseDTO {
-    private UUID friendId;
-    private String friendEmail;
+public class UserIdResponseDTO {
+    private UUID userId;
 }

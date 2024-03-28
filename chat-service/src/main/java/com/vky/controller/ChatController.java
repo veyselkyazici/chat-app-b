@@ -38,7 +38,7 @@ public class ChatController {
 
     @PostMapping("/get-chat-list")
     public ResponseEntity<List<ChatRoomResponseDTO>> getChatList(@RequestBody ChatListRequestDTO chatListRequestDTO) {
-        List<ChatRoomResponseDTO> chatRoomResponseDTOs = chatMessageService.getChatList(chatListRequestDTO.getUserId());
+        List<ChatRoomResponseDTO> chatRoomResponseDTOs = chatMessageService.getChatList(chatListRequestDTO.getToken());
         return ResponseEntity.ok(chatRoomResponseDTOs);
     }
 

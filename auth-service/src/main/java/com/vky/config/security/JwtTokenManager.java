@@ -26,32 +26,6 @@ public class JwtTokenManager {
     private long refreshExpiration;
 
 
-    //    public Optional<String> createToken(Auth auth)
-//    {
-//        String token = null;
-//        /**
-//         * "wwltFQ5$|dM;`C8Gv#{=3m3e_T{7,0Ck]xN!wlYr4xA5CAW/V^YwkN2\"nX=rPJ8";
-//         */
-//        String sifreAnahtari = "1234";
-//        try {
-//            /**
-//             * JWT icerisine hassas bilgilerinizi koymayiniz . Ornegin sifre gibi
-//             */
-//            token = JWT.create()
-//                    .withAudience()
-//                    .withClaim("id", auth.getId())
-//                    .withClaim("username", auth.getUsername())
-//                    .withClaim("password",encryptPassword(auth.getPassword()))
-//                    .withIssuer("veysel")
-//                    .withExpiresAt(new Date(System.currentTimeMillis() + 1000 * 60))
-//                    .withIssuedAt(new Date())
-//                    .sign(Algorithm.HMAC256(sifreAnahtari));
-//            return Optional.of(token);
-//        }catch (Exception e)
-//        {
-//            return Optional.empty();
-//        }
-//    }
     public String generateToken(Authentication auth, UUID authId) {
         return generateToken(new HashMap<>(), auth, authId);
     }
@@ -92,26 +66,20 @@ public class JwtTokenManager {
         return claimsResolver.apply(decodedJWT);
     }
 
-    public boolean isValidToken(String token, UserDetails userDetails) {
-        final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
+    public boolean isValidToken(String token) {
+        return isTokenExpired(token);
     }
 
     private boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(new Date());
+        return extractExpiration(token).after(new Date());
     }
 
     private Date extractExpiration(String token) {
         return extractClaim(token, DecodedJWT::getExpiresAt);
     }
 
-    public Map<String, Claim> getClaims(String token) {
-        Algorithm algorithm = Algorithm.HMAC256(secretKey);
-        JWTVerifier verifier = JWT.require(algorithm)
-                .build();
-        DecodedJWT decode = verifier.verify(token);
-        return decode == null ? null : decode.getClaims();
-    }
+
+
 
 
 }

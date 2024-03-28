@@ -58,36 +58,32 @@ public class UserController {
                                                       @RequestBody UpdateUserNameRequestDTO dto)
     {
 
-        TokenResponseDTO tokenResponseDto = userProfileService.authenticate(authorization);
-        if (tokenResponseDto.getTokenIsValid()) {
+        TokenResponseDTO tokenResponseDto = userProfileService.tokenExractAuthId(authorization);
+
             userProfileService.updateUserName(tokenResponseDto.getAuthId(), dto.getName());
             return ResponseEntity.ok(true);
-        }
-        return ResponseEntity.ok(false);
+
     }
     @PutMapping("/update-user-surname")
     public ResponseEntity<Boolean>  userSurnameUpdate(@RequestHeader(value = "Authorization", required = false, defaultValue = "") String authorization,
                                                             @RequestBody UpdateUserSurnameRequestDTO dto)
     {
         System.out.println(dto.getSurname());
-        TokenResponseDTO tokenResponseDto = userProfileService.authenticate(authorization);
-        if (tokenResponseDto.getTokenIsValid()) {
+        TokenResponseDTO tokenResponseDto = userProfileService.tokenExractAuthId(authorization);
+
             userProfileService.updateUserSurname(tokenResponseDto.getAuthId(), dto.getSurname());
             return ResponseEntity.ok(true);
-        }
-        return ResponseEntity.ok(false);
     }
 
     @PutMapping("/update-user-phone")
     public ResponseEntity<Boolean>  userPhoneUpdate(@RequestHeader(value = "Authorization", required = false, defaultValue = "") String authorization,
                                                             @RequestBody UpdateUserPhone dto)
     {
-        TokenResponseDTO tokenResponseDto = userProfileService.authenticate(authorization);
-        if (tokenResponseDto.getTokenIsValid()) {
+        TokenResponseDTO tokenResponseDto = userProfileService.tokenExractAuthId(authorization);
+
             userProfileService.updateUserPhone(tokenResponseDto.getAuthId(), dto.getPhoneNumber());
             return ResponseEntity.ok(true);
-        }
-        return ResponseEntity.ok(false);
+
     }
     
     @PutMapping("/update-user-about")
@@ -95,42 +91,35 @@ public class UserController {
                                                             @RequestBody UpdateUserAbout body)
     {
         System.out.println("ABOUT: " + body.getAbout());
-        TokenResponseDTO tokenResponseDto = userProfileService.authenticate(authorization);
-        if (tokenResponseDto.getTokenIsValid()) {
+        TokenResponseDTO tokenResponseDto = userProfileService.tokenExractAuthId(authorization);
+
             userProfileService.updateUserAbout(tokenResponseDto.getAuthId(), body.getAbout());
             return ResponseEntity.ok(true);
-        }
-        return ResponseEntity.ok(false);
     }
 
     @PostMapping("/find-by-keyword-ignore-case-users")
     public ResponseEntity<List<UserProfileDTO>> findByKeywordIgnoreCaseUsers(@RequestHeader(value = "Authorization", required = false, defaultValue = "") String authorization, @RequestBody SearchDTO search) {
 
-        TokenResponseDTO tokenResponseDto = userProfileService.authenticate(authorization);
-        if (tokenResponseDto.getTokenIsValid()) {
+        TokenResponseDTO tokenResponseDto = userProfileService.tokenExractAuthId(authorization);
             List<UserProfileDTO> userProfileDTOList = userProfileService.findByKeywordIgnoreCaseUsers(search.getEmailOrFirstNameOrLastName());
             return ResponseEntity.ok(userProfileDTOList);
-        }
-        return ResponseEntity.ok(null);
     }
 
-    @PostMapping("/find-ids")
-    public FeignClientIdsResponseDTO findIds(@RequestBody FeignClientIdsRequestDTO dto) {
-        System.out.println(dto);
-        TokenResponseDTO tokenResponseDto = userProfileService.authenticate(dto.getToken());
-        if (tokenResponseDto.getTokenIsValid()) {
-            return userProfileService.findIds(dto.getEmail(), tokenResponseDto.getAuthId());
-        }
-        return null;
+    @GetMapping("/feign-client-get-userId")
+    public TokenResponseDTO feignClientGetUserId(@RequestHeader("Authorization") String authorization) {
+        TokenResponseDTO tokenResponseDto = userProfileService.tokenExractAuthId(authorization);
+            return tokenResponseDto;
     }
-    @PostMapping("/get-user-id")
-    public UUID getUserId(@RequestBody String token) {
-        TokenResponseDTO tokenResponseDto = userProfileService.authenticate(token);
-        if (tokenResponseDto.getTokenIsValid()) {
-            return this.userProfileService.getUserId(tokenResponseDto.getAuthId());
-        }
-        return null;
+
+    @PostMapping("/get-userId")
+    public ResponseEntity<UserIdResponseDTO> getUserId(@RequestBody UserIdRequestDTO userIdRequestDTO) {
+        TokenResponseDTO tokenResponseDto = userProfileService.tokenExractAuthId(userIdRequestDTO.getToken());
+            UserIdResponseDTO userIdResponseDto = new UserIdResponseDTO();
+            userIdResponseDto.setUserId(tokenResponseDto.getUserId());
+            System.out.println("userIdResponseDto: " + userIdResponseDto);
+            return ResponseEntity.ok(userIdResponseDto);
     }
+
     @PostMapping("/get-user-list")
     public List<FeignClientUserProfileResponseDTO> getUserList(@RequestBody List<FeignClientUserProfileRequestDTO> userProfileRequestDTOList) {
         return this.userProfileService.getUserList(userProfileRequestDTOList);

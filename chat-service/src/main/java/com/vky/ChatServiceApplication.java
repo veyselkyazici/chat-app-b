@@ -3,11 +3,13 @@ package com.vky;
 import com.vky.repository.entity.ChatMessage;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.openfeign.EnableFeignClients;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @SpringBootApplication
+@EnableFeignClients
 public class ChatServiceApplication {
     public static void main(String[] args) {
         SpringApplication.run(ChatServiceApplication.class, args);

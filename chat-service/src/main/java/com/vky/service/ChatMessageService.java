@@ -5,6 +5,8 @@ import com.vky.dto.request.MessageRequestDTO;
 import com.vky.dto.response.ChatRoomMessageResponseDTO;
 import com.vky.dto.response.ChatRoomResponseDTO;
 import com.vky.dto.response.MessageFriendResponseDTO;
+import com.vky.dto.response.UserIdResponseDTO;
+import com.vky.manager.IUserManager;
 import com.vky.mapper.IChatMapper;
 import com.vky.repository.IChatMessageRepository;
 import com.vky.repository.entity.ChatMessage;
@@ -21,6 +23,7 @@ import java.util.stream.Collectors;
 public class ChatMessageService {
     private final IChatMessageRepository chatMessageRepository;
     private final ChatRoomService chatRoomService;
+    private final IUserManager userManager;
     private final SimpMessagingTemplate messagingTemplate;
 
     public void sendMessage(MessageRequestDTO messageRequestDTO) {
@@ -44,9 +47,11 @@ public class ChatMessageService {
     }
 
 
-    public List<ChatRoomResponseDTO> getChatList(String userId) {
-        List<ChatRoom> chatRooms = chatRoomService.findBySenderIdOrRecipientId(userId, userId);
-        System.out.println("userId" + userId);
+    public List<ChatRoomResponseDTO> getChatList(String token) {
+        UserIdResponseDTO userIdResponseDTO = this.userManager.feignClientGetUserId(token);
+
+        List<ChatRoom> chatRooms = chatRoomService.findBySenderIdOrRecipientId(userIdResponseDTO.getUserId().toString(), userIdResponseDTO.getUserId().toString());
+        System.out.println("userId" + userIdResponseDTO.getUserId());
         System.out.println("chatRooms: " + chatRooms);
         List<ChatRoomResponseDTO> chatRoomResponseDTOs = new ArrayList<>();
 

@@ -1,4 +1,4 @@
-package com.vky.dto.response;
+package com.vky.dto.request;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,7 +9,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Data
 @Builder
-public class UserResponseDTO {
-    private String email;
-    private String about;
+public class UserIdRequestDTO {
+    private String token;
 }

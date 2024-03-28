@@ -52,34 +52,16 @@ public class UserProfileService {
 
     }
 
-    public TokenResponseDTO authenticate(String authorization) {
+    public TokenResponseDTO tokenExractAuthId(String authorization) {
         TokenResponseDTO responseDTO = new TokenResponseDTO();
-        try {
-            if (authorization == null || authorization.isEmpty()) {
-                throw new AuthenticationException(ErrorType.AUTHORIZATION_EMPTY);
-            }
-            if (!authorization.startsWith("Bearer ")) {
-                throw new AuthenticationException(ErrorType.INVALID_AUTHORIZATION_FORMAT);
-            }
-            String token = authorization.substring(7);
-            System.out.println(this.jwtTokenManager.isValidToken(token));
-            if (this.jwtTokenManager.isValidToken(token)) {
-                UUID authId = jwtTokenManager.extractAuthId(token);
-                String email = jwtTokenManager.extractUsername(token);
-                responseDTO.setAuthId(authId);
-                responseDTO.setEmail(email);
-                responseDTO.setTokenIsValid(true);
-                responseDTO.setMessage("Valid Token");
-            } else {
-                responseDTO.setAuthId(null);
-                responseDTO.setEmail(null);
-                responseDTO.setTokenIsValid(false);
-                responseDTO.setMessage("Inalid Token");
-            }
-        } catch (Exception e) {
-            responseDTO.setTokenIsValid(false);
-            responseDTO.setMessage("Authentication failed: " + e.getMessage());
-        }
+        String token = authorization.substring(7);
+        UUID authId = jwtTokenManager.extractAuthId(token);
+        Optional<UserProfile> userProfile = userProfileRepository.findByAuthId(authId);
+        userProfile.ifPresent(user -> {
+            responseDTO.setUserId(user.getId());
+            responseDTO.setAuthId(user.getAuthId());
+            responseDTO.setEmail(user.getEmail());
+        });
         return responseDTO;
     }
 
@@ -125,24 +107,6 @@ public class UserProfileService {
                 .toList();
     }
 
-    public FeignClientIdsResponseDTO findIds(String email, UUID authId) {
-        Optional<UserProfile> userOptional = this.userProfileRepository.findByAuthId(authId);
-        UserProfile friend = this.userProfileRepository.findByEmailIgnoreCase(email);
-        if (userOptional.isEmpty() || friend == null) {
-            return null;
-        }
-        UserProfile user = userOptional.get();
-        return FeignClientIdsResponseDTO.builder()
-                .userId(user.getId())
-                .friendUserId(friend.getId())
-                .friendUserEmail(friend.getEmail())
-                .userEmail(user.getEmail())
-                .build();
-    }
-    public UUID getUserId(UUID authId) {
-        Optional<UserProfile> userProfile = this.userProfileRepository.findByAuthId(authId);
-        return userProfile.get().getId();
-    }
 
     public List<FeignClientUserProfileResponseDTO> getUserList(List<FeignClientUserProfileRequestDTO> userProfileRequestDTOList) {
         List<UUID> userIdList = userProfileRequestDTOList.stream()

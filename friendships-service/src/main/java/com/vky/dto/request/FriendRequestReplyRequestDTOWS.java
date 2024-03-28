@@ -14,5 +14,5 @@ import java.util.UUID;
 public class FriendRequestReplyRequestDTOWS {
     private boolean isAccepted;
     private UUID userId;
-    private UUID friendUserId;
+    private UUID friendId;
 }
