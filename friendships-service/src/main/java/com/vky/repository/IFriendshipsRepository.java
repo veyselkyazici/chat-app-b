@@ -11,21 +11,21 @@ import java.util.UUID;
 
 public interface IFriendshipsRepository extends JpaRepository<Friendships, UUID> {
     @Query("SELECT CASE WHEN COUNT(f) > 0 THEN true ELSE false END FROM Friendships f " +
-                "WHERE f.userId = :userId AND f.friendUserId = :friendUserId")
-    boolean existsByUserIdAndFriendUserId(@Param("userId") UUID userId, @Param("friendUserId") UUID friendUserId);
+                "WHERE f.userId = :userId AND f.friendId = :friendId")
+    boolean existsByUserIdAndFriendId(@Param("userId") UUID userId, @Param("friendId") UUID friendId);
 
-    List<Friendships> findByUserId(UUID userId);
+    List<Friendships> findByUserIdAndFriendshipStatus(UUID userId, FriendshipStatus friendshipStatus);
 
     @Query("SELECT f FROM Friendships f " +
-            "WHERE f.friendUserId = :friendUserId " +
+            "WHERE f.friendId = :friendId " +
             "AND f.friendshipStatus = :friendshipStatus " +
             "ORDER BY f.createdAt DESC")
     List<Friendships> findSentFriendshipsOrderByCreatedAtDesc(
-            @Param("friendUserId") UUID friendUserId,
+            @Param("friendId") UUID friendId,
             @Param("friendshipStatus") FriendshipStatus friendshipStatus
     );
 
-    Optional<Friendships> findOptionalByUserIdAndFriendUserId(UUID userId, UUID friendUserId);
+    Optional<Friendships> findOptionalByUserIdAndFriendId(UUID userId, UUID friendId);
     @Query("SELECT f FROM Friendships f " +
             "WHERE f.userId = :userId " +
             "AND f.friendshipStatus = :friendshipStatus " +

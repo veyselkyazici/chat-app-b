@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2024-03-18T02:54:13+0300",
+    date = "2024-03-28T08:29:25+0300",
     comments = "version: 1.5.5.Final, compiler: IncrementalProcessingEnvironment from gradle-language-java-7.5.1.jar, environment: Java 18.0.2.1 (Oracle Corporation)"
 )
 @Component
@@ -81,8 +81,6 @@ public class IFriendshipsMapperImpl implements IFriendshipsMapper {
 
         FeignClientUserProfileRequestDTO.FeignClientUserProfileRequestDTOBuilder feignClientUserProfileRequestDTO = FeignClientUserProfileRequestDTO.builder();
 
-        feignClientUserProfileRequestDTO.friendUserId( friendships.getFriendUserId() );
-
         return feignClientUserProfileRequestDTO.build();
     }
 
@@ -106,6 +104,7 @@ public class IFriendshipsMapperImpl implements IFriendshipsMapper {
         AwaitingApprovalResponseDTO.AwaitingApprovalResponseDTOBuilder awaitingApprovalResponseDTO = AwaitingApprovalResponseDTO.builder();
 
         awaitingApprovalResponseDTO.userId( friendships.getUserId() );
+        awaitingApprovalResponseDTO.friendId( friendships.getFriendId() );
         awaitingApprovalResponseDTO.userEmail( friendships.getUserEmail() );
 
         return awaitingApprovalResponseDTO.build();
@@ -118,8 +117,8 @@ public class IFriendshipsMapperImpl implements IFriendshipsMapper {
 
         FriendRequestReplyNotificationsResponseDTO.FriendRequestReplyNotificationsResponseDTOBuilder friendRequestReplyNotificationsResponseDTO = FriendRequestReplyNotificationsResponseDTO.builder();
 
-        friendRequestReplyNotificationsResponseDTO.friendUserId( friendships.getFriendUserId() );
-        friendRequestReplyNotificationsResponseDTO.friendUserEmail( friendships.getFriendUserEmail() );
+        friendRequestReplyNotificationsResponseDTO.friendId( friendships.getFriendId() );
+        friendRequestReplyNotificationsResponseDTO.friendEmail( friendships.getFriendEmail() );
 
         return friendRequestReplyNotificationsResponseDTO.build();
     }

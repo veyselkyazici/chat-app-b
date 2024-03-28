@@ -14,5 +14,6 @@ import java.util.UUID;
 @Builder
 public class AwaitingApprovalResponseDTO {
     private UUID userId;
+    private UUID friendId;
     private String userEmail;
 }

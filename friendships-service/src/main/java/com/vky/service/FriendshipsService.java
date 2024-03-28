@@ -8,6 +8,7 @@ import com.vky.repository.FriendshipStatus;
 import com.vky.repository.IFriendshipsRepository;
 import com.vky.repository.entity.Friendships;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.tool.schema.internal.exec.ScriptTargetOutputToFile;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
@@ -43,26 +44,27 @@ public class FriendshipsService {
 //    }
 
     public void addToFriends(FriendRequestRequestDTOWS dto) {
-        FeignClientIdsResponseDTO responseDTO = this.userManager.findIds(FeignClientIdsRequestDTO.builder().email(dto.getEmail())
-                .token(dto.getToken()).build());
-        System.out.println(responseDTO);
-        System.out.println(!this.friendshipsRepository.existsByUserIdAndFriendUserId(responseDTO.getUserId(), responseDTO.getFriendUserId()));
-        if(!this.friendshipsRepository.existsByUserIdAndFriendUserId(responseDTO.getUserId(), responseDTO.getFriendUserId())) {
+        TokenResponseDTO tokenResponseDTO = this.userManager.feignClientGetUserId(dto.getToken());
+        System.out.println(tokenResponseDTO);
+        System.out.println(!this.friendshipsRepository.existsByUserIdAndFriendId(tokenResponseDTO.getUserId(), dto.getFriendId()));
+        if(!this.friendshipsRepository.existsByUserIdAndFriendId(tokenResponseDTO.getUserId(), dto.getFriendId())) {
             System.out.println("iffffffffffffffffffff");
-            friendshipsRepository.save(Friendships.builder()
-                    .userId(responseDTO.getUserId())
-                    .friendUserId(responseDTO.getFriendUserId())
-                    .friendUserEmail(responseDTO.getFriendUserEmail())
+            Friendships friendships = friendshipsRepository.save(Friendships.builder()
+                    .userId(tokenResponseDTO.getUserId())
+                    .friendId(dto.getFriendId())
+                    .friendEmail(dto.getFriendEmail())
                     .friendshipStatus(FriendshipStatus.SENT)
-                    .userEmail(responseDTO.getUserEmail())
+                    .userEmail(tokenResponseDTO.getEmail())
                     .build());
-            messagingTemplate.convertAndSendToUser(responseDTO.getFriendUserId().toString(),"/queue/friend-request-friend-response", FriendRequestNotification.builder().senderId(responseDTO.getUserId()).recipientId(responseDTO.getFriendUserId()).build());
-            messagingTemplate.convertAndSendToUser(responseDTO.getUserId().toString(),"/queue/friend-request-user-response", HttpResponse.builder()
+            System.out.println("Arkadas istegini gonderen Kullanici: " + friendships.getUserId().toString() + " EMAIL: " + friendships.getUserEmail());
+            messagingTemplate.convertAndSendToUser(friendships.getFriendId().toString(),"/queue/friend-request-friend-response", FriendRequestNotification.builder().senderId(friendships.getUserId()).recipientId(friendships.getFriendId()).build());
+            System.out.println("Arkadaslik istegini alan Kullanici: " + friendships.getFriendId().toString() + " EMAIL: " + friendships.getFriendEmail());
+            messagingTemplate.convertAndSendToUser(friendships.getUserId().toString(),"/queue/friend-request-user-response", HttpResponse.builder()
                     .message("Arkadaş Ekleme İsteği Gönderildi")
                     .statusCode(200).build());
         } else {
             System.out.println("elseeeeeeeeeeeeeeeeeeeeeeeee");
-            messagingTemplate.convertAndSendToUser(responseDTO.getUserId().toString(),"/queue/friend-request-user-response", HttpResponse.builder()
+            messagingTemplate.convertAndSendToUser(tokenResponseDTO.getUserId().toString(),"/queue/friend-request-user-response", HttpResponse.builder()
                     .message("Arkadaş Ekleme İsteği Zaten Gönderilmiş")
                     .statusCode(400).build());
         }
@@ -87,10 +89,11 @@ public class FriendshipsService {
 //        System.out.println("mapUserResponseDTOS: " + mapUserResponseDTOS);
 //        return mapUserResponseDTOS;
 //    }
-public List<FeignClientUserProfileResponseDTO> getFriendList(GetFriendListRequestDTO getFriendListRequestDTO) {
-    UUID userId = this.userManager.getUserId(getFriendListRequestDTO.getToken());
-    System.out.println("USERID: " + userId);
-    List<Friendships> friendships = this.friendshipsRepository.findByUserId(userId);
+public List<FeignClientUserProfileResponseDTO> getFriendList(String authorization) {
+    System.out.println("AUTHORIZATION: " + authorization);
+    TokenResponseDTO tokenResponseDTO = this.userManager.feignClientGetUserId(authorization);
+    System.out.println("USERIDDDDDDDDDDDD>>>>>>>>>> " + tokenResponseDTO);
+    List<Friendships> friendships = this.friendshipsRepository.findByUserIdAndFriendshipStatus(tokenResponseDTO.getUserId(), FriendshipStatus.APPROVED);
     System.out.println("Friendships: " + friendships);
 
     List<FeignClientUserProfileRequestDTO> userProfileRequestDTOList = IFriendshipsMapper.INSTANCE.toResponseLists(friendships);
@@ -101,29 +104,34 @@ public List<FeignClientUserProfileResponseDTO> getFriendList(GetFriendListReques
     return userResponseDTOS;
 }
 
-    public List<AwaitingApprovalResponseDTO> awaitingApproval(AwaitingApprovalRequestDTO dto) {
-        List<Friendships> friendshipsList = this.friendshipsRepository.findSentFriendshipsOrderByCreatedAtDesc(dto.getFriendUserId(), FriendshipStatus.SENT);
+    public List<AwaitingApprovalResponseDTO> awaitingApproval(String authorization) {
+        TokenResponseDTO tokenResponseDTO = this.userManager.feignClientGetUserId(authorization);
+        List<Friendships> friendshipsList = this.friendshipsRepository.findSentFriendshipsOrderByCreatedAtDesc(tokenResponseDTO.getUserId(), FriendshipStatus.SENT);
         return IFriendshipsMapper.INSTANCE.toResponseList(friendshipsList);
     }
 
     public void friendRequestReply(FriendRequestReplyRequestDTOWS friendRequestReplyDTOWS) {
-        Optional<Friendships> friendships = friendshipsRepository.findOptionalByUserIdAndFriendUserId(friendRequestReplyDTOWS.getUserId(), friendRequestReplyDTOWS.getFriendUserId());
+        System.out.println("REQUESTDTO: "+ friendRequestReplyDTOWS);
+        Optional<Friendships> friendships = friendshipsRepository.findOptionalByUserIdAndFriendId(friendRequestReplyDTOWS.getUserId(), friendRequestReplyDTOWS.getFriendId());
         if (friendRequestReplyDTOWS.isAccepted() && friendships.isPresent()){
+            System.out.println("APPROVED IF");
             friendships.get().setFriendshipStatus(FriendshipStatus.APPROVED);
-            Friendships reverseFriendships = Friendships.builder().friendshipStatus(FriendshipStatus.APPROVED).friendUserEmail(friendships.get().getUserEmail()).friendUserId(friendships.get().getUserId()).userEmail(friendships.get().getFriendUserEmail()).userId(friendships.get().getFriendUserId()).build();
+            Friendships reverseFriendships = Friendships.builder().friendshipStatus(FriendshipStatus.APPROVED).friendEmail(friendships.get().getUserEmail()).friendId(friendships.get().getUserId()).userEmail(friendships.get().getFriendEmail()).userId(friendships.get().getFriendId()).build();
             friendshipsRepository.save(reverseFriendships);
             friendshipsRepository.save(friendships.get());
-            messagingTemplate.convertAndSendToUser(friendships.get().getUserId().toString(),"/queue/friend-request-reply-notification-user-response", friendships.get().getFriendUserEmail());
-            messagingTemplate.convertAndSendToUser(friendships.get().getFriendUserId().toString(),"/queue/friend-request-reply-notification-friend-response", friendships.get().getUserEmail());
+            messagingTemplate.convertAndSendToUser(friendships.get().getUserId().toString(),"/queue/friend-request-reply-notification-user-response", friendships.get().getFriendEmail());
+            messagingTemplate.convertAndSendToUser(friendships.get().getFriendId().toString(),"/queue/friend-request-reply-notification-friend-response", friendships.get().getUserEmail());
         } else {
+            System.out.println("APPROVED ELSE");
             friendships.get().setFriendshipStatus(FriendshipStatus.DENIED);
             friendshipsRepository.save(friendships.get());
         }
     }
 
-    public List<FriendRequestReplyNotificationsResponseDTO> friendRequestReplyNotifications(FriendRequestReplyNotificationRequestDTOWS dto) {
-        Optional<List<Friendships>> friendshipsList = this.friendshipsRepository.friendRequestReplyNotifications(dto.getUserId(), FriendshipStatus.APPROVED);
-        System.out.println("asdfasdfasdfasdfad");
+    public List<FriendRequestReplyNotificationsResponseDTO> friendRequestReplyNotifications(String authorization) {
+        TokenResponseDTO tokenResponseDTO = this.userManager.feignClientGetUserId(authorization);
+        Optional<List<Friendships>> friendshipsList = this.friendshipsRepository.friendRequestReplyNotifications(tokenResponseDTO.getUserId(), FriendshipStatus.APPROVED);
         return IFriendshipsMapper.INSTANCE.toReplyResponseList(friendshipsList.orElse(null));
     }
+
 }

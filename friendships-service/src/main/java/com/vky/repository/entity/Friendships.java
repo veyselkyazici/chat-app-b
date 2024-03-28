@@ -20,8 +20,8 @@ import java.util.UUID;
 public class Friendships extends BaseEntity{
     private UUID userId;
     private String userEmail;
-    private UUID friendUserId;
-    private String friendUserEmail;
+    private UUID friendId;
+    private String friendEmail;
     @Enumerated(EnumType.STRING)
     @Column(name = "friendship_status")
     private FriendshipStatus friendshipStatus;

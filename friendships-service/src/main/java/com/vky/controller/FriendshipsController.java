@@ -23,19 +23,20 @@ public class FriendshipsController {
 //        return ResponseEntity.ok(friendshipsService.addToFriends(friendRequestDto));
 //    }
 
-    @PostMapping("/get-friend-list")
-    public ResponseEntity<List<FeignClientUserProfileResponseDTO>> getFriendList(@RequestBody GetFriendListRequestDTO getFriendListRequestDTO) {
-        System.out.println(getFriendListRequestDTO);
-        return ResponseEntity.ok(friendshipsService.getFriendList(getFriendListRequestDTO));
+    @GetMapping("/get-friend-list")
+    public ResponseEntity<List<FeignClientUserProfileResponseDTO>> getFriendList(@RequestHeader("Authorization") String authorization) {
+        System.out.println("authorization: " + authorization);
+        return ResponseEntity.ok(friendshipsService.getFriendList(authorization));
     }
     @MessageMapping("/add-friend")
     public void sendFriendRequest(@RequestBody FriendRequestRequestDTOWS friendRequestRequestDtoWS) {
+        System.out.println("friend request: " + friendRequestRequestDtoWS);
         friendshipsService.addToFriends(friendRequestRequestDtoWS);
     }
 
     @PostMapping("/awaiting-approval")
-    public ResponseEntity<List<AwaitingApprovalResponseDTO>> awaitingApproval(@RequestBody AwaitingApprovalRequestDTO dto) {
-        List<AwaitingApprovalResponseDTO> awaitingApprovalResponseDTOS = friendshipsService.awaitingApproval(dto);
+    public ResponseEntity<List<AwaitingApprovalResponseDTO>> awaitingApproval(@RequestHeader("Authorization") String authorization) {
+        List<AwaitingApprovalResponseDTO> awaitingApprovalResponseDTOS = friendshipsService.awaitingApproval(authorization);
         return ResponseEntity.ok(awaitingApprovalResponseDTOS);
     }
     @MessageMapping("/friend-request-reply")
@@ -43,10 +44,8 @@ public class FriendshipsController {
         friendshipsService.friendRequestReply(friendRequestReplyDTOWS);
     }
     @PostMapping("/friend-request-reply-notification")
-    public ResponseEntity<List<FriendRequestReplyNotificationsResponseDTO>> friendRequestReplyNotifications(@RequestBody FriendRequestReplyNotificationRequestDTOWS dto) {
-        System.out.println("AAAAAAAAAAAAAAA");
-        List<FriendRequestReplyNotificationsResponseDTO> friendRequestReplyNotificationsResponseDTOS = friendshipsService.friendRequestReplyNotifications(dto);
-        System.out.println("friend: " + friendRequestReplyNotificationsResponseDTOS);
+    public ResponseEntity<List<FriendRequestReplyNotificationsResponseDTO>> friendRequestReplyNotifications(@RequestHeader("Authorization") String authorization) {
+        List<FriendRequestReplyNotificationsResponseDTO> friendRequestReplyNotificationsResponseDTOS = friendshipsService.friendRequestReplyNotifications(authorization);
         return ResponseEntity.ok(friendRequestReplyNotificationsResponseDTOS);
     }
 }

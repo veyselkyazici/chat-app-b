@@ -13,7 +13,5 @@ import java.util.UUID;
 @Builder
 public class FeignClientIdsResponseDTO {
     private UUID userId;
-    private UUID friendUserId;
     private String userEmail;
-    private String friendUserEmail;
 }
