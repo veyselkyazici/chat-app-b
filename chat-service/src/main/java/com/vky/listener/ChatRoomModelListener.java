@@ -20,9 +20,9 @@ public class ChatRoomModelListener extends AbstractMongoEventListener<ChatRoom> 
         super.onBeforeConvert(event);
         ChatRoom chatRoom = event.getSource();
 
-        String senderId = chatRoom.getSenderId();
-        String recipientId = chatRoom.getRecipientId();
-        String id = String.join("_", senderId, recipientId);
+        String userId = chatRoom.getUserId();
+        String friendId = chatRoom.getFriendId();
+        String id = String.join("_", userId, friendId);
         chatRoom.setId(id);
     }
 }

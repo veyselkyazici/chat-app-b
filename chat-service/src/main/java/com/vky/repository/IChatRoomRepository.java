@@ -8,6 +8,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 public interface IChatRoomRepository extends MongoRepository<ChatRoom, String> {
-    Optional<ChatRoom> findById(String id);
-    List<ChatRoom> findBySenderIdOrRecipientId(String senderId, String recipientId);
+    List<ChatRoom> findByUserIdOrFriendId(String userId, String friendId);
+    ChatRoom findByUserIdAndFriendIdOrFriendIdAndUserId(String userId1, String friendId1, String friendId2, String userId2);
 }

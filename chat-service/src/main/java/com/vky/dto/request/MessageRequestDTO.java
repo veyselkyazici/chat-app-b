@@ -19,5 +19,4 @@ public class MessageRequestDTO {
     private String senderId;
     private String recipientId;
     private String fullDateTime;
-    private String timeOnly;
 }

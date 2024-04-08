@@ -53,6 +53,7 @@ public class UserProfileService {
     }
 
     public TokenResponseDTO tokenExractAuthId(String authorization) {
+        System.out.println("AUTHORIZATION: " + authorization);
         TokenResponseDTO responseDTO = new TokenResponseDTO();
         String token = authorization.substring(7);
         UUID authId = jwtTokenManager.extractAuthId(token);
@@ -110,7 +111,7 @@ public class UserProfileService {
 
     public List<FeignClientUserProfileResponseDTO> getUserList(List<FeignClientUserProfileRequestDTO> userProfileRequestDTOList) {
         List<UUID> userIdList = userProfileRequestDTOList.stream()
-                .map(FeignClientUserProfileRequestDTO::getFriendUserId)
+                .map(FeignClientUserProfileRequestDTO::getFriendId)
                 .collect(Collectors.toList());
 
         List<UserProfile> userProfiles = this.userProfileRepository.findAllById(userIdList);
@@ -126,6 +127,8 @@ public class UserProfileService {
                         .build())
                 .collect(Collectors.toList());
     }
-
+    public UserProfile getUserById(UUID userId) {
+        return this.userProfileRepository.findById(userId).orElseThrow(() -> new NoSuchElementException("User not found witdh ID: " + userId));
+    }
 
 }

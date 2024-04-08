@@ -5,6 +5,7 @@ import com.vky.dto.response.*;
 import com.vky.exception.ErrorType;
 import com.vky.exception.UserManagerException;
 import com.vky.manager.IAuthManager;
+import com.vky.repository.entity.UserProfile;
 import com.vky.service.UserProfileService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -106,13 +107,13 @@ public class UserController {
     }
 
     @GetMapping("/feign-client-get-userId")
-    public TokenResponseDTO feignClientGetUserId(@RequestHeader("Authorization") String authorization) {
+    public TokenResponseDTO feignClientGetUserByToken(@RequestHeader("Authorization") String authorization) {
         TokenResponseDTO tokenResponseDto = userProfileService.tokenExractAuthId(authorization);
             return tokenResponseDto;
     }
 
     @PostMapping("/get-userId")
-    public ResponseEntity<UserIdResponseDTO> getUserId(@RequestBody UserIdRequestDTO userIdRequestDTO) {
+    public ResponseEntity<UserIdResponseDTO> getUserIdByToken(@RequestBody UserIdRequestDTO userIdRequestDTO) {
         TokenResponseDTO tokenResponseDto = userProfileService.tokenExractAuthId(userIdRequestDTO.getToken());
             UserIdResponseDTO userIdResponseDto = new UserIdResponseDTO();
             userIdResponseDto.setUserId(tokenResponseDto.getUserId());
@@ -120,9 +121,21 @@ public class UserController {
             return ResponseEntity.ok(userIdResponseDto);
     }
 
+    @PostMapping("/get-userEmail-ById")
+    public String getUserEmailById(@RequestBody UUID userId) {
+        UserProfile userProfile = this.userProfileService.getUserById(userId);
+        return userProfile.getEmail();
+    }
+
     @PostMapping("/get-user-list")
     public List<FeignClientUserProfileResponseDTO> getUserList(@RequestBody List<FeignClientUserProfileRequestDTO> userProfileRequestDTOList) {
         return this.userProfileService.getUserList(userProfileRequestDTOList);
+    }
+
+    @GetMapping("/feign-client-get-user")
+    public TokenResponseDTO feignClientGetUser(@RequestHeader("Authorization") String authorization) {
+        TokenResponseDTO tokenResponseDto = userProfileService.tokenExractAuthId(authorization);
+        return tokenResponseDto;
     }
 }
 

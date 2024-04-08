@@ -13,7 +13,7 @@ ext {
             springCloudCircuitBreaker: "3.0.3",
             mongoDB                 : "3.2.1",
             webSocket               : "3.2.1",
-
+            jacksonDataType         : "2.17.0",
 
     ]
 
@@ -56,6 +56,7 @@ ext {
             mapstructProcessor                     : "org.mapstruct:mapstruct-processor:$versions.mapstruct",
             lombokMapstructBinding                 : "org.projectlombok:lombok-mapstruct-binding:$versions.lombokMapstructBinding",
             openApi                                : "org.springdoc:springdoc-openapi-starter-webmvc-ui:$versions.openApi",
-            javaJWT                                : "com.auth0:java-jwt:$versions.javaJWT"
+            javaJWT                                : "com.auth0:java-jwt:$versions.javaJWT",
+            jacksonDataType                        : "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$versions.jacksonDataType"
     ]
 }

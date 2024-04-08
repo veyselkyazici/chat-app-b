@@ -6,7 +6,6 @@ spring:
     name: chat-service
   profiles:
     active: ${ACTIVE_PROFILE:dev}
-
   eureka:
     client:
       serviceUrl:

@@ -1,6 +1,5 @@
 package com.vky.config;
 
-
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.annotation.Bean;
@@ -11,10 +10,8 @@ import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
 
 @Configuration
 public class GatewayConfig {
-
     @Bean
     public RouteLocator routeLocator(RouteLocatorBuilder builder, AuthenticationFilter authenticationFilter) {
-        System.out.println("aaaaaaaaaaaaaa");
         return builder.routes()
                 .route("auth-service", r -> r.path("/api/v1/auth/**")
                         .uri("lb://auth-service"))
@@ -33,7 +30,7 @@ public class GatewayConfig {
     @Bean
     public CorsWebFilter corsWebFilter() {
         CorsConfiguration corsConfig = new CorsConfiguration();
-        corsConfig.addAllowedOrigin("*"); // Güvenlik nedeniyle, özel origin'leri belirtmeniz önerilir
+        corsConfig.addAllowedOrigin("*");
         corsConfig.addAllowedMethod("*");
         corsConfig.addAllowedHeader("*");
 
@@ -42,5 +39,6 @@ public class GatewayConfig {
 
         return new CorsWebFilter(source);
     }
+
 }
 
