@@ -12,5 +12,5 @@ import java.util.UUID;
 @Data
 @Builder
 public class FeignClientUserProfileRequestDTO {
-    private UUID friendUserId;
+    private UUID friendId;
 }

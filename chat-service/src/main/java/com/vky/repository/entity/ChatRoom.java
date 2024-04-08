@@ -15,7 +15,7 @@ import java.util.UUID;
 @EqualsAndHashCode(callSuper = true)
 @Document
 public class ChatRoom extends ChatRoomBaseEntity{
-    private String senderId;
-    private String recipientId;
+    private String userId;
+    private String friendId;
 
 }

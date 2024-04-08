@@ -9,6 +9,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class ChatListRequestDTO {
+public class ChatRequestDTO {
     private String userId;
+    private String friendEmail;
+    private String friendId;
 }

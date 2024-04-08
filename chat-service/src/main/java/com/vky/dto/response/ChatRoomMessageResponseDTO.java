@@ -18,8 +18,7 @@ public class ChatRoomMessageResponseDTO {
     private String chatRoomId;
     private String senderId;
     private String recipientId;
-    private String message;
+    private String messageContent;
     private LocalDateTime fullDateTime;
-    private LocalTime timeOnly;
     private boolean isSeen;
 }

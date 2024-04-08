@@ -14,7 +14,9 @@ import java.util.UUID;
 @NoArgsConstructor
 public class ChatRoomResponseDTO {
     private String id;
-    private String senderId;
-    private String recipientId;
+    private String userId;
+    private String friendId;
+    private String friendEmail;
+    private String image;
     private List<ChatRoomMessageResponseDTO> messages;
 }

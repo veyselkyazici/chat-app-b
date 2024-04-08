@@ -3,6 +3,7 @@ package com.vky;
 import com.vky.repository.entity.ChatMessage;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 
 import java.time.LocalDateTime;
@@ -15,12 +16,12 @@ public class ChatServiceApplication {
         SpringApplication.run(ChatServiceApplication.class, args);
 
 
-        ChatMessage message1 = ChatMessage.builder()
+/*        ChatMessage message1 = ChatMessage.builder()
                 .id("1234")
                 .chatRoomId("room1")
                 .senderId("sender1")
                 .recipientId("recipient1")
-                .message("Hello")
+                .messageContent("Hello")
                 .isSeen(false)
                 .fullDateTime(LocalDateTime.now())
                 .timeOnly(LocalTime.now())
@@ -31,7 +32,7 @@ public class ChatServiceApplication {
                 .chatRoomId("room1")
                 .senderId("sender1")
                 .recipientId("recipient1")
-                .message("Hello")
+                .messageContent("Hello")
                 .isSeen(false)
                 .fullDateTime(LocalDateTime.now())
                 .timeOnly(LocalTime.now())
@@ -43,6 +44,6 @@ public class ChatServiceApplication {
         System.out.println("message2.hashCode(): " + message2.hashCode());
 
         System.out.println("message1 ID: " + message1.getId());
-        System.out.println("message2 ID: " + message2.getId());
+        System.out.println("message2 ID: " + message2.getId());*/
     }
 }
