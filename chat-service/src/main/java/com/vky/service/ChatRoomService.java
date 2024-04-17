@@ -77,9 +77,7 @@ public class ChatRoomService {
 
     public void sendMessage(MessageRequestDTO messageRequestDTO) {
         //TokenResponseDTO tokenResponseDTO = userManager.feignClientGetUserId(messageRequestDTO.getSenderToken());
-        System.out.println("USERID> " + messageRequestDTO.getSenderId());
-        System.out.println("FRIENDID > " + messageRequestDTO.getRecipientId());
-        System.out.println("--------------------------------");
+
         ChatRoom chatRoom = getChatRoomId(messageRequestDTO.getSenderId(), messageRequestDTO.getRecipientId());
         if(chatRoom == null) {
              chatRoom = chatRoomSave(messageRequestDTO.getSenderId(), messageRequestDTO.getRecipientId());

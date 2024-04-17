@@ -7,7 +7,10 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
+import java.util.Date;
 
 
 @Data
@@ -22,5 +25,5 @@ public class ChatMessage extends BaseEntity{
     private String recipientId;
     private String messageContent;
     private boolean isSeen;
-    private LocalDateTime fullDateTime;
+    private Instant fullDateTime;
 }
