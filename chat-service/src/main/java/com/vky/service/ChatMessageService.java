@@ -2,7 +2,6 @@ package com.vky.service;
 
 import com.vky.dto.request.MessageRequestDTO;
 import com.vky.dto.response.MessageFriendResponseDTO;
-import com.vky.dto.response.TokenResponseDTO;
 import com.vky.mapper.IChatMapper;
 import com.vky.repository.IChatMessageRepository;
 import com.vky.repository.entity.ChatMessage;
@@ -10,9 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZoneId;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -23,13 +20,15 @@ public class ChatMessageService {
     private final SimpMessagingTemplate messagingTemplate;
 
     public void sendMessage(MessageRequestDTO messageRequestDTO, String chatRoomId) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
+        System.out.println("DATE: " + messageRequestDTO.getFullDateTime());
+        Instant fullDateTime = Instant.parse(messageRequestDTO.getFullDateTime());
+        System.out.println("FULLDATETIME: " + fullDateTime);
         ChatMessage chatMessage = this.chatMessageRepository.save(ChatMessage.builder()
                 .messageContent(messageRequestDTO.getMessageContent())
                 .senderId(messageRequestDTO.getSenderId())
                 .recipientId(messageRequestDTO.getRecipientId())
                 .isSeen(false).chatRoomId(chatRoomId)
-                .fullDateTime(LocalDateTime.parse(messageRequestDTO.getFullDateTime(), formatter))
+                .fullDateTime(fullDateTime)
                 .build());
 
         MessageFriendResponseDTO messageFriendResponseDTO = IChatMapper.INSTANCE.toResponseDTO(chatMessage);
