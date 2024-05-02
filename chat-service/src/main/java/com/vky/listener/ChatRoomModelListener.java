@@ -6,6 +6,8 @@ import org.springframework.data.mongodb.core.mapping.event.AbstractMongoEventLis
 import org.springframework.data.mongodb.core.mapping.event.BeforeConvertEvent;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 public class ChatRoomModelListener extends AbstractMongoEventListener<ChatRoom> {
 
@@ -20,8 +22,9 @@ public class ChatRoomModelListener extends AbstractMongoEventListener<ChatRoom> 
         super.onBeforeConvert(event);
         ChatRoom chatRoom = event.getSource();
 
-        String userId = chatRoom.getUserId();
-        String friendId = chatRoom.getFriendId();
+        List<String> participantIds = chatRoom.getParticipantIds();
+        String userId = participantIds.get(0);
+        String friendId = participantIds.get(1);
         String id = String.join("_", userId, friendId);
         chatRoom.setId(id);
     }

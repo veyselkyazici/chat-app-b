@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Data
@@ -12,8 +13,10 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 public class MessageFriendResponseDTO {
+    private String id;
     private String chatRoomId;
     private String senderId;
     private String recipientId;
-    private String message;
+    private String messageContent;
+    private String fullDateTime;
 }
