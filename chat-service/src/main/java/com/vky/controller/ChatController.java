@@ -33,11 +33,11 @@ public class ChatController {
         return ResponseEntity.ok(chatRoomResponseDTOs);
     }
 
-    @PostMapping("/get-chat-message")
+/*    @PostMapping("/get-chat-message")
     public ResponseEntity<ChatRoomResponseDTO> getChatMessage(@RequestBody ChatRequestDTO chatRequestDTO) {
         ChatRoomResponseDTO chatRoomResponseDTO = chatRoomService.getChatMessage(chatRequestDTO);
         return ResponseEntity.ok(chatRoomResponseDTO);
-    }
+    }*/
 
 
 }

@@ -27,28 +27,36 @@ public class ChatRoomService {
     private final ChatMessageService chatMessageService;
     private final IUserManager userManager;
 
-    public ChatRoom getChatRoomId(String userId, String friendId) {
-        return chatRoomRepository.findByUserIdAndFriendIdOrFriendIdAndUserId(userId, friendId, userId, friendId);
-    }
 
-
-    public ChatRoom chatRoomSave(String userId, String friendId) {
-        return this.chatRoomRepository.save(ChatRoom.builder().userId(userId).friendId(friendId).build());
+    public ChatRoom chatRoomSave(String senderId, String recipientId) {
+        List<String> participantIds = new ArrayList<>();
+        participantIds.add(senderId);
+        participantIds.add(recipientId);
+        return this.chatRoomRepository.save(ChatRoom.builder().participantIds(new ArrayList<>(participantIds)).build());
     }
 
     public List<ChatRoomResponseDTO> getChatList(String userId) {
-        List<ChatRoom> chatRooms = this.chatRoomRepository.findByUserIdOrFriendId(userId, userId);
+        List<ChatRoom> chatRooms = this.chatRoomRepository.findByParticipantIdsContaining(userId);
         List<ChatRoomResponseDTO> chatRoomResponseDTOs = new ArrayList<>();
+        System.out.println("USERID > " + userId);
 
         for (ChatRoom chatRoom : chatRooms) {
+            List<String> filteredParticipantIds = chatRoom.getParticipantIds()
+                    .stream()
+                    .filter(id -> !id.equals(userId))
+                    .toList();
+
+            String friendId = filteredParticipantIds.isEmpty() ? null : filteredParticipantIds.get(0);
+
             List<ChatMessage> messages = chatMessageService.getChatMessages(chatRoom.getId());
             List<ChatRoomMessageResponseDTO> messageDTOs = messages.stream()
                     .map(IChatMapper.INSTANCE::chatMessageToDTO)
                     .collect(Collectors.toList());
-            ChatRoomResponseDTO chatRoomDTO = ChatRoomResponseDTO.builder().messages(messageDTOs).userId(chatRoom.getUserId()).friendId(chatRoom.getFriendId()).id(chatRoom.getId()).build();
-            String newFriendId = chatRoom.getUserId().equals(userId) ? chatRoom.getFriendId() : chatRoom.getUserId();
-            UUID friendUUID = UUID.fromString(newFriendId);
-            String friendEmail = this.userManager.getUserEmailById(friendUUID);
+            System.out.println(" FRIENDID > " + friendId);
+            System.out.println(" USERID > " + userId);
+            ChatRoomResponseDTO chatRoomDTO = ChatRoomResponseDTO.builder().messages(messageDTOs).userId(userId).friendId(friendId).id(chatRoom.getId()).build();
+
+            String friendEmail = this.userManager.getUserEmailById(UUID.fromString(friendId));
             chatRoomDTO.setFriendEmail(friendEmail);
             chatRoomResponseDTOs.add(chatRoomDTO);
         }
@@ -56,7 +64,7 @@ public class ChatRoomService {
         return chatRoomResponseDTOs;
     }
 
-    public ChatRoomResponseDTO getChatMessage(ChatRequestDTO chatRequestDTO) {
+/*    public ChatRoomResponseDTO getChatMessage(ChatRequestDTO chatRequestDTO) {
         ChatRoom chatRoom = this.chatRoomRepository.findByUserIdAndFriendIdOrFriendIdAndUserId(chatRequestDTO.getUserId(), chatRequestDTO.getFriendId(), chatRequestDTO.getUserId(), chatRequestDTO.getFriendId());
         ChatRoomResponseDTO chatRoomDTO;
         if (chatRoom != null) {
@@ -72,17 +80,19 @@ public class ChatRoomService {
 
         }
         return chatRoomDTO;
-    }
+    }*/
 
 
     public void sendMessage(MessageRequestDTO messageRequestDTO) {
         //TokenResponseDTO tokenResponseDTO = userManager.feignClientGetUserId(messageRequestDTO.getSenderToken());
-
-        ChatRoom chatRoom = getChatRoomId(messageRequestDTO.getSenderId(), messageRequestDTO.getRecipientId());
-        if(chatRoom == null) {
-             chatRoom = chatRoomSave(messageRequestDTO.getSenderId(), messageRequestDTO.getRecipientId());
+        if(messageRequestDTO.getChatRoomId() != null) {
+            this.chatMessageService.sendMessage(messageRequestDTO);
         }
-        this.chatMessageService.sendMessage(messageRequestDTO, chatRoom.getId());
+        else {
+            ChatRoom chatRoom = chatRoomSave(messageRequestDTO.getSenderId(), messageRequestDTO.getRecipientId());
+            this.chatMessageService.sendMessage(messageRequestDTO, chatRoom.getId());
+        }
+
     }
 
 

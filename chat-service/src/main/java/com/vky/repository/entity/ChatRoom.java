@@ -6,6 +6,7 @@ import lombok.experimental.SuperBuilder;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @AllArgsConstructor
@@ -15,7 +16,6 @@ import java.util.UUID;
 @EqualsAndHashCode(callSuper = true)
 @Document
 public class ChatRoom extends ChatRoomBaseEntity{
-    private String userId;
-    private String friendId;
+    private List<String> participantIds;
 
 }
