@@ -2,6 +2,7 @@ package com.vky.controller;
 
 import com.vky.dto.request.ChatListRequestDTO;
 import com.vky.dto.request.ChatRequestDTO;
+import com.vky.dto.request.CreateChatRoom;
 import com.vky.dto.request.MessageRequestDTO;
 import com.vky.dto.response.ChatRoomResponseDTO;
 import com.vky.service.ChatRoomService;
@@ -20,7 +21,10 @@ import java.util.List;
 public class ChatController {
 
     private final ChatRoomService chatRoomService;
-
+    @PostMapping("/create-chat-room-if-not-exists")
+    public ResponseEntity<ChatRoomResponseDTO> createChatRoomIfNotExists(@RequestBody CreateChatRoom createChatRoom) {
+        return ResponseEntity.ok(this.chatRoomService.findByParticipantIds(createChatRoom.getUserId(), createChatRoom.getFriendId()));
+    }
     @MessageMapping("/send-message")
     public void sendMessage(@Payload MessageRequestDTO messageRequestDTO) {
         System.out.println("AAAAAAAAAAAAA" + messageRequestDTO);
@@ -31,6 +35,11 @@ public class ChatController {
     public ResponseEntity<List<ChatRoomResponseDTO>> getChatList(@RequestBody ChatListRequestDTO chatListRequestDTO) {
         List<ChatRoomResponseDTO> chatRoomResponseDTOs = chatRoomService.getChatList(chatListRequestDTO.getUserId());
         return ResponseEntity.ok(chatRoomResponseDTOs);
+    }
+
+    @PostMapping("/delete-chat")
+    public void deleteChat(){
+
     }
 
 /*    @PostMapping("/get-chat-message")

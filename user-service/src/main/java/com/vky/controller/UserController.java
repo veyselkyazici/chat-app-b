@@ -5,6 +5,7 @@ import com.vky.dto.response.*;
 import com.vky.exception.ErrorType;
 import com.vky.exception.UserManagerException;
 import com.vky.manager.IAuthManager;
+import com.vky.mapper.IUserProfileMapper;
 import com.vky.repository.entity.UserProfile;
 import com.vky.service.UserProfileService;
 import jakarta.validation.Valid;
@@ -119,6 +120,20 @@ public class UserController {
             userIdResponseDto.setUserId(tokenResponseDto.getUserId());
             System.out.println("userIdResponseDto: " + userIdResponseDto);
             return ResponseEntity.ok(userIdResponseDto);
+    }
+
+    @PostMapping("/get-user-by-id")
+    public ResponseEntity<UserProfileIdStringDTO> getUserById(@RequestBody UUID userId) {
+        UserProfile userProfile = this.userProfileService.getUserById(userId);
+        String uuid = userProfile.getId().toString();
+        UserProfileIdStringDTO userProfileIdStringDTO = UserProfileIdStringDTO.builder()
+                .id(uuid)
+                .email(userProfile.getEmail())
+                .image(userProfile.getImage())
+                .lastName(userProfile.getLastName())
+                .firstName(userProfile.getFirstName())
+                .build();
+        return ResponseEntity.ok(userProfileIdStringDTO);
     }
 
     @PostMapping("/get-userEmail-ById")

@@ -5,10 +5,11 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@AllArgsConstructor
-@NoArgsConstructor
 @Data
 @Builder
-public class RequestDTO {
-    private String deneme;
+@AllArgsConstructor
+@NoArgsConstructor
+public class CreateChatRoom {
+    private String userId;
+    private String friendId;
 }
