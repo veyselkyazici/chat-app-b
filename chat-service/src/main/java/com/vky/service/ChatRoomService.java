@@ -28,10 +28,10 @@ public class ChatRoomService {
     private final IUserManager userManager;
 
 
-    public ChatRoom chatRoomSave(String senderId, String recipientId) {
+    public ChatRoom chatRoomSave(String userId, String friendId) {
         List<String> participantIds = new ArrayList<>();
-        participantIds.add(senderId);
-        participantIds.add(recipientId);
+        participantIds.add(userId);
+        participantIds.add(friendId);
         return this.chatRoomRepository.save(ChatRoom.builder().participantIds(new ArrayList<>(participantIds)).build());
     }
 
@@ -81,18 +81,26 @@ public class ChatRoomService {
         }
         return chatRoomDTO;
     }*/
-
-
-    public void sendMessage(MessageRequestDTO messageRequestDTO) {
-        //TokenResponseDTO tokenResponseDTO = userManager.feignClientGetUserId(messageRequestDTO.getSenderToken());
-        if(messageRequestDTO.getChatRoomId() != null) {
-            this.chatMessageService.sendMessage(messageRequestDTO);
+    public ChatRoomResponseDTO findByParticipantIds(String userId, String friendId) {
+        List<String> ids = new ArrayList<>();
+        ids.add(userId);
+        ids.add(friendId);
+        ChatRoom chatRoom = this.chatRoomRepository.findByParticipantIdsContainsAll(ids);
+        if (chatRoom != null) {
+            List<ChatMessage> messages = chatMessageService.getChatMessages(chatRoom.getId());
+            List<ChatRoomMessageResponseDTO> messageDTOs = messages.stream()
+                    .map(IChatMapper.INSTANCE::chatMessageToDTO)
+                    .collect(Collectors.toList());
+            return ChatRoomResponseDTO.builder().messages(messageDTOs).userId(userId).friendId(friendId).id(chatRoom.getId()).build();
         }
         else {
-            ChatRoom chatRoom = chatRoomSave(messageRequestDTO.getSenderId(), messageRequestDTO.getRecipientId());
-            this.chatMessageService.sendMessage(messageRequestDTO, chatRoom.getId());
+            ChatRoom chatRoomSave = chatRoomSave(userId, friendId);
+            return ChatRoomResponseDTO.builder().id(chatRoomSave.getId()).userId(userId).friendId(friendId).build();
         }
+    }
 
+    public void sendMessage(MessageRequestDTO messageRequestDTO) {
+            this.chatMessageService.sendMessage(messageRequestDTO);
     }
 
 
