@@ -5,17 +5,19 @@ import com.vky.dto.request.ChatRequestDTO;
 import com.vky.dto.request.CreateChatRoom;
 import com.vky.dto.request.MessageRequestDTO;
 import com.vky.dto.response.ChatRoomResponseDTO;
+import com.vky.dto.response.ChatRoomWithMessagesDTO;
 import com.vky.service.ChatRoomService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Controller
+@RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/chat")
 public class ChatController {
@@ -26,9 +28,18 @@ public class ChatController {
         return ResponseEntity.ok(this.chatRoomService.findByParticipantIds(createChatRoom.getUserId(), createChatRoom.getFriendId()));
     }
     @MessageMapping("/send-message")
-    public void sendMessage(@Payload MessageRequestDTO messageRequestDTO) {
+    public void handleMessage(@Payload MessageRequestDTO messageRequestDTO) {
         System.out.println("AAAAAAAAAAAAA" + messageRequestDTO);
-        chatRoomService.sendMessage(messageRequestDTO);
+        chatRoomService.processMessage(messageRequestDTO);
+    }
+    @GetMapping("/chat-room-with-messages/{userId}")
+    public ResponseEntity<List<ChatRoomWithMessagesDTO>> getUserChatRoomsAndMessages(@PathVariable String userId) {
+        return ResponseEntity.ok(chatRoomService.getUserChatRoomsAndMessages(userId));
+    }
+
+    @GetMapping("/hello")
+    public String getUserChatRoomsAndMessages() {
+        return "HELLO";
     }
 
     @PostMapping("/get-chat-list")
@@ -49,4 +60,8 @@ public class ChatController {
     }*/
 
 
+    @PutMapping()
+    public ResponseEntity<Boolean> updateUserChatSetting(){
+        return null;
+    }
 }

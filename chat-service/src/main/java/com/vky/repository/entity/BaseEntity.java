@@ -6,7 +6,9 @@ import lombok.experimental.SuperBuilder;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.mongodb.repository.Update;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -17,21 +19,13 @@ public class BaseEntity {
     @Id
     private String id;
 
-    private LocalDateTime createdAt;
+    @CreatedDate
+    private Instant createdAt;
 
+    @LastModifiedDate
+    private Instant updatedAt;
 
-    private LocalDateTime updatedAt;
     private boolean isDeleted;
 
 
-    @CreatedDate
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = null;
-    }
-
-    @LastModifiedDate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
 }

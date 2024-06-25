@@ -7,5 +7,6 @@ import java.util.List;
 import java.util.UUID;
 
 public interface IChatMessageRepository extends MongoRepository<ChatMessage, String> {
-    List<ChatMessage> findByChatRoomId(String chatRoomId);
+    List<ChatMessage> findByChatRoomIdAndIsDeletedFalse(String chatRoomId);
+
 }
