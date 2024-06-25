@@ -19,41 +19,32 @@ public class ChatMessageService {
     private final IChatMessageRepository chatMessageRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
-    public void sendMessage(MessageRequestDTO messageRequestDTO, String chatRoomId) {
-        Instant fullDateTime = Instant.parse(messageRequestDTO.getFullDateTime());
-        System.out.println("USERID >  " + messageRequestDTO.getSenderId());
-        ChatMessage chatMessage = this.chatMessageRepository.save(ChatMessage.builder()
-                .messageContent(messageRequestDTO.getMessageContent())
-                .senderId(messageRequestDTO.getSenderId())
-                .recipientId(messageRequestDTO.getRecipientId())
-                .isSeen(false)
-                .chatRoomId(chatRoomId)
-                .fullDateTime(fullDateTime)
-                .build());
+    public void sendMessage(MessageRequestDTO messageRequestDTO, boolean isSuccess) {
+            Instant fullDateTime = Instant.parse(messageRequestDTO.getFullDateTime());
+            ChatMessage chatMessage = chatMessageRepository.save(ChatMessage.builder()
+                    .messageContent(messageRequestDTO.getMessageContent())
+                    .senderId(messageRequestDTO.getSenderId())
+                    .recipientId(messageRequestDTO.getRecipientId())
+                    .isSeen(false)
+                    .chatRoomId(messageRequestDTO.getChatRoomId())
+                    .fullDateTime(fullDateTime)
+                    .build());
 
-        MessageFriendResponseDTO messageFriendResponseDTO = IChatMapper.INSTANCE.toResponseDTO(chatMessage);
-        messagingTemplate.convertAndSendToUser(messageRequestDTO.getRecipientId(),"queue/received-message", messageFriendResponseDTO);
-    }
+            MessageFriendResponseDTO messageFriendResponseDTO = IChatMapper.INSTANCE.toResponseDTO(chatMessage);
+            messageFriendResponseDTO.setSuccess(isSuccess);
 
-    public void sendMessage(MessageRequestDTO messageRequestDTO) {
-        Instant fullDateTime = Instant.parse(messageRequestDTO.getFullDateTime());
-        System.out.println("USERID >  " + messageRequestDTO.getSenderId());
-        ChatMessage chatMessage = this.chatMessageRepository.save(ChatMessage.builder()
-                .messageContent(messageRequestDTO.getMessageContent())
-                .senderId(messageRequestDTO.getSenderId())
-                .recipientId(messageRequestDTO.getRecipientId())
-                .isSeen(false)
-                .chatRoomId(messageRequestDTO.getChatRoomId())
-                .fullDateTime(fullDateTime)
-                .build());
+            String destination = isSuccess ? "queue/received-message" : "/queue/error";
+            messagingTemplate.convertAndSendToUser(
+                    isSuccess ? messageRequestDTO.getRecipientId() : messageRequestDTO.getSenderId(),
+                    destination,
+                    messageFriendResponseDTO);
 
-        MessageFriendResponseDTO messageFriendResponseDTO = IChatMapper.INSTANCE.toResponseDTO(chatMessage);
-        messagingTemplate.convertAndSendToUser(messageRequestDTO.getRecipientId(),"queue/received-message", messageFriendResponseDTO);
+
     }
 
 
     public List<ChatMessage> getChatMessages(String chatRoomId) {
-        return chatMessageRepository.findByChatRoomId(chatRoomId);
+        return chatMessageRepository.findByChatRoomIdAndIsDeletedFalse(chatRoomId);
     }
 
 }

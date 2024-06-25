@@ -7,6 +7,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @SuperBuilder
@@ -16,21 +17,12 @@ public class ChatRoomBaseEntity {
     @Id
     private String id;
 
-    private LocalDateTime createdAt;
-
-    private LocalDateTime updatedAt;
-    private boolean isDeleted;
-
-
     @CreatedDate
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = null;
-    }
+    private Instant createdAt;
 
     @LastModifiedDate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
+    private Instant updatedAt;
+
+    private boolean isDeleted;
 
 }

@@ -4,15 +4,18 @@ import com.vky.dto.request.ChatRequestDTO;
 import com.vky.dto.request.MessageRequestDTO;
 import com.vky.dto.response.ChatRoomMessageResponseDTO;
 import com.vky.dto.response.ChatRoomResponseDTO;
+import com.vky.dto.response.ChatRoomWithMessagesDTO;
 import com.vky.dto.response.TokenResponseDTO;
 import com.vky.manager.IUserManager;
 import com.vky.mapper.IChatMapper;
 import com.vky.repository.IChatRoomRepository;
 import com.vky.repository.entity.ChatMessage;
 import com.vky.repository.entity.ChatRoom;
+import com.vky.repository.entity.UserChatSettings;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -26,6 +29,7 @@ public class ChatRoomService {
     private final IChatRoomRepository chatRoomRepository;
     private final ChatMessageService chatMessageService;
     private final IUserManager userManager;
+    private final UserChatSettingsService userChatSettingsService;
 
 
     public ChatRoom chatRoomSave(String userId, String friendId) {
@@ -95,12 +99,76 @@ public class ChatRoomService {
         }
         else {
             ChatRoom chatRoomSave = chatRoomSave(userId, friendId);
+            userChatSettingsService.saveUserChatSettings(chatRoomSave.getId(), userId);
             return ChatRoomResponseDTO.builder().id(chatRoomSave.getId()).userId(userId).friendId(friendId).build();
         }
     }
 
-    public void sendMessage(MessageRequestDTO messageRequestDTO) {
-            this.chatMessageService.sendMessage(messageRequestDTO);
+//    public void sendMessage(MessageRequestDTO messageRequestDTO) {
+//            this.chatMessageService.sendMessage(messageRequestDTO);
+//    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public List<ChatRoom> getUserChatRooms(String userId) {
+        return chatRoomRepository.findByParticipantIdsContaining(userId);
+    }
+
+    public List<ChatMessage> getChatMessages(String chatRoomId) {
+        return chatMessageService.getChatMessages(chatRoomId);
+    }
+
+    public boolean isUserBlocked(String userId, String chatRoomId) {
+        UserChatSettings settings = userChatSettingsService.findByUserIdAndChatRoomId(userId, chatRoomId);
+        return settings != null && settings.isBlocked();
+    }
+
+    public void processMessage(MessageRequestDTO messageRequestDTO) {
+        boolean isSenderBlocked = isUserBlocked(messageRequestDTO.getSenderId(), messageRequestDTO.getChatRoomId());
+        boolean isRecipientBlocked = isUserBlocked(messageRequestDTO.getRecipientId(), messageRequestDTO.getChatRoomId());
+
+        boolean isSuccess = !(isSenderBlocked || isRecipientBlocked);
+        chatMessageService.sendMessage(messageRequestDTO, isSuccess);
+    }
+
+    public List<ChatRoomWithMessagesDTO> getUserChatRoomsAndMessages(String userId) {
+        List<ChatRoom> chatRooms = getUserChatRooms(userId);
+
+        return chatRooms.stream().map(chatRoom -> {
+            List<String> filteredParticipantIds = chatRoom.getParticipantIds()
+                    .stream()
+                    .filter(id -> !id.equals(userId))
+                    .toList();
+
+            String friendId = filteredParticipantIds.isEmpty() ? null : filteredParticipantIds.get(0);
+            List<ChatMessage> messages = getChatMessages(chatRoom.getId());
+            List<ChatRoomMessageResponseDTO> messageDTOs = messages.stream()
+                    .map(IChatMapper.INSTANCE::chatMessageToDTO)
+                    .collect(Collectors.toList());
+            UserChatSettings userChatSettings = userChatSettingsService.findByUserIdAndChatRoomId(userId, chatRoom.getId());
+
+            String friendEmail = friendId != null ? this.userManager.getUserEmailById(UUID.fromString(friendId)) : null;
+
+            return ChatRoomWithMessagesDTO.builder()
+                    .id(chatRoom.getId())
+                    .image(null)
+                    .messages(messageDTOs)
+                    .userChatSettings(userChatSettings)
+                    .friendEmail(friendEmail)
+                    .friendId(friendId)
+                    .userId(userId)
+                    .build();
+        }).collect(Collectors.toList());
     }
 
 

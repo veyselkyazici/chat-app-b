@@ -19,4 +19,5 @@ public class MessageFriendResponseDTO {
     private String recipientId;
     private String messageContent;
     private String fullDateTime;
+    private boolean isSuccess;
 }
