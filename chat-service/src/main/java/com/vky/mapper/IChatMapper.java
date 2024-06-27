@@ -20,4 +20,5 @@ public interface IChatMapper {
     ChatRoomResponseDTO chatRoomToDTO(ChatRoom chatRoom, List<ChatRoomMessageResponseDTO> messages);
 
     ChatRoomMessageResponseDTO chatMessageToDTO(ChatMessage chatMessage);
+
 }

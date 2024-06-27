@@ -1,20 +1,18 @@
 package com.vky.controller;
 
-import com.vky.dto.request.ChatListRequestDTO;
-import com.vky.dto.request.ChatRequestDTO;
-import com.vky.dto.request.CreateChatRoom;
-import com.vky.dto.request.MessageRequestDTO;
+import com.vky.dto.request.*;
+import com.vky.dto.response.ChatRoomMessageResponseDTO;
 import com.vky.dto.response.ChatRoomResponseDTO;
 import com.vky.dto.response.ChatRoomWithMessagesDTO;
+import com.vky.dto.response.ChatSummaryDTO;
 import com.vky.service.ChatRoomService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.List;
 
 @RestController
@@ -37,6 +35,21 @@ public class ChatController {
         return ResponseEntity.ok(chatRoomService.getUserChatRoomsAndMessages(userId));
     }
 
+    @GetMapping("/chat-summaries/{userId}")
+    public ResponseEntity<List<ChatSummaryDTO>> getUserChatSummaries(@PathVariable String userId) {
+        return ResponseEntity.ok(chatRoomService.getUserChatSummaries(userId));
+    }
+
+    @GetMapping("/messages/latest")
+    public List<ChatRoomMessageResponseDTO> getLatestMessages(@RequestParam String chatRoomId) {
+        System.out.println(chatRoomId);
+        return chatRoomService.getLatestMessages(chatRoomId);
+    }
+
+    @GetMapping("/messages/older")
+    public List<ChatRoomMessageResponseDTO> getOlderMessages(@RequestParam String chatRoomId, @RequestParam Instant before) {
+        return chatRoomService.getOlderMessages(chatRoomId, before);
+    }
     @GetMapping("/hello")
     public String getUserChatRoomsAndMessages() {
         return "HELLO";
@@ -52,12 +65,6 @@ public class ChatController {
     public void deleteChat(){
 
     }
-
-/*    @PostMapping("/get-chat-message")
-    public ResponseEntity<ChatRoomResponseDTO> getChatMessage(@RequestBody ChatRequestDTO chatRequestDTO) {
-        ChatRoomResponseDTO chatRoomResponseDTO = chatRoomService.getChatMessage(chatRequestDTO);
-        return ResponseEntity.ok(chatRoomResponseDTO);
-    }*/
 
 
     @PutMapping()

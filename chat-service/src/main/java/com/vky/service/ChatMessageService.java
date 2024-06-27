@@ -1,6 +1,8 @@
 package com.vky.service;
 
 import com.vky.dto.request.MessageRequestDTO;
+import com.vky.dto.response.ChatRoomMessageResponseDTO;
+import com.vky.dto.response.ChatRoomResponseDTO;
 import com.vky.dto.response.MessageFriendResponseDTO;
 import com.vky.mapper.IChatMapper;
 import com.vky.repository.IChatMessageRepository;
@@ -12,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -47,4 +50,27 @@ public class ChatMessageService {
         return chatMessageRepository.findByChatRoomIdAndIsDeletedFalse(chatRoomId);
     }
 
+    public ChatMessage getChatLastMessage(String chatRoomId) {
+        return chatMessageRepository.findFirstByChatRoomIdOrderByFullDateTimeDesc(chatRoomId);
+    }
+
+    public List<ChatRoomMessageResponseDTO> getLatestMessages(String chatRoomId) {
+        List<ChatMessage> chatMessages = chatMessageRepository.findTop30ByChatRoomIdOrderByFullDateTimeDesc(chatRoomId);
+
+        List<ChatRoomMessageResponseDTO> messageDTOs = chatMessages.stream()
+                .map(IChatMapper.INSTANCE::chatMessageToDTO)
+                .toList();
+
+        return messageDTOs;
+    }
+
+    public List<ChatRoomMessageResponseDTO> getOlderMessages(String chatRoomId, Instant before) {
+        List<ChatMessage> chatMessages = chatMessageRepository.findNext30ByChatRoomIdAndFullDateTimeBeforeOrderByFullDateTimeDesc(chatRoomId, before);
+
+        List<ChatRoomMessageResponseDTO> messageDTOs = chatMessages.stream()
+                .map(IChatMapper.INSTANCE::chatMessageToDTO)
+                .toList();
+
+        return messageDTOs;
+    }
 }

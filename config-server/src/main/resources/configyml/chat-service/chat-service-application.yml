@@ -32,6 +32,12 @@ spring:
         globally_quoted_identifiers: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
 
 raceapplication:
   url:

@@ -14,8 +14,8 @@ import java.time.Instant;
 @NoArgsConstructor
 public class MessageRequestDTO {
     private String messageContent;
-        private String senderId;
-        private String recipientId;
+    private String senderId;
+    private String recipientId;
     private String fullDateTime;
     private String chatRoomId;
 }

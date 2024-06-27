@@ -48,6 +48,7 @@ allprojects{
         implementation libs.openApi
         implementation libs.springOpenFeign
         implementation libs.javaJWT
+
     }
 }
 
