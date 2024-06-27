@@ -1,11 +1,10 @@
 package com.vky.service;
 
-import com.vky.dto.request.ChatRequestDTO;
+import com.vky.dto.response.ChatSummaryDTO;
 import com.vky.dto.request.MessageRequestDTO;
 import com.vky.dto.response.ChatRoomMessageResponseDTO;
 import com.vky.dto.response.ChatRoomResponseDTO;
 import com.vky.dto.response.ChatRoomWithMessagesDTO;
-import com.vky.dto.response.TokenResponseDTO;
 import com.vky.manager.IUserManager;
 import com.vky.mapper.IChatMapper;
 import com.vky.repository.IChatRoomRepository;
@@ -18,7 +17,6 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -100,6 +98,7 @@ public class ChatRoomService {
         else {
             ChatRoom chatRoomSave = chatRoomSave(userId, friendId);
             userChatSettingsService.saveUserChatSettings(chatRoomSave.getId(), userId);
+            userChatSettingsService.saveUserChatSettings(chatRoomSave.getId(), friendId);
             return ChatRoomResponseDTO.builder().id(chatRoomSave.getId()).userId(userId).friendId(friendId).build();
         }
     }
@@ -126,6 +125,10 @@ public class ChatRoomService {
 
     public List<ChatMessage> getChatMessages(String chatRoomId) {
         return chatMessageService.getChatMessages(chatRoomId);
+    }
+
+    public ChatMessage getChatLastMessage(String chatRoomId) {
+        return chatMessageService.getChatLastMessage(chatRoomId);
     }
 
     public boolean isUserBlocked(String userId, String chatRoomId) {
@@ -171,5 +174,42 @@ public class ChatRoomService {
         }).collect(Collectors.toList());
     }
 
+    public List<ChatSummaryDTO> getUserChatSummaries(String userId) {
+        List<ChatRoom> chatRooms = getUserChatRooms(userId);
 
+        return chatRooms.stream().map(chatRoom -> {
+            List<String> filteredParticipantIds = chatRoom.getParticipantIds()
+                    .stream()
+                    .filter(id -> !id.equals(userId))
+                    .toList();
+
+            String friendId = filteredParticipantIds.isEmpty() ? null : filteredParticipantIds.get(0);
+            ChatMessage chatMessage = getChatLastMessage(chatRoom.getId());
+
+            UserChatSettings userChatSettings = userChatSettingsService.findByUserIdAndChatRoomId(userId, chatRoom.getId());
+
+            String friendEmail = friendId != null ? this.userManager.getUserEmailById(UUID.fromString(friendId)) : null;
+
+            return ChatSummaryDTO.builder()
+                    .id(chatRoom.getId())
+                    .image(null)
+                    .lastMessage(chatMessage.getMessageContent())
+                    .lastMessageTime(chatMessage.getFullDateTime())
+                    .messages(null)
+                    .userChatSettings(userChatSettings)
+                    .friendEmail(friendEmail)
+                    .friendId(friendId)
+                    .userId(userId)
+                    .build();
+        }).collect(Collectors.toList());
+    }
+
+
+    public List<ChatRoomMessageResponseDTO> getLatestMessages(String chatRoomId) {
+        return chatMessageService.getLatestMessages(chatRoomId);
+    }
+
+    public List<ChatRoomMessageResponseDTO> getOlderMessages(String chatRoomId, Instant before) {
+        return chatMessageService.getOlderMessages(chatRoomId, before);
+    }
 }

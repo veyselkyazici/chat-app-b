@@ -14,6 +14,7 @@ ext {
             mongoDB                 : "3.2.1",
             webSocket               : "3.2.1",
             jacksonDataType         : "2.17.0",
+            prometheus              : "1.13.1",
 
     ]
 
@@ -57,6 +58,8 @@ ext {
             lombokMapstructBinding                 : "org.projectlombok:lombok-mapstruct-binding:$versions.lombokMapstructBinding",
             openApi                                : "org.springdoc:springdoc-openapi-starter-webmvc-ui:$versions.openApi",
             javaJWT                                : "com.auth0:java-jwt:$versions.javaJWT",
-            jacksonDataType                        : "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$versions.jacksonDataType"
+            jacksonDataType                        : "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$versions.jacksonDataType",
+
+            prometheus                             : "io.micrometer:micrometer-registry-prometheus:$versions.prometheus"
     ]
 }
