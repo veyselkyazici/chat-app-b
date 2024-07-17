@@ -23,4 +23,6 @@ public class UserChatSettings extends BaseEntity{
     private boolean isPinned;
     private boolean isBlocked;
     private Instant deletedTime;
+    private Instant blockedTime;
+    private Instant unblockedTime;
 }

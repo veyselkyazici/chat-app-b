@@ -15,7 +15,7 @@ public class UserChatSettingsService {
         return userChatSettingsRepository.findByUserIdAndChatRoomIdAndIsDeletedFalse(userId, chatRoomId);
     }
 
-    public void saveUserChatSettings(String chatId, String userId){
+    public UserChatSettings saveUserChatSettings(String chatId, String userId){
         UserChatSettings userChatSettings = UserChatSettings.builder()
                         .isDeleted(false)
                 .userId(userId)
@@ -25,6 +25,10 @@ public class UserChatSettingsService {
                                                         .isPinned(false)
                                                                 .isBlocked(false)
                                                                         .build();
-        userChatSettingsRepository.save(userChatSettings);
+        return userChatSettingsRepository.save(userChatSettings);
+    }
+
+    public UserChatSettings updateUserChatSettings(UserChatSettings userSettings) {
+        return this.userChatSettingsRepository.save(userSettings);
     }
 }

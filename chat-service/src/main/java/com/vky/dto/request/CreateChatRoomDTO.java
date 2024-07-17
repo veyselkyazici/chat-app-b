@@ -1,6 +1,6 @@
-package com.vky.dto.response;
+package com.vky.dto.request;
 
-import com.vky.repository.entity.UserChatSettings;
+import com.vky.dto.response.ChatRoomMessageResponseDTO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,13 +13,10 @@ import java.util.List;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class ChatSummaryDTO {
-    private String id;
+public class CreateChatRoomDTO {
     private String userId;
     private String friendId;
     private String friendEmail;
-    private String image;
     private String lastMessage;
-    private Instant lastMessageTime;
-    private UserChatSettings userChatSettings;
+    private String lastMessageTime;
 }

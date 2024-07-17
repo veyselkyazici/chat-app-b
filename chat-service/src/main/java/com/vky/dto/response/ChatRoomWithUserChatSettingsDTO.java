@@ -6,20 +6,16 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.Instant;
 import java.util.List;
-
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class ChatSummaryDTO {
+public class ChatRoomWithUserChatSettingsDTO {
     private String id;
     private String userId;
     private String friendId;
     private String friendEmail;
     private String image;
-    private String lastMessage;
-    private Instant lastMessageTime;
     private UserChatSettings userChatSettings;
 }
