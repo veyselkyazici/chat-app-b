@@ -1,5 +1,7 @@
 package com.vky.service;
 
+import com.vky.dto.request.CreateChatRoom;
+import com.vky.dto.request.CreateChatRoomDTO;
 import com.vky.dto.request.MessageRequestDTO;
 import com.vky.dto.response.ChatRoomMessageResponseDTO;
 import com.vky.dto.response.ChatRoomResponseDTO;
@@ -72,5 +74,17 @@ public class ChatMessageService {
                 .toList();
 
         return messageDTOs;
+    }
+
+    public ChatMessage sendFirstMessage(CreateChatRoomDTO createChatRoomDTO, String chatRoomId) {
+        Instant fullDateTime = Instant.parse(createChatRoomDTO.getLastMessageTime());
+        return chatMessageRepository.save(ChatMessage.builder()
+                .messageContent(createChatRoomDTO.getLastMessage())
+                .senderId(createChatRoomDTO.getUserId())
+                .recipientId(createChatRoomDTO.getFriendId())
+                .isSeen(false)
+                .chatRoomId(chatRoomId)
+                .fullDateTime(fullDateTime)
+                .build());
     }
 }

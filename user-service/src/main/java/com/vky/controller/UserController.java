@@ -14,7 +14,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.awt.desktop.UserSessionListener;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -99,6 +102,19 @@ public class UserController {
             return ResponseEntity.ok(true);
     }
 
+    @PutMapping("/update-user-last-seen")
+    public ResponseEntity<Void> updateUserLastSeen(@RequestBody UserLastSeenRequestDTO userLastSeenRequestDTO) {
+        this.userProfileService.updateUserLastSeen(userLastSeenRequestDTO);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+    @GetMapping("/get-user-last-seen")
+    public UserLastSeenResponseDTO getUserLastSeen(@RequestParam UUID userId) {
+        System.out.println(userId);
+        UserLastSeenResponseDTO response = this.userProfileService.getUserLastSeen(userId);
+        System.out.println("RESPONSE: " + response);
+        return response;
+    }
+
     @PostMapping("/find-by-keyword-ignore-case-users")
     public ResponseEntity<List<UserProfileDTO>> findByKeywordIgnoreCaseUsers(@RequestHeader(value = "Authorization", required = false, defaultValue = "") String authorization, @RequestBody SearchDTO search) {
 
@@ -124,6 +140,7 @@ public class UserController {
 
     @PostMapping("/get-user-by-id")
     public ResponseEntity<UserProfileIdStringDTO> getUserById(@RequestBody UUID userId) {
+        System.out.println(userId);
         UserProfile userProfile = this.userProfileService.getUserById(userId);
         String uuid = userProfile.getId().toString();
         UserProfileIdStringDTO userProfileIdStringDTO = UserProfileIdStringDTO.builder()

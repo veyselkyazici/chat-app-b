@@ -13,4 +13,5 @@ public interface IChatRoomRepository extends MongoRepository<ChatRoom, String> {
     ChatRoom findByParticipantIdsContainsAll(List<String> participantIds);
 
     List<ChatRoom> findByParticipantIdsContaining(String userId);
+
 }

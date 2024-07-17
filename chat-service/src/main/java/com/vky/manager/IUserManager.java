@@ -1,10 +1,13 @@
 package com.vky.manager;
 
 
+import com.vky.dto.request.UserLastSeenRequestDTO;
 import com.vky.dto.response.TokenResponseDTO;
+import com.vky.dto.response.UserLastSeenResponseDTO;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 
@@ -15,4 +18,6 @@ public interface IUserManager {
     TokenResponseDTO feignClientGetUserId(@RequestHeader("AUTHORIZATION") String authorization);
     @PostMapping("/get-userEmail-ById")
     String getUserEmailById(@RequestBody UUID userId);
+    @GetMapping("/get-user-last-seen")
+    UserLastSeenResponseDTO getUserLastSeen(@RequestParam("userId") UUID userId);
 }

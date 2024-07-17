@@ -3,6 +3,7 @@ package com.vky.service;
 import com.vky.dto.request.FeignClientIdsRequestDTO;
 import com.vky.dto.request.FeignClientUserProfileRequestDTO;
 import com.vky.dto.request.NewUserCreateDTO;
+import com.vky.dto.request.UserLastSeenRequestDTO;
 import com.vky.dto.response.*;
 import com.vky.exception.AuthenticationException;
 import com.vky.exception.ErrorType;
@@ -12,6 +13,7 @@ import com.vky.repository.entity.UserProfile;
 import com.vky.utility.JwtTokenManager;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -131,4 +133,28 @@ public class UserProfileService {
         return this.userProfileRepository.findById(userId).orElseThrow(() -> new NoSuchElementException("User not found witdh ID: " + userId));
     }
 
+    public void updateUserLastSeen(UserLastSeenRequestDTO userLastSeenRequestDTO) {
+
+        Optional<UserProfile> userProfile = this.userProfileRepository.findById(userLastSeenRequestDTO.getUserId());
+
+        userProfile.ifPresent(profile -> {
+            profile.setLastSeen(LocalDateTime.now());
+            userProfileRepository.save(profile);
+        });
+    }
+
+    public UserLastSeenResponseDTO getUserLastSeen(UUID userId) {
+
+        Optional<UserProfile> userProfile = this.userProfileRepository.findById(userId);
+        if (userProfile.isPresent()) {
+            UserProfile profile = userProfile.get();
+            UserLastSeenResponseDTO responseDTO = new UserLastSeenResponseDTO();
+            responseDTO.setLastSeen(profile.getLastSeen());
+            responseDTO.setId(profile.getId());
+            return responseDTO;
+        } else {
+
+            return null;
+        }
+    }
 }
