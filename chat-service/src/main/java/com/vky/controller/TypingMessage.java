@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class TypingMessage {
     private String userId;
+    private String friendId;
     private String chatRoomId;
     private boolean isTyping;
 }
