@@ -2,7 +2,7 @@ package com.vky.mapper;
 
 import com.vky.dto.request.EditProfileRequestDTO;
 import com.vky.dto.response.FindUserProfileByAuthIdResponseDTO;
-import com.vky.dto.response.UserProfileDTO;
+import com.vky.dto.response.UserProfileResponseDTO;
 import com.vky.repository.entity.UserProfile;
 import org.mapstruct.Mapper;
 import org.mapstruct.ReportingPolicy;
@@ -16,5 +16,5 @@ public interface IUserProfileMapper {
     FindUserProfileByAuthIdResponseDTO userProfileToDTO(final UserProfile userProfile);
 
 
-    UserProfileDTO toUserProfileDTO(UserProfile userProfile);
+    UserProfileResponseDTO toUserProfileDTO(UserProfile userProfile);
 }

@@ -12,11 +12,11 @@
         <module name="ChatApp.main" />
         <module name="ChatApp.mail-service.main" />
         <module name="ChatApp.auth-service.main" />
+        <module name="ChatApp.contacts-service.main" />
         <module name="ChatApp.user-service.main" />
         <module name="ChatApp.api-gateway-service.main" />
         <module name="ChatApp.config-server.main" />
         <module name="ChatApp.eureka-server.main" />
-        <module name="ChatApp.friendships-service.main" />
         <module name="ChatApp.chat-service.main" />
       </profile>
     </annotationProcessing>

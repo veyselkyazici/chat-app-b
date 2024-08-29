@@ -1,5 +1,7 @@
 package com.vky.service;
 
+import com.vky.dto.request.SendInvitationEmailDTO;
+import com.vky.exception.InvitationException;
 import jakarta.activation.DataHandler;
 import jakarta.activation.DataSource;
 import jakarta.activation.FileDataSource;
@@ -28,7 +30,9 @@ public class MailService {
     public static final String UTF_8_ENCODING = "UTF-8";
     public static final String EMAIL_TEMPLATE = "emailtemplate";
     public static final String FORGOT_PASSWORD_TEMPLATE = "forgotpasswordtemplate";
+    public static final String INVITATION_TEMPLATE = "invitationtemplate";
     public static final String TEXT_HTML_ENCONDING = "text/html";
+    public static final String INVITATION = "APP Invitation";
 
     private final JavaMailSender mailSender;
 
@@ -38,40 +42,6 @@ public class MailService {
     @Value("${spring.mail.username}")
     private String fromEmail;
 
-//    @Async
-//    public void sendHtmlEmailWithEmbeddedFiles(String name, String to, String token) {
-//        try {
-//            MimeMessage message = getMimeMessage();
-//            MimeMessageHelper helper = new MimeMessageHelper(message, true, UTF_8_ENCODING);
-//            helper.setPriority(1);
-//            helper.setSubject(NEW_USER_ACCOUNT_VERIFICATION);
-//            helper.setFrom(fromEmail);
-//            helper.setTo(to);
-//            //helper.setText(text, true);
-//            Context context = new Context();
-//            context.setVariables(Map.of("name", name, "url", getVerificationUrl(host, token)));
-//            String text = templateEngine.process(EMAIL_TEMPLATE, context);
-//
-//            // Add HTML email body
-//            MimeMultipart mimeMultipart = new MimeMultipart("related");
-//            BodyPart messageBodyPart = new MimeBodyPart();
-//            messageBodyPart.setContent(text, TEXT_HTML_ENCONDING);
-//            mimeMultipart.addBodyPart(messageBodyPart);
-//
-//            // Add images to the email body
-//            BodyPart imageBodyPart = new MimeBodyPart();
-//            DataSource dataSource = new FileDataSource(System.getProperty("user.home") + "/Downloads/picture.jpg");
-//            imageBodyPart.setDataHandler(new DataHandler(dataSource));
-//            imageBodyPart.setHeader("Content-ID", "image");
-//            mimeMultipart.addBodyPart(imageBodyPart);
-//            message.setContent(mimeMultipart);
-//            mailSender.send(message);
-//        } catch (Exception exception) {
-//            System.out.println(exception.getMessage());
-//            throw new RuntimeException(exception.getMessage());
-//        }
-//
-//    }
     @Async
     public void sendHtmlEmailWithEmbeddedFiles(String email, String token) {
         try {
@@ -101,12 +71,10 @@ public class MailService {
             message.setContent(mimeMultipart);
             mailSender.send(message);
         } catch (Exception exception) {
-            System.out.println(exception.getMessage());
             throw new RuntimeException(exception.getMessage());
         }
 
     }
-
     @Async
     public void sendHtmlEmailWithEmbeddedFilesForgotPassword(String email, String oneTimePassword) {
         try {
@@ -136,12 +104,39 @@ public class MailService {
             message.setContent(mimeMultipart);
             mailSender.send(message);
         } catch (Exception exception) {
-            System.out.println(exception.getMessage());
             throw new RuntimeException(exception.getMessage());
         }
 
     }
 
+    @Async
+    public void sendInvitationEmail(SendInvitationEmailDTO sendInvitationEmailDTO) {
+        try {
+            MimeMessage message = getMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, UTF_8_ENCODING);
+            helper.setPriority(1);
+            helper.setSubject(INVITATION);
+            helper.setFrom(fromEmail);
+            helper.setTo(sendInvitationEmailDTO.getInviteeEmail());
+
+            Context context = new Context();
+            context.setVariables(Map.of(
+                    "name", sendInvitationEmailDTO.getInviteeEmail(),
+                    "inviterEmail", sendInvitationEmailDTO.getInviterEmail()
+            ));
+            String text = templateEngine.process(INVITATION_TEMPLATE, context);
+
+            MimeMultipart mimeMultipart = new MimeMultipart("related");
+            BodyPart messageBodyPart = new MimeBodyPart();
+            messageBodyPart.setContent(text, TEXT_HTML_ENCONDING);
+            mimeMultipart.addBodyPart(messageBodyPart);
+
+            message.setContent(mimeMultipart);
+            mailSender.send(message);
+        } catch (Exception exception) {
+            throw new InvitationException("Davet gönderilirken bir hata oluştu.");
+        }
+    }
     private MimeMessage getMimeMessage() {
         return mailSender.createMimeMessage();
     }

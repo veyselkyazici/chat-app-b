@@ -1,11 +1,13 @@
 package com.vky.repository.entity;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.vky.repository.entity.enums.Status;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
-import org.springframework.format.annotation.DateTimeFormat;
+import org.hibernate.annotations.Where;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -17,6 +19,7 @@ import java.util.UUID;
 @SuperBuilder
 @Table(name = "users")
 @Entity
+@Where(clause = "is_deleted = false")
 @EqualsAndHashCode(callSuper = true)
 public class UserProfile extends BaseEntity{
     private UUID authId;
@@ -27,6 +30,7 @@ public class UserProfile extends BaseEntity{
     private String about;
     private Status status;
     private LocalDateTime lastSeen;
+
 
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "image_id")

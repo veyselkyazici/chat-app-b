@@ -1,13 +1,11 @@
 package com.vky.service;
 
-import com.vky.dto.request.FeignClientIdsRequestDTO;
 import com.vky.dto.request.FeignClientUserProfileRequestDTO;
 import com.vky.dto.request.NewUserCreateDTO;
 import com.vky.dto.request.UserLastSeenRequestDTO;
 import com.vky.dto.response.*;
-import com.vky.exception.AuthenticationException;
-import com.vky.exception.ErrorType;
 import com.vky.mapper.IUserProfileMapper;
+import com.vky.rabbitmq.producer.RabbitMQProducer;
 import com.vky.repository.IUserProfileRepository;
 import com.vky.repository.entity.UserProfile;
 import com.vky.utility.JwtTokenManager;
@@ -15,23 +13,29 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
 public class UserProfileService {
     private final IUserProfileRepository userProfileRepository;
     private final JwtTokenManager jwtTokenManager;
+    private final RabbitMQProducer rabbitMQProducer;
 
-    public UserProfileService(IUserProfileRepository userProfileRepository, JwtTokenManager jwtTokenManager) {
+    public UserProfileService(IUserProfileRepository userProfileRepository, JwtTokenManager jwtTokenManager, RabbitMQProducer rabbitMQProducer) {
         this.userProfileRepository = userProfileRepository;
         this.jwtTokenManager = jwtTokenManager;
+        this.rabbitMQProducer = rabbitMQProducer;
     }
 
     public void createUserProfile(NewUserCreateDTO userCreateDto) {
-        userProfileRepository.save(UserProfile.builder()
+         UserProfile userProfile = userProfileRepository.save(UserProfile.builder()
                 .authId(userCreateDto.getAuthId())
                 .email(userCreateDto.getEmail())
                 .build());
+         if (userProfile != null) {
+             rabbitMQProducer.checkContactUser(userProfile);
+         }
     }
 
 //    public Boolean updateUserProfile(EditProfileRequestDto dto, Long authid){
@@ -55,7 +59,6 @@ public class UserProfileService {
     }
 
     public TokenResponseDTO tokenExractAuthId(String authorization) {
-        System.out.println("AUTHORIZATION: " + authorization);
         TokenResponseDTO responseDTO = new TokenResponseDTO();
         String token = authorization.substring(7);
         UUID authId = jwtTokenManager.extractAuthId(token);
@@ -81,7 +84,6 @@ public class UserProfileService {
         userProfileOptional.ifPresent(userProfile -> {
             userProfile.setLastName(surname);
             userProfileRepository.save(userProfile);
-            System.out.println(userProfile.getLastName());
         });
     }
 
@@ -94,7 +96,6 @@ public class UserProfileService {
     }
 
     public void updateUserAbout(UUID authId, String about) {
-        System.out.println("about: " + about);
         Optional<UserProfile> userProfileOptional = userProfileRepository.findByAuthId(authId);
         userProfileOptional.ifPresent(userProfile -> {
             userProfile.setAbout(about);
@@ -102,9 +103,8 @@ public class UserProfileService {
         });
     }
 
-    public List<UserProfileDTO> findByKeywordIgnoreCaseUsers(String search) {
+    public List<UserProfileResponseDTO> findByKeywordIgnoreCaseUsers(String search) {
         List<UserProfile> userProfileList = userProfileRepository.findByKeywordIgnoreCaseUsers(search);
-        System.out.println("userProfileList: " + userProfileList);
         return userProfileList.stream()
                 .map(IUserProfileMapper.INSTANCE::toUserProfileDTO)
                 .toList();
@@ -112,25 +112,32 @@ public class UserProfileService {
 
 
     public List<FeignClientUserProfileResponseDTO> getUserList(List<FeignClientUserProfileRequestDTO> userProfileRequestDTOList) {
-        List<UUID> userIdList = userProfileRequestDTOList.stream()
-                .map(FeignClientUserProfileRequestDTO::getFriendId)
-                .collect(Collectors.toList());
+        Map<UUID, FeignClientUserProfileRequestDTO> contactNameMap = userProfileRequestDTOList.stream()
+                .collect(Collectors.toMap(
+                        FeignClientUserProfileRequestDTO::getUserContactId,
+                        Function.identity()
+                ));
+        List<UUID> userIdList = new ArrayList<>(contactNameMap.keySet());
 
         List<UserProfile> userProfiles = this.userProfileRepository.findAllById(userIdList);
 
         return userProfiles.stream()
                 .filter(Objects::nonNull)
                 .map(userProfile -> FeignClientUserProfileResponseDTO.builder()
-                        .id(userProfile.getId())
-                        .friendName(null)
+                        .id(contactNameMap.get(userProfile.getId()).getId())
+                        .name(userProfile.getFirstName())
                         .about(userProfile.getAbout())
                         .email(userProfile.getEmail())
-                        .imageId(null)
+                        .userContactId(contactNameMap.get(userProfile.getId()).getUserContactId())
+                        .userContactName(contactNameMap.get(userProfile.getId()).getUserContactName())
                         .build())
                 .collect(Collectors.toList());
     }
     public UserProfile getUserById(UUID userId) {
         return this.userProfileRepository.findById(userId).orElseThrow(() -> new NoSuchElementException("User not found witdh ID: " + userId));
+    }
+    public UserProfileResponseDTO getUserByEmail(String contactEmail) {
+        return userProfileRepository.findUserProfileByEmailIgnoreCase(contactEmail).map(IUserProfileMapper.INSTANCE::toUserProfileDTO).orElse(null);
     }
 
     public void updateUserLastSeen(UserLastSeenRequestDTO userLastSeenRequestDTO) {

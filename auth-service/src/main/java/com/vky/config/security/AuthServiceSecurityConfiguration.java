@@ -58,7 +58,6 @@ public class AuthServiceSecurityConfiguration{
                         .authenticated()).sessionManagement(httpSecuritySessionManagementConfigurer ->
                         httpSecuritySessionManagementConfigurer.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider).addFilterBefore(getJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
-        System.out.println("HELLOOOOOOOOOOOOOOOOOOOO");
         return http.build();
     }
 

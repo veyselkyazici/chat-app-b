@@ -1,5 +1,6 @@
 package com.vky.repository;
 
+import com.vky.dto.response.UserProfileResponseDTO;
 import com.vky.repository.entity.UserProfile;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -17,6 +18,8 @@ public interface IUserProfileRepository extends JpaRepository<UserProfile, UUID>
     Boolean isExists(UUID authid);
 
     Optional<UserProfile> findByAuthId(UUID authId);
+    Optional<UserProfile> findUserProfileByEmailIgnoreCase(String email);
+
 
     UserProfile findByEmailIgnoreCase(String email);
     @Query("SELECT u FROM UserProfile u WHERE LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(u.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(u.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")

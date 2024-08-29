@@ -12,4 +12,5 @@ import lombok.NoArgsConstructor;
 public class CheckChatRoomExistsResponseDTO {
     private String id;
     private boolean exists;
+    private UserChatSettingsDTO userChatSettings;
 }

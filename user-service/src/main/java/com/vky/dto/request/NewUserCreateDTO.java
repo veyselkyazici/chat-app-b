@@ -12,9 +12,6 @@ import java.util.UUID;
 @Data
 @Builder
 public class NewUserCreateDTO {
-    /**
-     * yeni uyelik acmis birisinin outh_id bilgisinin tutuldugu alan
-     */
     private UUID authId;
     private String email;
 }

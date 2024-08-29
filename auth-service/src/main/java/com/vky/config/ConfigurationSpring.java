@@ -21,7 +21,7 @@ public class ConfigurationSpring {
     private final IAuthRepository authRepository;
     @Bean
     public UserDetailsService userDetailsService() {
-        return email -> authRepository.findByEmail(email)
+        return email -> authRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
     }
     @Bean

@@ -44,6 +44,6 @@ raceapplication:
     auth: http://localhost:${AUTH_PORT}/
     mail: http://localhost:${MAIL_PORT}/
     user: http://localhost:${USER_PORT}/
-    friendships: http://localhost:${FRIENDSHIPS_PORT}/
+    contacts: http://localhost:${CONTACTS_PORT}/
     chat: http://localhost:${CHAT_PORT}/
 

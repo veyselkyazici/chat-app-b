@@ -35,8 +35,6 @@ public class ConfirmationService {
     }
     public Boolean verifyToken(String verificationToken) {
         Confirmation confirmation = confirmationRepository.findByVerificationToken(verificationToken);
-        System.out.println("AUthId: " + confirmation.getAuthId());
-        System.out.println("Confirmation: " + confirmation.toString());
         authManager.saveVerifiedAccount(confirmation.getAuthId());
         return Boolean.TRUE;
     }

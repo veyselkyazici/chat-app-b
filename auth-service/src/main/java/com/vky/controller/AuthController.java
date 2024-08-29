@@ -33,10 +33,8 @@ public class AuthController {
     private final AuthService authService;
     private final IAuthRepository authRepository;
 
-
     @PostMapping("/register")
     public ResponseEntity<AuthResponseDTO> register(@RequestBody @Valid AuthRequestDTO authRequestDTO) {
-        System.out.println(authRequestDTO.getEmail() + "Zaman: " + LocalDateTime.now());
 
         return ResponseEntity.ok(authService.register(authRequestDTO));
     }
@@ -50,24 +48,9 @@ public class AuthController {
     public ResponseEntity<String> sayHello() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication.isAuthenticated() && !authentication.getName().equals("anonymousUser")) {
-            System.out.println("DOGRULANMIS: ");
-            System.out.println("SECURTIYCONTEXTHOLDER AUTH: " + authentication);
-            System.out.println("AUTH NAME: " + authentication.getName());
-            System.out.println("AUTH PRINCIPAL: " + authentication.getPrincipal());
-            System.out.println("AUTH CREDENTIALS: " + authentication.getCredentials());
-            System.out.println("AUTH DETAILS: " + authentication.getDetails());
             Auth auth = (Auth) authentication.getPrincipal();
-            System.out.println("AUTHID: " + auth.getId());
         } else {
-            System.out.println("DOGRULANMAMIS: ");
-            System.out.println("SECURTIYCONTEXTHOLDER AUTH: " + authentication);
-            System.out.println("AUTH NAME: " + authentication.getName());
-            System.out.println("AUTH PRINCIPAL: " + authentication.getPrincipal());
-            System.out.println("AUTH CREDENTIALS: " + authentication.getCredentials());
-            System.out.println("AUTH DETAILS: " + authentication.getDetails());
         }
-
-        System.out.println("helloooo");
         return ResponseEntity.ok("Hello, ");
     }
 

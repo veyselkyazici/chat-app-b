@@ -4,8 +4,6 @@ import com.vky.dto.request.*;
 import com.vky.dto.response.*;
 import com.vky.exception.ErrorType;
 import com.vky.exception.UserManagerException;
-import com.vky.manager.IAuthManager;
-import com.vky.mapper.IUserProfileMapper;
 import com.vky.repository.entity.UserProfile;
 import com.vky.service.UserProfileService;
 import jakarta.validation.Valid;
@@ -14,16 +12,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.awt.desktop.UserSessionListener;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 
 @RestController
-@RequestMapping(("/api/v1/user"))
+@RequestMapping("/api/v1/user")
 @RequiredArgsConstructor
 public class UserController {
     private final UserProfileService userProfileService;
@@ -31,19 +25,21 @@ public class UserController {
     @GetMapping("/hello")
     public ResponseEntity<String>  sayHello()
     {
-        System.out.println("helloooo");
         return ResponseEntity.ok("Hello, ");
     }
 
     @PostMapping("/create-new-user")
     public ResponseEntity<Boolean> newUserCreate(@RequestBody @Valid NewUserCreateDTO userCreateDto) {
-        System.out.println(userCreateDto.toString());
         try {
             userProfileService.createUserProfile(userCreateDto);
             return ResponseEntity.ok(true);
         } catch (Exception e) {
             throw new UserManagerException(ErrorType.USER_DONT_CREATE);
         }
+    }
+    @GetMapping("/get-user")
+    public ResponseEntity<UserProfileResponseDTO> getUserByEmail(@RequestParam String contactEmail) {
+        return ResponseEntity.ok(userProfileService.getUserByEmail(contactEmail));
     }
 
     @PostMapping("/find-by-authId")
@@ -73,7 +69,6 @@ public class UserController {
     public ResponseEntity<Boolean>  userSurnameUpdate(@RequestHeader(value = "Authorization", required = false, defaultValue = "") String authorization,
                                                             @RequestBody UpdateUserSurnameRequestDTO dto)
     {
-        System.out.println(dto.getSurname());
         TokenResponseDTO tokenResponseDto = userProfileService.tokenExractAuthId(authorization);
 
             userProfileService.updateUserSurname(tokenResponseDto.getAuthId(), dto.getSurname());
@@ -95,7 +90,6 @@ public class UserController {
     public ResponseEntity<Boolean>  userAboutUpdate(@RequestHeader(value = "Authorization", required = false, defaultValue = "") String authorization,
                                                             @RequestBody UpdateUserAbout body)
     {
-        System.out.println("ABOUT: " + body.getAbout());
         TokenResponseDTO tokenResponseDto = userProfileService.tokenExractAuthId(authorization);
 
             userProfileService.updateUserAbout(tokenResponseDto.getAuthId(), body.getAbout());
@@ -109,17 +103,15 @@ public class UserController {
     }
     @GetMapping("/get-user-last-seen")
     public UserLastSeenResponseDTO getUserLastSeen(@RequestParam UUID userId) {
-        System.out.println(userId);
         UserLastSeenResponseDTO response = this.userProfileService.getUserLastSeen(userId);
-        System.out.println("RESPONSE: " + response);
         return response;
     }
 
     @PostMapping("/find-by-keyword-ignore-case-users")
-    public ResponseEntity<List<UserProfileDTO>> findByKeywordIgnoreCaseUsers(@RequestHeader(value = "Authorization", required = false, defaultValue = "") String authorization, @RequestBody SearchDTO search) {
+    public ResponseEntity<List<UserProfileResponseDTO>> findByKeywordIgnoreCaseUsers(@RequestHeader(value = "Authorization", required = false, defaultValue = "") String authorization, @RequestBody SearchDTO search) {
 
         TokenResponseDTO tokenResponseDto = userProfileService.tokenExractAuthId(authorization);
-            List<UserProfileDTO> userProfileDTOList = userProfileService.findByKeywordIgnoreCaseUsers(search.getEmailOrFirstNameOrLastName());
+            List<UserProfileResponseDTO> userProfileDTOList = userProfileService.findByKeywordIgnoreCaseUsers(search.getEmailOrFirstNameOrLastName());
             return ResponseEntity.ok(userProfileDTOList);
     }
 
@@ -134,13 +126,11 @@ public class UserController {
         TokenResponseDTO tokenResponseDto = userProfileService.tokenExractAuthId(userIdRequestDTO.getToken());
             UserIdResponseDTO userIdResponseDto = new UserIdResponseDTO();
             userIdResponseDto.setUserId(tokenResponseDto.getUserId());
-            System.out.println("userIdResponseDto: " + userIdResponseDto);
             return ResponseEntity.ok(userIdResponseDto);
     }
 
     @PostMapping("/get-user-by-id")
     public ResponseEntity<UserProfileIdStringDTO> getUserById(@RequestBody UUID userId) {
-        System.out.println(userId);
         UserProfile userProfile = this.userProfileService.getUserById(userId);
         String uuid = userProfile.getId().toString();
         UserProfileIdStringDTO userProfileIdStringDTO = UserProfileIdStringDTO.builder()
@@ -158,7 +148,11 @@ public class UserController {
         UserProfile userProfile = this.userProfileService.getUserById(userId);
         return userProfile.getEmail();
     }
-
+    @GetMapping("/get-user-email-by-id")
+    public String getUserEmailByIdd(@RequestParam("id") UUID id) {
+        UserProfile userProfile = this.userProfileService.getUserById(id);
+        return userProfile.getEmail();
+    }
     @PostMapping("/get-user-list")
     public List<FeignClientUserProfileResponseDTO> getUserList(@RequestBody List<FeignClientUserProfileRequestDTO> userProfileRequestDTOList) {
         return this.userProfileService.getUserList(userProfileRequestDTOList);
