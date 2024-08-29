@@ -34,7 +34,6 @@ public class JwtUserDetails implements UserDetailsService {
         for (Map.Entry<String, Claim> entry : claimMap.entrySet()) {
             String key = entry.getKey();
             Claim value = entry.getValue();
-            System.out.println("Key: " + key + ", Value: " + value);
         }
         Auth auth = authService.findById(userId);
         //boolean isUserExist = authService.findById(claimMap.get("id").asLong()).getId() != null;

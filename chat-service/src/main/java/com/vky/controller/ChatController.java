@@ -35,7 +35,6 @@ public class ChatController {
 //    }
     @MessageMapping("/send-message")
     public void handleMessage(@Payload MessageRequestDTO messageRequestDTO) {
-        System.out.println("AAAAAAAAAAAAA" + messageRequestDTO);
         chatRoomService.processMessage(messageRequestDTO);
     }
 
@@ -52,7 +51,6 @@ public class ChatController {
 
     @GetMapping("/messages/latest")
     public List<ChatRoomMessageResponseDTO> getLatestMessages(@RequestParam String chatRoomId) {
-        System.out.println(chatRoomId);
         return chatRoomService.getLatestMessages(chatRoomId);
     }
 

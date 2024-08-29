@@ -10,9 +10,9 @@ import java.util.UUID;
 
 public interface IAuthRepository extends JpaRepository<Auth, UUID> {
     //Optional<Auth> findOptionalByUsernameIgnoreCaseAndPassword(String username, String password);
-    Optional<Auth> findByEmail(String email);
-    Optional<Auth> findAuthByIsDeletedFalseAndEmail(String email);
-    Optional<Auth> findAuthByIsDeletedFalseAndEmailAndIsApprovedTrue(String email);
+    Optional<Auth> findByEmailIgnoreCase(String email);
+    Optional<Auth> findAuthByAndEmailIgnoreCase(String email);
+    Optional<Auth> findAuthByEmailIgnoreCaseAndIsApprovedTrue(String email);
     @Query("SELECT COUNT(a)>0 FROM Auth a WHERE (a.email) = (?1)")
     Boolean isExistsEmail(String email);
 }

@@ -4,6 +4,7 @@ import com.vky.entity.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.Where;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -16,6 +17,7 @@ import java.util.List;
 @Data
 @Table(name = "auths")
 @Entity
+@Where(clause = "is_deleted = false")
 @EqualsAndHashCode(callSuper = true)
 public class Auth extends BaseEntity implements UserDetails{
     private String password;

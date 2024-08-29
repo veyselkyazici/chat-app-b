@@ -21,5 +21,5 @@ public class ChatSummaryDTO {
     private String image;
     private String lastMessage;
     private Instant lastMessageTime;
-    private UserChatSettings userChatSettings;
+    private UserChatSettingsDTO userChatSettings;
 }

@@ -30,19 +30,16 @@ public class UserStatusController {
     @MessageMapping("/user-online")
     public void userOnline(@Payload UserStatusMessage message) {
         onlineUsers.put(message.getUserId(), true);
-        System.out.println("ONLINE > " + message);
         messagingTemplate.convertAndSendToUser(message.getUserId(), "/queue/online-status", message);
     }
 
     @MessageMapping("/user-offline")
     public void userOffline(@Payload UserStatusMessage message) {
         onlineUsers.put(message.getUserId(), false);
-        System.out.println("OFFLINE > " + message);
         UserLastSeenResponseDTO userLastSeenResponseDTO = userManager.getUserLastSeen(UUID.fromString(message.getUserId()));
         message.setUserId(userLastSeenResponseDTO.getId().toString());
         message.setOnline(false);
         message.setLastSeen(userLastSeenResponseDTO.getLastSeen());
-        System.out.println("MESSAGE > " + message);
         messagingTemplate.convertAndSendToUser(message.getUserId(), "/queue/online-status", message);
     }
 
@@ -52,7 +49,6 @@ public class UserStatusController {
 //    }
     @MessageMapping("/typing")
     public void typing(@Payload TypingMessage message) {
-        System.out.println("Friend ID > " + message.getFriendId());
         messagingTemplate.convertAndSendToUser(message.getFriendId(), "/queue/typing", message);
         messagingTemplate.convertAndSendToUser(message.getFriendId(), "/queue/message-box-typing", message);
     }
@@ -66,7 +62,6 @@ public class UserStatusController {
 
     @GetMapping("/is-online/{userId}")
     public ResponseEntity<UserStatusMessage> isUserOnline(@PathVariable String userId) {
-        System.out.println("USER ONLINE: " + userId);
         Boolean isOnline = onlineUsers.getOrDefault(userId, false);
         UserStatusMessage message = new UserStatusMessage();
         if (isOnline) {

@@ -19,7 +19,6 @@ public class TokenService {
     }
 
     public void saveToken(Auth auth, String jwtToken) {
-        System.out.println("SAVETOKEN AUTHID: " + auth.getId());
         var token = Token.builder()
                 .auth(auth)
                 .token(jwtToken)

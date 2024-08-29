@@ -34,7 +34,6 @@ public class ForgotPasswordService {
     }
 
     public void createForgotPassword(ForgotPasswordRequestDTO forgotPasswordRequestDTO) {
-        System.out.println("AUTHID: " + forgotPasswordRequestDTO.getAuthId());
         ForgotPassword forgotPassword = ForgotPassword.builder()
                 .password(forgotPasswordRequestDTO.getPassword())
                 .newPassword(null)
@@ -48,11 +47,8 @@ public class ForgotPasswordService {
 
 
     public Optional<ForgotPassword> checkOtp(ForgotPasswordCheckOtpRequestDTO forgotPasswordCheckOtpRequestDTO) {
-        System.out.println("AUTHID: " + forgotPasswordCheckOtpRequestDTO.getAuthId());
         Optional<ForgotPassword> forgotPassword = this.forgotPasswordRepository.findFirstByAuthIdAndExpiryDateAfterOrderByExpiryDateDesc(
                 forgotPasswordCheckOtpRequestDTO.getAuthId(), LocalDateTime.now());
-//        System.out.println("AuthID: " + forgotPassword.get().getAuthId());
-//        System.out.println("ForgotPasswordID: " + forgotPassword.get().getId());
         if (forgotPassword.isPresent() && forgotPasswordCheckOtpRequestDTO.getOtp().equals(forgotPassword.get().getVerificationToken()) ) {
             return forgotPassword;
         }

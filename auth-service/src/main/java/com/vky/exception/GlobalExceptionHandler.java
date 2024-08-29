@@ -104,7 +104,6 @@ public class GlobalExceptionHandler {
     }
 
     private ErrorMessage createError(ErrorType errorType, Exception exception){
-        System.out.println("Hata oluştu: " + exception.getMessage());
         return ErrorMessage.builder()
                 .code(errorType.getCode())
                 .message(errorType.getMessage())

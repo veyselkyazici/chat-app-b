@@ -25,7 +25,6 @@ public class AuthenticationFilter implements GatewayFilter {
         String authorizationHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
         return isAuthenticated(authorizationHeader)
                 .flatMap(isAuthenticated -> {
-                    System.out.println("ISAUTHENTICATED: " + isAuthenticated);
                     if (isAuthenticated) {
                         return chain.filter(exchange);
                     } else {

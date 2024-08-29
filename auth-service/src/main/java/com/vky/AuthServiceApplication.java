@@ -21,7 +21,6 @@ public class AuthServiceApplication {
 //                    .password("password")
 //                    .role(ADMIN)
 //                    .build();
-//            System.out.println("Admin token: " + service.generateAdmin(admin).getAccessToken());
 //        };
 //    }
 }
