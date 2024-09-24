@@ -1,13 +1,11 @@
 package com.vky.manager;
 
 
-import com.vky.dto.request.UserLastSeenRequestDTO;
 import com.vky.dto.response.TokenResponseDTO;
 import com.vky.dto.response.UserLastSeenResponseDTO;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 

@@ -4,6 +4,11 @@ import com.vky.repository.IUserChatSettingsRepository;
 import com.vky.repository.entity.UserChatSettings;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 @Service
 public class UserChatSettingsService {
     private final IUserChatSettingsRepository userChatSettingsRepository;
@@ -30,5 +35,13 @@ public class UserChatSettingsService {
 
     public UserChatSettings updateUserChatSettings(UserChatSettings userSettings) {
         return this.userChatSettingsRepository.save(userSettings);
+    }
+
+
+    public Map<String, UserChatSettings> findUserChatSettingsByUserIdAndChatRoomIds(String userId, List<String> chatRoomIds) {
+        List<UserChatSettings> settings = userChatSettingsRepository.findByUserIdAndChatRoomIdInAndIsDeletedFalse(userId, chatRoomIds);
+
+        return settings.stream()
+                .collect(Collectors.toMap(UserChatSettings::getChatRoomId, Function.identity()));
     }
 }

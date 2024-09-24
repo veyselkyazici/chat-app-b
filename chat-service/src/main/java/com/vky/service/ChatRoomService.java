@@ -1,9 +1,12 @@
 package com.vky.service;
 
+import com.vky.dto.LastMessageInfo;
+import com.vky.dto.request.ContactInformationOfExistingChatsRequestDTO;
 import com.vky.dto.request.CreateChatRoom;
 import com.vky.dto.request.CreateChatRoomDTO;
 import com.vky.dto.response.*;
 import com.vky.dto.request.MessageRequestDTO;
+import com.vky.manager.IContactsManager;
 import com.vky.manager.IUserManager;
 import com.vky.mapper.IChatMapper;
 import com.vky.repository.IChatRoomRepository;
@@ -15,10 +18,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,7 +29,7 @@ public class ChatRoomService {
     private final ChatMessageService chatMessageService;
     private final IUserManager userManager;
     private final UserChatSettingsService userChatSettingsService;
-    private final SimpMessagingTemplate messagingTemplate;
+    private final IContactsManager contactsManager;
 
 
     public ChatRoom chatRoomSave(String userId, String friendId) {
@@ -191,33 +191,87 @@ public class ChatRoomService {
     }
     public List<ChatSummaryDTO> getUserChatSummariess(String userId) {
         List<ChatRoom> chatRooms = getUserChatRooms(userId);
+        List<UUID> participantIds = extractParticipantIds(chatRooms, userId);
+        List<String> chatRoomIds = extractChatRoomIds(chatRooms);
 
-        return chatRooms.stream().map(chatRoom -> {
-            List<String> filteredParticipantIds = chatRoom.getParticipantIds()
-                    .stream()
-                    .filter(id -> !id.equals(userId))
-                    .toList();
+        Map<String, LastMessageInfo> lastMessageMap = chatMessageService.getLastMessagesForChatRooms(chatRoomIds);
+        Map<String, UserChatSettings> userChatSettingsMap = userChatSettingsService.findUserChatSettingsByUserIdAndChatRoomIds(userId, chatRoomIds);
 
-            String friendId = filteredParticipantIds.isEmpty() ? null : filteredParticipantIds.get(0);
-            ChatMessage chatMessage = getChatLastMessage(chatRoom.getId());
+        List<FeignClientUserProfileResponseDTO> profiles = getParticipantProfiles(userId,participantIds);
 
-            UserChatSettingsDTO userChatSettingsDTO = Optional.ofNullable(userChatSettingsService.findByUserIdAndChatRoomId(userId, chatRoom.getId()))
-                    .map(IChatMapper.INSTANCE::userChatSettingsToDTO)
-                    .orElse(new UserChatSettingsDTO());
-            String friendEmail = friendId != null ? this.userManager.getUserEmailById(UUID.fromString(friendId)) : null;
-
-            return ChatSummaryDTO.builder()
-                    .id(chatRoom.getId())
-                    .image(null)
-                    .lastMessage(chatMessage.getMessageContent())
-                    .lastMessageTime(chatMessage.getFullDateTime())
-                    .userChatSettings(userChatSettingsDTO)
-                    .friendEmail(friendEmail)
-                    .friendId(friendId)
-                    .userId(userId)
-                    .build();
-        }).collect(Collectors.toList());
+        return chatRooms.stream()
+                .map(chatRoom -> buildChatSummaryDTO(chatRoom, lastMessageMap, userChatSettingsMap, profiles, userId))
+                .filter(Objects::nonNull)
+                .toList();
     }
+
+    private List<UUID> extractParticipantIds(List<ChatRoom> chatRooms, String userId) {
+        return chatRooms.stream()
+                .map(ChatRoom::getParticipantIds)
+                .flatMap(Collection::stream)
+                .filter(participantId -> !participantId.equals(userId))
+                .map(UUID::fromString)
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    private List<String> extractChatRoomIds(List<ChatRoom> chatRooms) {
+        return chatRooms.stream()
+                .map(ChatRoom::getId)
+                .toList();
+    }
+
+    private List<FeignClientUserProfileResponseDTO> getParticipantProfiles(String userId,List<UUID> participantIds) {
+        ContactInformationOfExistingChatsRequestDTO request = ContactInformationOfExistingChatsRequestDTO.builder()
+                .userId(UUID.fromString(userId))
+                .userContactIds(participantIds)
+                .build();
+        return contactsManager.getContactInformationOfExistingChats(request);
+    }
+
+    private ChatSummaryDTO buildChatSummaryDTO(ChatRoom chatRoom, Map<String, LastMessageInfo> lastMessageMap,
+                                               Map<String, UserChatSettings> userChatSettingsMap,
+                                               List<FeignClientUserProfileResponseDTO> profiles, String userId) {
+        LastMessageInfo lastMessageInfo = lastMessageMap.get(chatRoom.getId());
+        UserChatSettings userChatSettings = userChatSettingsMap.get(chatRoom.getId());
+        FeignClientUserProfileResponseDTO profile = findProfileForChatRoom(chatRoom, profiles);
+
+        if (profile == null) {
+            return null;  // Profil bulunmazsa null dön.
+        }
+
+        return ChatSummaryDTO.builder()
+                .id(chatRoom.getId())
+                .contactId(profile.getId())
+                .userId(userId)
+                .userContactName(profile.getUserContactName())
+                .userProfileResponseDTO(profile.getUserProfileResponseDTO())
+                .lastMessage(lastMessageInfo != null ? lastMessageInfo.getLastMessage() : null)
+                .lastMessageTime(lastMessageInfo != null ? lastMessageInfo.getLastMessageTime() : null)
+                .userChatSettings(mapUserChatSettingsDTO(userChatSettings))
+                .build();
+    }
+
+    private FeignClientUserProfileResponseDTO findProfileForChatRoom(ChatRoom chatRoom, List<FeignClientUserProfileResponseDTO> profiles) {
+        return profiles.stream()
+                .filter(p -> chatRoom.getParticipantIds().contains(p.getUserProfileResponseDTO().getId().toString()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private UserChatSettingsDTO mapUserChatSettingsDTO(UserChatSettings settings) {
+        return UserChatSettingsDTO.builder()
+                .chatRoomId(settings.getChatRoomId())
+                .blockedTime(settings.getBlockedTime())
+                .deletedTime(settings.getDeletedTime())
+                .userId(settings.getUserId())
+                .isArchived(settings.isArchived())
+                .isPinned(settings.isPinned())
+                .unblockedTime(settings.getUnblockedTime())
+                .unreadMessageCount(settings.getUnreadMessageCount())
+                .build();
+    }
+
 /** CommandLineRunner açılırsa açılacak
     public List<ChatSummaryDTO> getUserChatSummariess(String userId) {
         List<ChatRoom> chatRooms = getUserChatRooms(userId);

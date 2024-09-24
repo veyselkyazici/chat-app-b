@@ -49,6 +49,7 @@ public class UserStatusController {
 //    }
     @MessageMapping("/typing")
     public void typing(@Payload TypingMessage message) {
+        System.out.println("Message > " + message);
         messagingTemplate.convertAndSendToUser(message.getFriendId(), "/queue/typing", message);
         messagingTemplate.convertAndSendToUser(message.getFriendId(), "/queue/message-box-typing", message);
     }
@@ -56,6 +57,7 @@ public class UserStatusController {
 
     @MessageMapping("/stop-typing")
     public void stopTyping(@Payload TypingMessage message) {
+        System.out.println("STOP TYPING > " + message);
         message.setTyping(false);
         messagingTemplate.convertAndSendToUser(message.getUserId(), "/queue/typing", message);
     }

@@ -1,5 +1,6 @@
 package com.vky.controller;
 
+import com.vky.dto.request.ContactInformationOfExistingChatsRequestDTO;
 import com.vky.dto.request.ContactRequestDTO;
 import com.vky.dto.response.DeleteContactResponseDTO;
 import com.vky.dto.response.FeignClientUserProfileResponseDTO;
@@ -25,7 +26,14 @@ public class ContactsController {
 
     @GetMapping("/get-contact-list")
     public ResponseEntity<List<FeignClientUserProfileResponseDTO>> getFriendList(@RequestParam("userId") UUID userId) {
+        System.out.println("USERID>> " + userId);
         return ResponseEntity.ok(contactsService.getContactList(userId));
+    }
+
+    @PostMapping("/get-contact-information-of-existing-chats")
+    public List<FeignClientUserProfileResponseDTO> getContactInformationOfExistingChats(@RequestBody ContactInformationOfExistingChatsRequestDTO contactInformationOfExistingChatsRequestDTO) {
+        System.out.println("USERID 123>> " + contactInformationOfExistingChatsRequestDTO);
+        return contactsService.getContactInformationOfExistingChats(contactInformationOfExistingChatsRequestDTO);
     }
 
 

@@ -1,14 +1,14 @@
 package com.vky.service;
 
+import com.vky.dto.request.ContactInformationOfExistingChatsRequestDTO;
 import com.vky.dto.request.ContactRequestDTO;
 import com.vky.dto.request.FeignClientUserProfileRequestDTO;
-import com.vky.dto.response.DeleteContactResponseDTO;
-import com.vky.dto.response.FeignClientUserProfileResponseDTO;
-import com.vky.dto.response.UserProfileResponseDTO;
+import com.vky.dto.response.*;
 import com.vky.exception.ContactNotFoundException;
 import com.vky.exception.InvitationAlreadyExistsException;
 import com.vky.manager.IUserManager;
 import com.vky.mapper.IContactsMapper;
+import com.vky.mapper.IInvitationMapper;
 import com.vky.repository.IContactsRepository;
 import com.vky.repository.entity.Contacts;
 import com.vky.repository.entity.Invitation;
@@ -17,7 +17,9 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -70,6 +72,7 @@ public class ContactsService {
 
 
 
+
     public record AddContactResponseDTO(UUID id, UUID userContactId, String userContactEmail, String about, String image, String name, String userContactName){};
     public record AddInvitationResponseDTO(UUID id,UUID userContactId, String userContactEmail, String userContactName, boolean isInvited, String about, String image, String name){};
 
@@ -92,10 +95,14 @@ public class ContactsService {
                     .userContactName(contactRequestDTO.userContactName())
                     .userId(contactRequestDTO.userId())
                     .userContactId(userProfileResponseDTO.getId()).build());
-            AddContactResponseDTO addContactResponseDTO = new AddContactResponseDTO(contact.getId(), contact.getUserContactId(), contact.getUserContactEmail(), userProfileResponseDTO.getAbout(),null, userProfileResponseDTO.getFirstName(), contact.getUserContactName());
-            messagingTemplate.convertAndSendToUser(contact.getUserId().toString(),"/queue/add-contact", addContactResponseDTO);
+            ContactResponseDTO contactResponseDTO = new ContactResponseDTO(contact.getId(),userProfileResponseDTO, contact.getUserContactName());
+//            AddContactResponseDTO addContactResponseDTO = new AddContactResponseDTO(contact.getId(), contact.getUserContactId(), contact.getUserContactEmail(), userProfileResponseDTO.getAbout(),null, userProfileResponseDTO.getFirstName(), contact.getUserContactName());
+            System.out.println("userıd> " + contact.getUserId());
+            System.out.println("userContactId> " + contact.getUserContactId());
+            messagingTemplate.convertAndSendToUser(contact.getUserId().toString(),"/queue/add-contact", contactResponseDTO);
         }
     }
+
 
 
     public List<FeignClientUserProfileResponseDTO> getContactList(UUID userId) {
@@ -103,26 +110,66 @@ public class ContactsService {
         List<Invitation> invitations = this.invitationService.findInvitationByInviterUserIdOrderByContactName(userId);
 
 
-        List<FeignClientUserProfileRequestDTO> userProfileRequestDTOList = IContactsMapper.INSTANCE.toResponseLists(contacts);
-        List<FeignClientUserProfileResponseDTO> userResponseDTOS = this.userManager.getUserList(userProfileRequestDTOList);
+        List<FeignClientUserProfileRequestDTO> contactList = IContactsMapper.INSTANCE.toContactRequestList(contacts);
+        System.out.println("contactList: " + contactList);
+        List<FeignClientUserProfileResponseDTO> userResponseDTOS = this.userManager.getUserList(contactList);
+        System.out.println("UserResponseDTOS>>> " + userResponseDTOS);
 
-
-        invitations.forEach(invitation -> userResponseDTOS.add(convertInvitationToContact(invitation)));
+        invitations.stream()
+                .map(this::convertInvitationToContact)
+                .forEach(userResponseDTOS::add);
 
         return userResponseDTOS;
     }
 
+    public List<FeignClientUserProfileResponseDTO> getContactInformationOfExistingChats(ContactInformationOfExistingChatsRequestDTO contactInformationOfExistingChatsRequestDTO) {
+        List<Contacts> contacts = this.contactsRepository.findContactsByUserIdAndUserContactIds(contactInformationOfExistingChatsRequestDTO.getUserId(),contactInformationOfExistingChatsRequestDTO.getUserContactIds());
 
+        Map<UUID, Contacts> contactsMap = contacts.stream()
+                .collect(Collectors.toMap(Contacts::getUserContactId, contact -> contact));
+        // İstekten gelen userContactIds
+        List<UUID> requestedContactIds = contactInformationOfExistingChatsRequestDTO.getUserContactIds();
 
+        // DTO listesini oluşturuyoruz
+
+        List<FeignClientUserProfileResponseDTO> dtos = requestedContactIds.stream()
+                .map(contactId -> {
+                    System.out.println("CONTACT > " +contactId);
+                    Contacts contact = contactsMap.get(contactId);
+                    System.out.println("CONTACT > " +contact);
+                    if (contact != null) {
+                        return FeignClientUserProfileResponseDTO.builder()
+                                .id(contact.getId())
+                                .userContactName(contact.getUserContactName())
+                                .userProfileResponseDTO(UserProfileResponseDTO.builder()
+                                .id(contact.getUserContactId()).build())
+                                .invitationResponseDTO(new InvitationResponseDTO())
+                                .build();
+                    } else {
+                        return FeignClientUserProfileResponseDTO.builder()
+                                .id(null)
+                                .userContactName(null)
+                                .userProfileResponseDTO(UserProfileResponseDTO.builder()
+                                .id(contactId).build())
+                                .invitationResponseDTO(new InvitationResponseDTO())
+                                .build();
+                    }
+                })
+                .toList();
+
+        List<FeignClientUserProfileRequestDTO> contactList = IContactsMapper.INSTANCE.dtoToDTO(dtos);
+        List<FeignClientUserProfileResponseDTO> userResponseDTOS = this.userManager.getUserList(contactList);
+        System.out.println("ASDASD > " + userResponseDTOS);
+        return userResponseDTOS;
+    }
     private FeignClientUserProfileResponseDTO convertInvitationToContact(Invitation invitation) {
+        InvitationResponseDTO invitationResponseDTO = IInvitationMapper.INSTANCE.toInvitationResponseDTO(invitation);
+
         return FeignClientUserProfileResponseDTO.builder()
-                .id(invitation.getId())
-                .userContactName(invitation.getContactName())
-                .email(invitation.getInviteeEmail())
-                .inviterUserId(invitation.getInviterUserId())
-                .isInvited(invitation.isInvited())
+                .invitationResponseDTO(invitationResponseDTO)
                 .build();
     }
+
 
 
 

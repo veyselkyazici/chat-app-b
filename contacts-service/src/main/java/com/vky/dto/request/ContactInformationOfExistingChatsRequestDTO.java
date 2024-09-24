@@ -1,17 +1,17 @@
-package com.vky.dto.response;
+package com.vky.dto.request;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
 import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
 @Builder
-public class ContactResponseDTO  {
-    private UUID id;
-    private UserProfileResponseDTO userProfileResponseDTO;
-    private String userContactName;
+public class ContactInformationOfExistingChatsRequestDTO {
+    private UUID userId;
+    private List<UUID> userContactIds;
 }

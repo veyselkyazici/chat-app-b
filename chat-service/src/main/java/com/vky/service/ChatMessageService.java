@@ -1,5 +1,6 @@
 package com.vky.service;
 
+import com.vky.dto.LastMessageInfo;
 import com.vky.dto.request.CreateChatRoom;
 import com.vky.dto.request.CreateChatRoomDTO;
 import com.vky.dto.request.MessageRequestDTO;
@@ -15,7 +16,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -86,5 +89,21 @@ public class ChatMessageService {
                 .chatRoomId(chatRoomId)
                 .fullDateTime(fullDateTime)
                 .build());
+    }
+
+    public Map<String, LastMessageInfo> getLastMessagesForChatRooms(List<String> chatRoomIds) {
+        Map<String, LastMessageInfo> lastMessagesMap = new HashMap<>();
+
+        List<ChatMessage> lastMessages = chatMessageRepository.findFirstByChatRoomIdInOrderByFullDateTimeDesc(chatRoomIds);
+
+        for (ChatMessage lastMessage : lastMessages) {
+            LastMessageInfo lastMessageInfo = new LastMessageInfo(
+                    lastMessage.getMessageContent(),
+                    lastMessage.getFullDateTime()
+            );
+            lastMessagesMap.put(lastMessage.getChatRoomId(), lastMessageInfo);
+        }
+
+        return lastMessagesMap;
     }
 }

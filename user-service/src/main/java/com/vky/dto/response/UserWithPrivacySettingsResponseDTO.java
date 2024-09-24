@@ -5,13 +5,11 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
 @Builder
-public class ContactResponseDTO  {
-    private UUID id;
-    private UserProfileResponseDTO userProfileResponseDTO;
-    private String userContactName;
+public class UserWithPrivacySettingsResponseDTO {
+    private UserProfileResponseDTO userProfile;
+    private PrivacySettingsResponseDTO privacySettings;
 }

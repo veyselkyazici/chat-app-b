@@ -2,11 +2,14 @@ package com.vky.service;
 
 import com.vky.dto.request.FeignClientUserProfileRequestDTO;
 import com.vky.dto.request.NewUserCreateDTO;
+import com.vky.dto.request.PrivacySettingsRequestDTO;
 import com.vky.dto.request.UserLastSeenRequestDTO;
 import com.vky.dto.response.*;
+import com.vky.mapper.IPrivactSettingsMapper;
 import com.vky.mapper.IUserProfileMapper;
 import com.vky.rabbitmq.producer.RabbitMQProducer;
 import com.vky.repository.IUserProfileRepository;
+import com.vky.repository.entity.PrivacySettings;
 import com.vky.repository.entity.UserProfile;
 import com.vky.utility.JwtTokenManager;
 import org.springframework.stereotype.Service;
@@ -29,13 +32,13 @@ public class UserProfileService {
     }
 
     public void createUserProfile(NewUserCreateDTO userCreateDto) {
-         UserProfile userProfile = userProfileRepository.save(UserProfile.builder()
+
+        UserProfile savedUserProfile = userProfileRepository.save(UserProfile.builder()
                 .authId(userCreateDto.getAuthId())
                 .email(userCreateDto.getEmail())
+                .privacySettings(new PrivacySettings())
                 .build());
-         if (userProfile != null) {
-             rabbitMQProducer.checkContactUser(userProfile);
-         }
+        rabbitMQProducer.checkContactUser(savedUserProfile);
     }
 
 //    public Boolean updateUserProfile(EditProfileRequestDto dto, Long authid){
@@ -111,30 +114,75 @@ public class UserProfileService {
     }
 
 
-    public List<FeignClientUserProfileResponseDTO> getUserList(List<FeignClientUserProfileRequestDTO> userProfileRequestDTOList) {
-        Map<UUID, FeignClientUserProfileRequestDTO> contactNameMap = userProfileRequestDTOList.stream()
-                .collect(Collectors.toMap(
-                        FeignClientUserProfileRequestDTO::getUserContactId,
-                        Function.identity()
-                ));
-        List<UUID> userIdList = new ArrayList<>(contactNameMap.keySet());
+//    public List<FeignClientUserProfileResponseDTO> getUserList(List<FeignClientUserProfileRequestDTO> userProfileRequestDTOList) {
+//        System.out.println("REQUESTDTO > " + userProfileRequestDTOList);
+//        Map<UUID, FeignClientUserProfileRequestDTO> contactNameMap = userProfileRequestDTOList.stream()
+//                .collect(Collectors.toMap(
+//                        dto -> dto.getUserProfileResponseDTO().getId(),
+//                        Function.identity()
+//                ));
+//        List<UUID> userIdList = new ArrayList<>(contactNameMap.keySet());
+//
+//        List<UserProfile> userProfiles = this.userProfileRepository.findAllById(userIdList);
+//
+//        return userProfiles.stream()
+//                .filter(Objects::nonNull)
+//                .map(userProfile -> {
+//                    PrivacySettingsResponseDTO privacySettingsDTO = IPrivactSettingsMapper.INSTANCE.toPrivacySettingsResponseDTO(userProfile.getPrivacySettings());
+//
+//                    return FeignClientUserProfileResponseDTO.builder()
+//                            .id(contactNameMap.get(userProfile.getId()).getId())
+//                            .userProfileResponseDTO(
+//                                    UserProfileResponseDTO.builder()
+//                                            .id(userProfile.getId())
+//                                            .email(userProfile.getEmail())
+//                                            .firstName(userProfile.getFirstName())
+//                                            .lastName(userProfile.getLastName())
+//                                            .about(userProfile.getAbout())
+//                                            .privacySettings(privacySettingsDTO)
+//                                            .build())
+//                            .userContactName(contactNameMap.get(userProfile.getId()).getUserContactName())
+//                            .build();
+//                })
+//                .collect(Collectors.toList());
+//    }
+public List<FeignClientUserProfileResponseDTO> getUserList(List<FeignClientUserProfileRequestDTO> userProfileRequestDTOList) {
+    System.out.println("REQUESTDTO > " + userProfileRequestDTOList);
+    Map<UUID, FeignClientUserProfileRequestDTO> contactNameMap = userProfileRequestDTOList.stream()
+            .collect(Collectors.toMap(
+                    dto -> dto.getUserProfileResponseDTO().getId(),
+                    Function.identity()
+            ));
+    List<UUID> userIdList = new ArrayList<>(contactNameMap.keySet());
 
-        List<UserProfile> userProfiles = this.userProfileRepository.findAllById(userIdList);
+    List<UserProfile> userProfiles = this.userProfileRepository.findAllById(userIdList);
 
-        return userProfiles.stream()
-                .filter(Objects::nonNull)
-                .map(userProfile -> FeignClientUserProfileResponseDTO.builder()
+    List<FeignClientUserProfileResponseDTO> dto = userProfiles.stream()
+            .filter(Objects::nonNull)
+            .map(userProfile -> {
+                PrivacySettingsResponseDTO privacySettingsDTO = IPrivactSettingsMapper.INSTANCE.toPrivacySettingsResponseDTO(userProfile.getPrivacySettings());
+
+                return FeignClientUserProfileResponseDTO.builder()
                         .id(contactNameMap.get(userProfile.getId()).getId())
-                        .name(userProfile.getFirstName())
-                        .about(userProfile.getAbout())
-                        .email(userProfile.getEmail())
-                        .userContactId(contactNameMap.get(userProfile.getId()).getUserContactId())
+                        .userProfileResponseDTO(
+                                UserProfileResponseDTO.builder()
+                                        .id(userProfile.getId())
+                                        .email(userProfile.getEmail())
+                                        .firstName(userProfile.getFirstName())
+                                        .lastName(userProfile.getLastName())
+                                        .about(userProfile.getAbout())
+                                        .privacySettings(privacySettingsDTO)
+                                        .build())
                         .userContactName(contactNameMap.get(userProfile.getId()).getUserContactName())
-                        .build())
-                .collect(Collectors.toList());
-    }
-    public UserProfile getUserById(UUID userId) {
-        return this.userProfileRepository.findById(userId).orElseThrow(() -> new NoSuchElementException("User not found witdh ID: " + userId));
+                        .build();
+            })
+            .collect(Collectors.toList());
+    System.out.println("DTO > " + dto);
+    return dto;
+}
+    public UserProfileResponseDTO getUserById(UUID userId) {
+        UserProfile userProfile = this.userProfileRepository.findById(userId).orElseThrow(() -> new NoSuchElementException("User not found witdh ID: " + userId));
+        return IUserProfileMapper.INSTANCE.toUserProfileDTO(userProfile);
     }
     public UserProfileResponseDTO getUserByEmail(String contactEmail) {
         return userProfileRepository.findUserProfileByEmailIgnoreCase(contactEmail).map(IUserProfileMapper.INSTANCE::toUserProfileDTO).orElse(null);
@@ -163,5 +211,27 @@ public class UserProfileService {
 
             return null;
         }
+    }
+
+    public List<UserProfile> getUsers() {
+        return this.userProfileRepository.findAll();
+    }
+
+    public UserProfileResponseDTO updatePrivacySettings(UUID userId, PrivacySettingsRequestDTO privacySettingsRequestDTO) {
+        UserProfile userProfile = this.userProfileRepository.findById(userId).orElseThrow(() -> new NoSuchElementException("User not found witdh ID: " + userId));
+
+        PrivacySettings privacySettings = userProfile.getPrivacySettings();
+        if (privacySettings == null) {
+            privacySettings = new PrivacySettings();
+        }
+
+        privacySettings.setProfilePhotoVisibility(privacySettingsRequestDTO.getProfilePhotoVisibility());
+        privacySettings.setLastSeenVisibility(privacySettingsRequestDTO.getLastSeenVisibility());
+        privacySettings.setOnlineStatusVisibility(privacySettingsRequestDTO.getOnlineStatusVisibility());
+        privacySettings.setReadReceipts(privacySettingsRequestDTO.isReadReceipts());
+
+        userProfile.setPrivacySettings(privacySettings);
+        userProfileRepository.save(userProfile);
+        return IUserProfileMapper.INSTANCE.toUserProfileDTO(userProfile);
     }
 }

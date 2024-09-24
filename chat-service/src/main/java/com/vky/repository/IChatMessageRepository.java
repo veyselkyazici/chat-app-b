@@ -16,4 +16,7 @@ public interface IChatMessageRepository extends MongoRepository<ChatMessage, Str
     List<ChatMessage> findNext30ByChatRoomIdAndFullDateTimeBeforeOrderByFullDateTimeDesc(String chatRoomId, Instant before);
     ChatMessage findFirstByChatRoomIdOrderByFullDateTimeDesc(String chatRoomId);
 
+    @Query("{ 'chatRoomId': { $in: ?0 } }")
+    List<ChatMessage> findFirstByChatRoomIdInOrderByFullDateTimeDesc(List<String> chatRoomIds);
+
 }

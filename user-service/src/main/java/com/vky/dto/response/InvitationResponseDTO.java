@@ -6,12 +6,13 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.UUID;
+
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
 @Builder
-public class ContactResponseDTO  {
+public class InvitationResponseDTO {
     private UUID id;
-    private UserProfileResponseDTO userProfileResponseDTO;
-    private String userContactName;
+    private boolean isInvited;
+    private UUID inviterUserId;
 }
