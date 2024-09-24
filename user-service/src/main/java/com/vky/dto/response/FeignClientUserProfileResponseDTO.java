@@ -13,12 +13,7 @@ import java.util.UUID;
 @Builder
 public class FeignClientUserProfileResponseDTO {
     private UUID id;
-    private UUID userContactId;
-    private String email;
-    private String about;
-    private String name;
     private String userContactName;
-    private UUID imageId;
-    private boolean isInvited;
-    private UUID inviterUserId;
+    private UserProfileResponseDTO userProfileResponseDTO;
+    private InvitationResponseDTO invitationResponseDTO;
 }

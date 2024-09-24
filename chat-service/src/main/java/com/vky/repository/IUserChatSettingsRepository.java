@@ -9,4 +9,5 @@ import java.util.List;
 public interface IUserChatSettingsRepository extends MongoRepository<UserChatSettings, String> {
     List<UserChatSettings> findByUserId(String userId);
     UserChatSettings findByUserIdAndChatRoomIdAndIsDeletedFalse(String userId, String chatRoomId);
+    List<UserChatSettings> findByUserIdAndChatRoomIdInAndIsDeletedFalse(String userId, List<String> chatRoomIds);
 }

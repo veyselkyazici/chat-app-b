@@ -1,5 +1,6 @@
 package com.vky.dto.request;
 
+import com.vky.dto.response.UserProfileResponseDTO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,6 +14,6 @@ import java.util.UUID;
 @Builder
 public class FeignClientUserProfileRequestDTO {
     private UUID id;
-    private UUID userContactId;
+    private UserProfileResponseDTO userProfileResponseDTO;
     private String userContactName;
 }

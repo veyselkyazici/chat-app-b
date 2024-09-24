@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -15,11 +16,11 @@ import java.util.List;
 @NoArgsConstructor
 public class ChatSummaryDTO {
     private String id;
+    private UUID contactId;
     private String userId;
-    private String friendId;
-    private String friendEmail;
-    private String image;
+    private String userContactName;
     private String lastMessage;
     private Instant lastMessageTime;
+    private UserProfileResponseDTO userProfileResponseDTO;
     private UserChatSettingsDTO userChatSettings;
 }

@@ -1,5 +1,17 @@
 package com.vky.dto.response;
 
-import java.util.UUID;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-public record ContactResponseDTO (UUID id, UUID userId, String userEmail, UUID userContactId, String userContactName, String userContactEmail) {}
+import java.util.UUID;
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+@Builder
+public class ContactResponseDTO  {
+    private UUID id;
+    private UserProfileResponseDTO userProfileResponseDTO;
+    private String userContactName;
+}

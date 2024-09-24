@@ -4,6 +4,7 @@ import com.vky.dto.request.*;
 import com.vky.dto.response.*;
 import com.vky.exception.ErrorType;
 import com.vky.exception.UserManagerException;
+import com.vky.mapper.IUserProfileMapper;
 import com.vky.repository.entity.UserProfile;
 import com.vky.service.UserProfileService;
 import jakarta.validation.Valid;
@@ -15,19 +16,27 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
-
 @RestController
 @RequestMapping("/api/v1/user")
 @RequiredArgsConstructor
 public class UserController {
     private final UserProfileService userProfileService;
 
+
     @GetMapping("/hello")
-    public ResponseEntity<String>  sayHello()
+    public ResponseEntity<String> sayHello()
     {
         return ResponseEntity.ok("Hello, ");
     }
-
+    @GetMapping("/hello1")
+    public ResponseEntity<UserProfile> sayHello1()
+    {
+        List<UserProfile> userProfiles = userProfileService.getUsers();
+        System.out.println(userProfiles.get(0));
+        System.out.println(userProfiles.get(0).getPrivacySettings()); // PrivacySettings(profilePhotoVisibility=EVERYONE, lastSeenVisibility=EVERYONE, onlineStatusVisibility=EVERYONE, readReceipts=true)
+        System.out.println(userProfiles.get(0)); // UserProfile(authId=a0e09c3d-0d9e-43a0-9541-c7823653ec96, email=veyselkaraniyazici@gmail.com, firstName=Veysel Karani YAZICI, lastName=null, phone=null, about=Meşgul, status=null, lastSeen=2024-09-06T19:16:36.619169, image=null, privacySettings=PrivacySettings(profilePhotoVisibility=EVERYONE, lastSeenVisibility=EVERYONE, onlineStatusVisibility=EVERYONE, readReceipts=true))
+        return ResponseEntity.ok().body(userProfiles.get(0));
+    }
     @PostMapping("/create-new-user")
     public ResponseEntity<Boolean> newUserCreate(@RequestBody @Valid NewUserCreateDTO userCreateDto) {
         try {
@@ -129,39 +138,50 @@ public class UserController {
             return ResponseEntity.ok(userIdResponseDto);
     }
 
+    @PostMapping("/get-user-with-privacy-settings-by-token")
+    public ResponseEntity<UserProfileResponseDTO> getUserWithPrivacySettingsByToken(@RequestBody UserIdRequestDTO userIdRequestDTO) {
+        TokenResponseDTO tokenResponseDto = userProfileService.tokenExractAuthId(userIdRequestDTO.getToken());
+        UserProfileResponseDTO userProfileResponseDTO = userProfileService.getUserById(tokenResponseDto.getUserId());
+        return ResponseEntity.ok(userProfileResponseDTO);
+    }
+
     @PostMapping("/get-user-by-id")
-    public ResponseEntity<UserProfileIdStringDTO> getUserById(@RequestBody UUID userId) {
-        UserProfile userProfile = this.userProfileService.getUserById(userId);
-        String uuid = userProfile.getId().toString();
-        UserProfileIdStringDTO userProfileIdStringDTO = UserProfileIdStringDTO.builder()
-                .id(uuid)
-                .email(userProfile.getEmail())
-                .image(userProfile.getImage())
-                .lastName(userProfile.getLastName())
-                .firstName(userProfile.getFirstName())
-                .build();
-        return ResponseEntity.ok(userProfileIdStringDTO);
+    public ResponseEntity<UserProfileResponseDTO> getUserById(@RequestBody UUID userId) {
+        UserProfileResponseDTO userProfileResponseDTO = this.userProfileService.getUserById(userId);
+        return ResponseEntity.ok(userProfileResponseDTO);
     }
 
     @PostMapping("/get-userEmail-ById")
     public String getUserEmailById(@RequestBody UUID userId) {
-        UserProfile userProfile = this.userProfileService.getUserById(userId);
-        return userProfile.getEmail();
+        UserProfileResponseDTO userProfileResponseDTO = this.userProfileService.getUserById(userId);
+        return userProfileResponseDTO.getEmail();
     }
     @GetMapping("/get-user-email-by-id")
     public String getUserEmailByIdd(@RequestParam("id") UUID id) {
-        UserProfile userProfile = this.userProfileService.getUserById(id);
-        return userProfile.getEmail();
+        UserProfileResponseDTO userProfileResponseDTO = this.userProfileService.getUserById(id);
+        return userProfileResponseDTO.getEmail();
     }
     @PostMapping("/get-user-list")
     public List<FeignClientUserProfileResponseDTO> getUserList(@RequestBody List<FeignClientUserProfileRequestDTO> userProfileRequestDTOList) {
         return this.userProfileService.getUserList(userProfileRequestDTOList);
     }
 
+
     @GetMapping("/feign-client-get-user")
     public TokenResponseDTO feignClientGetUser(@RequestHeader("Authorization") String authorization) {
         TokenResponseDTO tokenResponseDto = userProfileService.tokenExractAuthId(authorization);
         return tokenResponseDto;
+    }
+
+
+    @PutMapping("/{userId}/privacy-settings")
+    public ResponseEntity<UserProfileResponseDTO> updatePrivacySettings(
+            @PathVariable UUID userId,
+            @RequestBody PrivacySettingsRequestDTO privacySettingsRequestDTO) {
+
+        UserProfileResponseDTO response = userProfileService.updatePrivacySettings(userId, privacySettingsRequestDTO);
+        System.out.println("RESPONSE > " + response);
+        return ResponseEntity.ok(response);
     }
 }
 

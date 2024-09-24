@@ -19,4 +19,5 @@ public class UserProfileResponseDTO {
     private String lastName;
     private String imagee;
     private String about;
+    private PrivacySettingsResponseDTO privacySettings;
 }

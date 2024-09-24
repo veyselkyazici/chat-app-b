@@ -35,6 +35,7 @@ public class ChatController {
 //    }
     @MessageMapping("/send-message")
     public void handleMessage(@Payload MessageRequestDTO messageRequestDTO) {
+        System.out.println("MessageRequestDTO: " + messageRequestDTO);
         chatRoomService.processMessage(messageRequestDTO);
     }
 
@@ -46,6 +47,7 @@ public class ChatController {
 
     @GetMapping("/chat-summaries/{userId}")
     public ResponseEntity<List<ChatSummaryDTO>> getUserChatSummaries(@PathVariable String userId) {
+        System.out.println("USER ID > " + userId);
         return ResponseEntity.ok(chatRoomService.getUserChatSummariess(userId));
     }
 
@@ -59,31 +61,31 @@ public class ChatController {
         return chatRoomService.getOlderMessages(chatRoomId, before);
     }
 
-    @PutMapping("/chat-block")
-    public ResponseEntity<?> chatBlock(@RequestBody ChatSummaryDTO chatSummaryDTO) {
-        boolean success = this.chatRoomService.chatBlock(chatSummaryDTO);
-        Map<String, String> response = new HashMap<>();
-        if (success) {
-            response.put("message", chatSummaryDTO.getFriendEmail() + " kişisini engellediniz.");
-            return ResponseEntity.ok(response);
-        } else {
-            response.put("message", "Engellenemedi");
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
-    }
-
-    @PutMapping("/chat-unblock")
-    public ResponseEntity<?> chatUnblock(@RequestBody ChatSummaryDTO chatSummaryDTO) {
-        boolean success = this.chatRoomService.chatUnblock(chatSummaryDTO);
-        Map<String, String> response = new HashMap<>();
-        if (success) {
-            response.put("message", chatSummaryDTO.getFriendEmail() + " kişisinin engelini kaldırdınız.");
-            return ResponseEntity.ok(response);
-        } else {
-            response.put("message", "Engel kaldirilamadi.");
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-        }
-    }
+//    @PutMapping("/chat-block")
+//    public ResponseEntity<?> chatBlock(@RequestBody ChatSummaryDTO chatSummaryDTO) {
+//        boolean success = this.chatRoomService.chatBlock(chatSummaryDTO);
+//        Map<String, String> response = new HashMap<>();
+//        if (success) {
+//            response.put("message", chatSummaryDTO.getFriendEmail() + " kişisini engellediniz.");
+//            return ResponseEntity.ok(response);
+//        } else {
+//            response.put("message", "Engellenemedi");
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+//        }
+//    }
+//
+//    @PutMapping("/chat-unblock")
+//    public ResponseEntity<?> chatUnblock(@RequestBody ChatSummaryDTO chatSummaryDTO) {
+//        boolean success = this.chatRoomService.chatUnblock(chatSummaryDTO);
+//        Map<String, String> response = new HashMap<>();
+//        if (success) {
+//            response.put("message", chatSummaryDTO.getFriendEmail() + " kişisinin engelini kaldırdınız.");
+//            return ResponseEntity.ok(response);
+//        } else {
+//            response.put("message", "Engel kaldirilamadi.");
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+//        }
+//    }
     @GetMapping("/hello")
     public String getUserChatRoomsAndMessages() {
         return "HELLO";

@@ -2,10 +2,7 @@ package com.vky.repository.entity;
 
 import com.vky.repository.entity.enums.Status;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.Where;
 
@@ -17,10 +14,11 @@ import java.util.UUID;
 @NoArgsConstructor
 @Data
 @SuperBuilder
+@ToString(exclude = {"privacySettings","image"},callSuper = true)
 @Table(name = "users")
 @Entity
 @Where(clause = "is_deleted = false")
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode(exclude = {"privacySettings","image"},callSuper = true)
 public class UserProfile extends BaseEntity{
     private UUID authId;
     private String email;
@@ -35,4 +33,8 @@ public class UserProfile extends BaseEntity{
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "image_id")
     private Image image;
+
+    @OneToOne(cascade = CascadeType.PERSIST)
+    @JoinColumn(name = "privacy_settings_id", referencedColumnName = "id")
+    private PrivacySettings privacySettings;
 }
