@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 public interface IContactsRepository extends JpaRepository<Contacts, UUID> {
@@ -16,8 +17,13 @@ public interface IContactsRepository extends JpaRepository<Contacts, UUID> {
             @Param("userId") UUID userId,
             @Param("userContactIds") List<UUID> userContactIds
     );
+    @Query("SELECT c.userId FROM Contacts c WHERE c.userContactId = :userId AND c.userId IN :contactIds")
+    Set<UUID> findReversedContactIds(@Param("userId") UUID userId, @Param("contactIds") Set<UUID> contactIds);
 
-
+    @Query("SELECT c.userContactId FROM Contacts c WHERE c.userId = :userId " +
+            "UNION " +
+            "SELECT c.userId FROM Contacts c WHERE c.userContactId = :userId")
+    List<UUID> findUserContactsByUserIdOrUserContactId(@Param("userId") UUID userId);
 
 
 

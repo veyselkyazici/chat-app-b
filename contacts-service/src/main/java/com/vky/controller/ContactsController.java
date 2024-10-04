@@ -4,9 +4,12 @@ import com.vky.dto.request.ContactInformationOfExistingChatsRequestDTO;
 import com.vky.dto.request.ContactRequestDTO;
 import com.vky.dto.response.DeleteContactResponseDTO;
 import com.vky.dto.response.FeignClientUserProfileResponseDTO;
+import com.vky.dto.response.UserProfileResponseDTO;
 import com.vky.service.ContactsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -42,6 +45,11 @@ public class ContactsController {
         return ResponseEntity.ok(contactsService.deleteContact(id));
     }
 
+    @MessageMapping("/update-privacy")
+    public void typing(@Payload UserProfileResponseDTO userProfileResponseDTO) {
+        System.out.println("Message > " + userProfileResponseDTO);
+        contactsService.sendUpdatedPrivacySettings(userProfileResponseDTO);
+    }
 
 
 
