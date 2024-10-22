@@ -45,9 +45,12 @@ public class ChatController {
         return ResponseEntity.ok(chatRoomService.checkChatRoomExists(userId, friendId));
     }
 
+//    @GetMapping("/chat-summaries/{userId}")
+//    public ResponseEntity<List<ChatSummaryDTO>> getUserChatSummaries(@PathVariable String userId) {
+//        return ResponseEntity.ok(chatRoomService.getUserChatSummariess(userId));
+//    }
     @GetMapping("/chat-summaries/{userId}")
     public ResponseEntity<List<ChatSummaryDTO>> getUserChatSummaries(@PathVariable String userId) {
-        System.out.println("USER ID > " + userId);
         return ResponseEntity.ok(chatRoomService.getUserChatSummariess(userId));
     }
 

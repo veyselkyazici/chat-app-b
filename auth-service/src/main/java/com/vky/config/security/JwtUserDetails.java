@@ -2,6 +2,8 @@ package com.vky.config.security;
 
 import com.auth0.jwt.interfaces.Claim;
 import com.vky.entity.Auth;
+import com.vky.exception.AuthManagerException;
+import com.vky.exception.ErrorType;
 import com.vky.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
@@ -23,44 +25,12 @@ public class JwtUserDetails implements UserDetailsService {
         this.jwtTokenManager = jwtTokenManager;
     }
 
-
-
-    public UserDetails loadUserByUserId(Map<String,Claim> claimMap) throws UsernameNotFoundException {
-
-        /**
-         * id si verilen kullanıcının var olup olmadığına bakılmalıdır.
-         */
-        UUID userId = UUID.fromString(claimMap.get("authId").asString());
-        for (Map.Entry<String, Claim> entry : claimMap.entrySet()) {
-            String key = entry.getKey();
-            Claim value = entry.getValue();
-        }
-        Auth auth = authService.findById(userId);
-        //boolean isUserExist = authService.findById(claimMap.get("id").asLong()).getId() != null;
-        if(auth != null){
-            /**
-             * Burada oluşturulan kullanıcı, hangi sayfalara griş yapabileceğinin
-             * anlaşılabilmedi konytorl edilebilmesi için bir yetki listesininin
-             * olmasına gerek vardır. bu nedenle burada "USER", "ADMIN" v.s. gibi
-             * listeyi burada belirtmeliyiz.
-             */
-            List<GrantedAuthority> authorities = new ArrayList<>();
-            authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
-
-            return User.builder()
-                    .username(auth.getUsername())
-                    .password(auth.getPassword())
-                    .accountExpired(false)
-                    .accountLocked(false)
-                    .authorities(authorities)
-                    .build();
-        }
-        return null;
-    }
-
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        UserDetails userDetails = authService.loadUserByUsername(email);
-        return userDetails;
+        Auth auth = authService.loadUserByUsername(email).orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        if (!auth.isApproved()) {
+            throw new AuthManagerException(ErrorType.Email_Confirmation_Not_Completed);
+        }
+        return new org.springframework.security.core.userdetails.User(auth.getEmail(), auth.getPassword(), new ArrayList<>());
     }
 }

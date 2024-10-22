@@ -17,6 +17,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.security.Principal;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -47,7 +48,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
 
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = this.jwtUserDetails.loadUserByUsername(email);
-            if (jwtTokenManager.isValidToken(token)) {
+            if (jwtTokenManager.isValidToken(token, email)) {
                 UsernamePasswordAuthenticationToken authenticationToken =
                         new UsernamePasswordAuthenticationToken(
                                 userDetails, null, userDetails.getAuthorities()

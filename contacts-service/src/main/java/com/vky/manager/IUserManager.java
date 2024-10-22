@@ -3,6 +3,7 @@ package com.vky.manager;
 import com.vky.dto.request.FeignClientIdsRequestDTO;
 import com.vky.dto.request.FeignClientUserProfileRequestDTO;
 import com.vky.dto.response.*;
+import com.vky.repository.ContactWithRelationshipDTO;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,4 +24,6 @@ public interface IUserManager {
     String getUserByEmailByIdd(@RequestParam("id") UUID id);
     @PostMapping("/get-user-list")
     List<FeignClientUserProfileResponseDTO> getUserList(List<FeignClientUserProfileRequestDTO> userRequestDTOList);
+    @PostMapping("/get-user-listt")
+    List<FeignClientUserProfileResponseDTO> getUserListt(List<ContactWithRelationshipDTO> userRequestDTOList);
 }

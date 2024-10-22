@@ -59,33 +59,26 @@ public class AuthService {
 
 
     public AuthResponseDTO doLoginn(AuthRequestDTO authRequestDTO) {
-        try {
-            Optional<Auth> user = authRepository.findAuthByAndEmailIgnoreCase(authRequestDTO.getEmail());
-            if (user.isEmpty()) {
-                throw new AuthManagerException(ErrorType.USER_DOES_NOT_EXIST);
-            } else if (!user.get().isApproved()) {
-                throw new AuthManagerException(ErrorType.Email_Confirmation_Not_Completed);
-            }
-            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(authRequestDTO.getEmail(), authRequestDTO.getPassword());
-            Authentication auth = authenticationManager.authenticate(authToken);
+        UsernamePasswordAuthenticationToken authToken =
+                new UsernamePasswordAuthenticationToken(authRequestDTO.getEmail(), authRequestDTO.getPassword());
+        Authentication auth = authenticationManager.authenticate(authToken);
 
+        Auth user = (Auth) auth.getPrincipal();
 
-            SecurityContextHolder.getContext().setAuthentication(auth);
-            String jwtToken = jwtTokenManager.generateToken(auth,user.get().getId());
+        String jwtToken = jwtTokenManager.generateToken(auth, user.getId());
 
+        AuthResponseDTO authResponseDTO = IAuthMapper.INSTANCE.toResponseDTO(user);
+        authResponseDTO.setAccessToken(formatToken(jwtToken));
+        authResponseDTO.setRefreshToken(formatToken(jwtTokenManager.generateRefreshToken(auth, user.getId())));
+        authResponseDTO.setResponsecode(200L);
 
-            AuthResponseDTO authResponseDTO = IAuthMapper.INSTANCE.toResponseDTO(user.get());
-            authResponseDTO.setAccessToken("Bearer " + jwtToken);
-            authResponseDTO.setRefreshToken(jwtTokenManager.generateRefreshToken(auth, user.get().getId()));
-            authResponseDTO.setResponsecode(200L);
-            this.tokenService.saveToken(user.get(),jwtToken);
-            return authResponseDTO;
-        } catch (BadCredentialsException ex) {
-            AuthResponseDTO authResponseDTO = new AuthResponseDTO();
-            authResponseDTO.setResponsecode(400L);
-            authResponseDTO.setMessage("Kullanıcı adı veya şifre yanlış");
-            return authResponseDTO;
-        }
+        tokenService.saveToken(user, jwtToken);
+
+        return authResponseDTO;
+    }
+
+    private String formatToken(String token) {
+        return "Bearer " + token;
     }
 
 
@@ -135,8 +128,8 @@ public class AuthService {
     }
 
 
-    public Auth loadUserByUsername(String email) {
-        return this.authRepository.findAuthByAndEmailIgnoreCase(email).orElseThrow(() -> new UsernameNotFoundException("User not found"));
+    public Optional<Auth> loadUserByUsername(String email) {
+        return this.authRepository.findAuthByAndEmailIgnoreCase(email);
     }
 
     public void saveVerifiedAccount(UUID id) {

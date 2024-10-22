@@ -9,14 +9,18 @@ import com.vky.exception.InvitationAlreadyExistsException;
 import com.vky.manager.IUserManager;
 import com.vky.mapper.IContactsMapper;
 import com.vky.mapper.IInvitationMapper;
+import com.vky.repository.ContactWithRelationshipDTO;
 import com.vky.repository.IContactsRepository;
+import com.vky.repository.IUserRelationshipRepository;
 import com.vky.repository.entity.Contacts;
 import com.vky.repository.entity.Invitation;
+import com.vky.repository.entity.UserRelationship;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,6 +30,7 @@ public class ContactsService {
     private final IUserManager userManager;
     private final InvitationService invitationService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final IUserRelationshipRepository userRelationshipRepository;
 
     public boolean isExists(String invitedUserEmail, UUID invitedByUserId) {
         return contactsRepository.existsContactsByUserContactEmailAndUserId(invitedUserEmail, invitedByUserId);
@@ -67,13 +72,49 @@ public class ContactsService {
 
         return dto;
     }
-
     public void sendUpdatedPrivacySettings(UserProfileResponseDTO userProfileResponseDTO) {
-        List<UUID> contacts = contactsRepository.findUserContactsByUserIdOrUserContactId(userProfileResponseDTO.getId());
-        contacts.forEach(contact -> {
-            messagingTemplate.convertAndSendToUser(contact.toString(), "/queue/update-privacy-response", userProfileResponseDTO);
+        List<UserRelationship> userRelationships = userRelationshipRepository.findByUserIdOrRelatedUserId(userProfileResponseDTO.getId());
+        Set<String> alreadyMessagedUsers = new HashSet<>();
+        userRelationships.forEach(userRelationship -> {
+            if(userRelationship.getUserId().equals(userProfileResponseDTO.getId())) {
+                if(!alreadyMessagedUsers.contains(userRelationship.getRelatedUserId().toString())) {
+                    alreadyMessagedUsers.add(userRelationship.getRelatedUserId().toString());
+                    messagingTemplate.convertAndSendToUser(userRelationship.getRelatedUserId().toString(), "/queue/update-privacy-response", userProfileResponseDTO);
+                }
+
+            } else {
+                if(!alreadyMessagedUsers.contains(userRelationship.getUserId().toString())) {
+                    alreadyMessagedUsers.add(userRelationship.getUserId().toString());
+                    messagingTemplate.convertAndSendToUser(userRelationship.getUserId().toString(), "/queue/update-privacy-response", userProfileResponseDTO);
+                }
+
+            }
         });
     }
+//    public void sendUpdatedPrivacySettings(UserProfileResponseDTO userProfileResponseDTO) {
+//        List<Contacts> contacts = contactsRepository.findUserContactsByUserIdOrUserContactId(userProfileResponseDTO.getId());
+//        Set<UUID> alreadyMessagedUsers = new HashSet<>();
+//        contacts.forEach(contact -> {
+//
+//            if (contact.getUserId().equals(userProfileResponseDTO.getId())) {
+//                userProfileResponseDTO.getPrivacySettings().setInContactList(true);
+//                UUID userContactId = contact.getUserContactId();
+//
+//                if (!alreadyMessagedUsers.contains(contact.getUserContactId())) {
+//                    messagingTemplate.convertAndSendToUser(userContactId.toString(), "/queue/update-privacy-response", userProfileResponseDTO);
+//                    alreadyMessagedUsers.add(userContactId);
+//                }
+//            } else {
+//                userProfileResponseDTO.getPrivacySettings().setInContactList(false);
+//                UUID userId = contact.getUserId();
+//
+//                if (!alreadyMessagedUsers.contains(userId)) {
+//                    messagingTemplate.convertAndSendToUser(userId.toString(), "/queue/update-privacy-response", userProfileResponseDTO);
+//                    alreadyMessagedUsers.add(userId);
+//                }
+//            }
+//        });
+//    }
 
 
     public record AddContactResponseDTO(UUID id, UUID userContactId, String userContactEmail, String about,
@@ -116,64 +157,110 @@ public class ContactsService {
                 .userContactName(contactRequestDTO.userContactName())
                 .userId(contactRequestDTO.userId())
                 .userContactId(userProfileResponseDTO.getId()).build());
+        // ToDo
+        Optional<UserRelationship> relationshipOpt = userRelationshipRepository.findByUserIdAndRelatedUserId(contactRequestDTO.userId(), userProfileResponseDTO.getId());
+
+        if (relationshipOpt.isPresent()) {
+            UserRelationship relationship = relationshipOpt.get();
+            relationship.setUserHasAddedRelatedUser(true);
+        } else {
+            UserRelationship newRelationship = new UserRelationship();
+            newRelationship.setUserId(contactRequestDTO.userId());
+            newRelationship.setRelatedUserId(userProfileResponseDTO.getId());
+            newRelationship.setUserHasAddedRelatedUser(true);
+            newRelationship.setRelatedUserHasAddedUser(false);
+            userRelationshipRepository.save(newRelationship);
+        }
+
+        Optional<UserRelationship> reverseRelationshipOpt = userRelationshipRepository.findByUserIdAndRelatedUserId(userProfileResponseDTO.getId(), contactRequestDTO.userId());
+        if (reverseRelationshipOpt.isPresent()) {
+            UserRelationship reverseRelationship = reverseRelationshipOpt.get();
+            reverseRelationship.setRelatedUserHasAddedUser(true);
+            userRelationshipRepository.save(reverseRelationship);
+        }
         ContactResponseDTO contactResponseDTO = new ContactResponseDTO(contact.getId(), userProfileResponseDTO, contact.getUserContactName());
         messagingTemplate.convertAndSendToUser(contact.getUserId().toString(), "/queue/add-contact", contactResponseDTO);
     }
 
     public List<FeignClientUserProfileResponseDTO> getContactList(UUID userId) {
-        List<Contacts> contacts = this.contactsRepository.findContactsByUserIdOrderByUserContactName(userId);
         List<Invitation> invitations = this.invitationService.findInvitationByInviterUserIdOrderByContactName(userId);
+        List<ContactWithRelationshipDTO> dto1 = contactsRepository.findContactsAndRelationshipsByUserId(userId);
 
-        List<FeignClientUserProfileRequestDTO> contactList = IContactsMapper.INSTANCE.toContactRequestList(contacts);
+        Map<UUID, ContactWithRelationshipDTO> contactMap = dto1.stream()
+                .collect(Collectors.toMap(ContactWithRelationshipDTO::getUserContactId, Function.identity()));
+
+        List<FeignClientUserProfileRequestDTO> contactList = dto1.stream()
+                .map(contact -> FeignClientUserProfileRequestDTO.builder()
+                        .id(contact.getUserContactId())
+                        .userContactName(contact.getUserContactName())
+                        .userProfileResponseDTO(null)  // Profil verileri sonra doldurulacak
+                        .build())
+                .collect(Collectors.toList());
 
         List<FeignClientUserProfileResponseDTO> userResponseDTOS = this.userManager.getUserList(contactList);
 
-        userResponseDTOS = checkReversedContactIds(userId, contacts, userResponseDTOS);
+        for (FeignClientUserProfileResponseDTO userResponse : userResponseDTOS) {
+            UUID userContactId = userResponse.getUserProfileResponseDTO().getId();
 
-        userResponseDTOS.sort(Comparator.comparing(FeignClientUserProfileResponseDTO::getUserContactName));
+            ContactWithRelationshipDTO correspondingContact = contactMap.get(userContactId);
+
+            if (correspondingContact != null) {
+                ContactsDTO contactsDTO = ContactsDTO.builder()
+                        .id(correspondingContact.getId())
+                        .userId(correspondingContact.getUserId())
+                        .userContactId(correspondingContact.getUserContactId())
+                        .userContactName(correspondingContact.getUserContactName())
+                        .userHasAddedRelatedUser(correspondingContact.getUserHasAddedRelatedUser())
+                        .relatedUserHasAddedUser(correspondingContact.getRelatedUserHasAddedUser())
+                        .build();
+                userResponse.setContactsDTO(contactsDTO);
+            }
+        }
+
+        userResponseDTOS.sort(Comparator.comparing(
+                userResponse -> userResponse.getContactsDTO() != null ? userResponse.getContactsDTO().getUserContactName() : "")
+        );
+
         List<FeignClientUserProfileResponseDTO> invitationResponseDTOS = invitations.stream()
                 .map(this::convertInvitationToContact)
                 .sorted(Comparator.comparing(dto -> dto.getInvitationResponseDTO().getContactName(), Comparator.nullsFirst(String::compareTo)))
                 .toList();
 
         userResponseDTOS.addAll(invitationResponseDTOS);
+
         return userResponseDTOS;
     }
 
-    public List<FeignClientUserProfileResponseDTO> checkReversedContactIds(UUID userId, List<Contacts> contacts, List<FeignClientUserProfileResponseDTO> userResponseDTOS) {
-        Set<UUID> reversedContactIds = getReversedContactIds(userId, contacts);
-        userResponseDTOS.forEach(userResponseDTO -> {
-            boolean isInContact = reversedContactIds.contains(userResponseDTO.getUserProfileResponseDTO().getId());
-            userResponseDTO.getUserProfileResponseDTO().getPrivacySettings().setInContactList(isInContact);
-        });
-        return userResponseDTOS;
-    }
-    private Set<UUID> getReversedContactIds(UUID userId, List<Contacts> contacts) {
-        Set<UUID> contactIds = contacts.stream()
-                .map(Contacts::getUserContactId)
-                .collect(Collectors.toSet());
-        return contactsRepository.findReversedContactIds(userId, contactIds);
-    }
-    public List<FeignClientUserProfileResponseDTO> getContactInformationOfExistingChats(ContactInformationOfExistingChatsRequestDTO contactInformationOfExistingChatsRequestDTO) {
-        List<Contacts> contacts = this.contactsRepository.findContactsByUserIdAndUserContactIds(contactInformationOfExistingChatsRequestDTO.getUserId(), contactInformationOfExistingChatsRequestDTO.getUserContactIds());
+    public List<FeignClientUserProfileResponseDTO> getContactInformationOfExistingChats(ContactInformationOfExistingChatsRequestDTO requestDTO) {
+        List<ContactWithRelationshipDTO> contacts = contactsRepository.findContactsWithRelationships(requestDTO.getUserId(), requestDTO.getUserContactIds());
 
+        Map<UUID, ContactWithRelationshipDTO> contactNameMap = contacts.stream()
+                .filter(contact -> !contact.getUserContactId().equals(contact.getUserId()) || contact.getUserId().equals(requestDTO.getUserId()))
+                .collect(Collectors.toMap(
+                        contact -> contact.getUserId().equals(requestDTO.getUserId()) ? contact.getUserContactId() : contact.getUserId(),
+                        contact -> {
+                            if (contact.getUserContactId().equals(requestDTO.getUserId())) {
+                                UUID tempUserId = contact.getUserId();
+                                contact.setUserId(contact.getUserContactId());
+                                contact.setUserContactId(tempUserId);
+                                contact.setUserContactName(null);
+                            }
+                            return contact;
+                        },
+                        (existing, replacement) -> existing.getUserContactName() != null && !existing.getUserContactName().isEmpty() ? existing : replacement
+                ));
+        List<UUID> missingIds = requestDTO.getUserContactIds().stream()
+                .filter(id -> !contactNameMap.containsKey(id))
+                .toList();
+        ;
+        missingIds.forEach(id -> contactNameMap.put(id, new ContactWithRelationshipDTO(null,requestDTO.getUserId(),id,null,false,false)));
+        List<ContactWithRelationshipDTO> contacts1 = new ArrayList<>(contactNameMap.values());
 
-        List<FeignClientUserProfileRequestDTO> contactList = IContactsMapper.INSTANCE.toContactRequestList(contacts);
-        List<FeignClientUserProfileResponseDTO> userResponseDTOS = this.userManager.getUserList(contactList);
-
-
-        Map<UUID, Contacts> contactsMap = contacts.stream()
-                .collect(Collectors.toMap(Contacts::getUserContactId, contact -> contact));
-
-        Set<UUID> reversedContactIds = getReversedContactIds(contactInformationOfExistingChatsRequestDTO.getUserId(), contacts);
-
-        return userResponseDTOS.stream()
+        List<FeignClientUserProfileResponseDTO> userResponseDTOS = this.userManager.getUserListt(contacts1);
+        userResponseDTOS = userResponseDTOS.stream()
                 .map(user -> {
-                    Contacts contact = contactsMap.get(user.getUserProfileResponseDTO().getId());
-                    boolean isInContact = reversedContactIds.contains(user.getUserProfileResponseDTO().getId());
+                    ContactWithRelationshipDTO contact = contactNameMap.get(user.getUserProfileResponseDTO().getId());
                     return FeignClientUserProfileResponseDTO.builder()
-                            .id(contact.getId())
-                            .userContactName(contact.getUserContactName())
                             .userProfileResponseDTO(UserProfileResponseDTO.builder()
                                     .id(user.getUserProfileResponseDTO().getId())
                                     .email(user.getUserProfileResponseDTO().getEmail())
@@ -187,18 +274,23 @@ public class ContactsService {
                                             .profilePhotoVisibility(user.getUserProfileResponseDTO().getPrivacySettings().getProfilePhotoVisibility())
                                             .lastSeenVisibility(user.getUserProfileResponseDTO().getPrivacySettings().getLastSeenVisibility())
                                             .aboutVisibility(user.getUserProfileResponseDTO().getPrivacySettings().getAboutVisibility())
-                                            .readReceipts(user.getUserProfileResponseDTO().getPrivacySettings().isReadReceipts())
-                                            .isInContactList(isInContact).build()).build())
+                                            .readReceipts(user.getUserProfileResponseDTO().getPrivacySettings().isReadReceipts()).build()).build())
+                            .contactsDTO(ContactsDTO.builder().userContactName(contact.getUserContactName())
+                                    .id(contact.getId())
+                                    .userHasAddedRelatedUser(contact.getUserHasAddedRelatedUser())
+                                    .relatedUserHasAddedUser(contact.getRelatedUserHasAddedUser())
+                                    .userContactId(contact.getUserContactId())
+                                    .userId(contact.getUserId()).build())
                             .build();
                 })
                 .toList();
-
+        userResponseDTOS.forEach(userResponseDTO -> {
+        });
+        return userResponseDTOS;
     }
 
     private FeignClientUserProfileResponseDTO convertInvitationToContact(Invitation invitation) {
-        System.out.println("INVITATION > " + invitation);
         InvitationResponseDTO invitationResponseDTO = IInvitationMapper.INSTANCE.toInvitationResponseDTO(invitation);
-        System.out.println("INVITATIONDTO > " + invitationResponseDTO);
         return FeignClientUserProfileResponseDTO.builder()
                 .invitationResponseDTO(invitationResponseDTO)
                 .build();
