@@ -166,7 +166,10 @@ public class UserController {
         return this.userProfileService.getUserList(userProfileRequestDTOList);
     }
 
-
+    @PostMapping("/get-user-listt")
+    public List<FeignClientUserProfileResponseDTO> getUserListt(@RequestBody List<ContactWithRelationshipDTO> userProfileRequestDTOList) {
+        return this.userProfileService.getUserListt(userProfileRequestDTOList);
+    }
     @GetMapping("/feign-client-get-user")
     public TokenResponseDTO feignClientGetUser(@RequestHeader("Authorization") String authorization) {
         TokenResponseDTO tokenResponseDto = userProfileService.tokenExractAuthId(authorization);

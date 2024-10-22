@@ -57,15 +57,15 @@ public class AuthController {
     @GetMapping("/authenticate")
     public Boolean authenticate() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-         return (authentication != null && authentication.isAuthenticated() &&
-                !authentication.getName().equals("anonymousUser")) ?  true :  false;
+         return authentication != null && authentication.isAuthenticated() &&
+                 !authentication.getName().equals("anonymousUser");
     }
 
-    @GetMapping("/load-user-by-username")
-    public UserDetails loadUserByUsername(@RequestParam String email) {
-        System.out.println("asdfasdfasdf");
-        return authService.loadUserByUsername(email);
-    }
+//    @GetMapping("/load-user-by-username")
+//    public UserDetails loadUserByUsername(@RequestParam String email) {
+//        System.out.println("asdfasdfasdf");
+//        return authService.loadUserByUsername(email);
+//    }
 
 
     @GetMapping("/username")

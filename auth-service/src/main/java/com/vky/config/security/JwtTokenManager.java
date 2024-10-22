@@ -48,13 +48,12 @@ public class JwtTokenManager {
                              Authentication auth, UUID authId,
                              long expiration) {
         Algorithm signKey = Algorithm.HMAC256(secretKey);
-        String jwt = JWT.create()
+        return JWT.create()
                 .withSubject(auth.getName())
                 .withClaim("authId", authId.toString())
                 .withIssuedAt(new Date(System.currentTimeMillis()))
                 .withExpiresAt(new Date(System.currentTimeMillis() + expiration))
                 .sign(signKey);
-        return jwt;
     }
 
     public String extractUsername(String token) {
@@ -66,12 +65,21 @@ public class JwtTokenManager {
         return claimsResolver.apply(decodedJWT);
     }
 
-    public boolean isValidToken(String token) {
-        return isTokenExpired(token);
+    public boolean isValidToken(String token, String username) {
+        try {
+            Algorithm signKey = Algorithm.HMAC256(secretKey);
+            JWTVerifier verifier = JWT.require(signKey)
+                    .withSubject(username)  // Token'daki kullanıcı adını kontrol eder
+                    .build();
+            verifier.verify(token);  // Token imzasını doğrular
+            return !isTokenExpired(token);
+        } catch (Exception e) {
+            return false;  // İmza geçersizse veya başka bir hata varsa geçersiz kabul edilir
+        }
     }
 
     private boolean isTokenExpired(String token) {
-        return extractExpiration(token).after(new Date());
+        return extractExpiration(token).before(new Date());
     }
 
     private Date extractExpiration(String token) {

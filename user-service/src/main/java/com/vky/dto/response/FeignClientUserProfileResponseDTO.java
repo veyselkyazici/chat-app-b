@@ -12,8 +12,6 @@ import java.util.UUID;
 @Data
 @Builder
 public class FeignClientUserProfileResponseDTO {
-    private UUID id;
-    private String userContactName;
     private UserProfileResponseDTO userProfileResponseDTO;
     private InvitationResponseDTO invitationResponseDTO;
 }

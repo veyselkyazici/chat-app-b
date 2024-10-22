@@ -62,21 +62,17 @@ public class ChatMessageService {
     public List<ChatRoomMessageResponseDTO> getLatestMessages(String chatRoomId) {
         List<ChatMessage> chatMessages = chatMessageRepository.findTop30ByChatRoomIdOrderByFullDateTimeDesc(chatRoomId);
 
-        List<ChatRoomMessageResponseDTO> messageDTOs = chatMessages.stream()
+        return chatMessages.stream()
                 .map(IChatMapper.INSTANCE::chatMessageToDTO)
                 .toList();
-
-        return messageDTOs;
     }
 
     public List<ChatRoomMessageResponseDTO> getOlderMessages(String chatRoomId, Instant before) {
         List<ChatMessage> chatMessages = chatMessageRepository.findNext30ByChatRoomIdAndFullDateTimeBeforeOrderByFullDateTimeDesc(chatRoomId, before);
 
-        List<ChatRoomMessageResponseDTO> messageDTOs = chatMessages.stream()
+        return chatMessages.stream()
                 .map(IChatMapper.INSTANCE::chatMessageToDTO)
                 .toList();
-
-        return messageDTOs;
     }
 
     public ChatMessage sendFirstMessage(CreateChatRoomDTO createChatRoomDTO, String chatRoomId) {
@@ -98,8 +94,11 @@ public class ChatMessageService {
 
         for (ChatMessage lastMessage : lastMessages) {
             LastMessageInfo lastMessageInfo = new LastMessageInfo(
+                    lastMessage.getChatRoomId(),
                     lastMessage.getMessageContent(),
-                    lastMessage.getFullDateTime()
+                    lastMessage.getFullDateTime(),
+                    lastMessage.getSenderId(),
+                    lastMessage.getRecipientId()
             );
             lastMessagesMap.put(lastMessage.getChatRoomId(), lastMessageInfo);
         }

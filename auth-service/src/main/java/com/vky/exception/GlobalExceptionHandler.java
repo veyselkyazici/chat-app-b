@@ -1,9 +1,11 @@
 package com.vky.exception;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import com.vky.dto.response.AuthResponseDTO;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingPathVariableException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -25,6 +27,13 @@ public class GlobalExceptionHandler {
      * @param ex
      * @return
      */
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<AuthResponseDTO> handleBadCredentials(BadCredentialsException ex) {
+        AuthResponseDTO response = new AuthResponseDTO();
+        response.setResponsecode(400L);
+        response.setMessage("Kullanıcı adı veya şifre yanlış");
+        return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+    }
     @ExceptionHandler(RuntimeException.class)
     @ResponseBody
     public ResponseEntity<String> handleRuntimeException(RuntimeException ex) {
