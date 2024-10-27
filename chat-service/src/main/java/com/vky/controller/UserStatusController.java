@@ -35,7 +35,8 @@ public class UserStatusController {
 
     @MessageMapping("/user-offline")
     public void userOffline(@Payload UserStatusMessage message) {
-        onlineUsers.put(message.getUserId(), false);
+//        onlineUsers.put(message.getUserId(), false);
+        onlineUsers.remove(message.getUserId());
         UserLastSeenResponseDTO userLastSeenResponseDTO = userManager.getUserLastSeen(UUID.fromString(message.getUserId()));
         message.setUserId(userLastSeenResponseDTO.getId().toString());
         message.setOnline(false);
@@ -55,12 +56,12 @@ public class UserStatusController {
     }
 
 
-    @MessageMapping("/stop-typing")
-    public void stopTyping(@Payload TypingMessage message) {
-        System.out.println("STOP TYPING > " + message);
-        message.setTyping(false);
-        messagingTemplate.convertAndSendToUser(message.getUserId(), "/queue/typing", message);
-    }
+//    @MessageMapping("/stop-typing")
+//    public void stopTyping(@Payload TypingMessage message) {
+//        System.out.println("STOP TYPING > " + message);
+//        message.setTyping(false);
+//        messagingTemplate.convertAndSendToUser(message.getFriendId(), "/queue/typing", message);
+//    }
 
     @GetMapping("/is-online/{userId}")
     public ResponseEntity<UserStatusMessage> isUserOnline(@PathVariable String userId) {
