@@ -6,6 +6,7 @@ import com.vky.repository.IUserChatSettingsRepository;
 import com.vky.repository.entity.ChatMessage;
 import com.vky.repository.entity.ChatRoom;
 import com.vky.repository.entity.UserChatSettings;
+import com.vky.repository.entity.enums.VisibilityOption;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -25,71 +26,42 @@ public class ChatServiceApplication {
         SpringApplication.run(ChatServiceApplication.class, args);
     }
 //    @Bean
-//    CommandLineRunner loadData(IChatMessageRepository chatMessageRepository, IChatRoomRepository chatRoomRepository, IUserChatSettingsRepository chatSettingsRepository) {
+//    public CommandLineRunner commandLineRunner(IChatRoomRepository chatRoomRepository, IChatMessageRepository chatMessageRepository, IUserChatSettingsRepository userChatSettingsRepository) {
 //        return args -> {
-//            List<ChatRoom> chatRooms = new ArrayList<>();
-//            List<ChatMessage> chatMessages = new ArrayList<>();
-//            List<UserChatSettings> userChatSettingsList = new ArrayList<>();
-//            UUID fixedUUID = UUID.fromString("7c6f47eb-dad2-44b3-a036-ffbf92343ae2");
+//            for (int i = 6; i <= 50; i++) {
+//                String username = "User" + i;
+//                String email = username.toLowerCase() + "@gmail.com";
+//                String friendId = UUID.nameUUIDFromBytes(String.format("User%03d", i).getBytes()).toString();
 //
-//            for (int i = 0; i < 80; i++) {
-//                String otherUserId = UUID.randomUUID().toString();
-//
-//                String chatRoomId = UUID.randomUUID().toString();
-//                ChatRoom chatRoom = ChatRoom.builder()
-//                        .participantIds(List.of(fixedUUID.toString(), otherUserId))
-//                        .build();
-//                chatRooms.add(chatRoom);
-//
-//                ChatMessage chatMessage = ChatMessage.builder()
-//                        .chatRoomId(chatRoomId)
-//                        .senderId(fixedUUID.toString())
-//                        .recipientId(otherUserId)
-//                        .messageContent("Hello, this is a message in chat room " + (i + 1))
-//                        .isSeen(false)
-//                        .fullDateTime(Instant.now())
-//                        .build();
-//
-//                if (chatMessage.getChatRoomId() != null && chatMessage.getMessageContent() != null) {
-//                    chatMessages.add(chatMessage);
-//                } else {
-//                    System.err.println("Failed to create a valid ChatMessage for chat room ID: " + chatRoomId);
-//                }
-//
-//                UserChatSettings userChatSettings1 = UserChatSettings.builder()
-//                        .userId(fixedUUID.toString())
-//                        .chatRoomId(chatRoomId)
-//                        .unreadMessageCount(0)
-//                        .isArchived(false)
-//                        .isPinned(false)
-//                        .isBlocked(false)
-//                        .build();
-//
-//                UserChatSettings userChatSettings2 = UserChatSettings.builder()
-//                        .userId(otherUserId)
-//                        .chatRoomId(chatRoomId)
-//                        .unreadMessageCount(1)
-//                        .isArchived(false)
-//                        .isPinned(false)
-//                        .isBlocked(false)
-//                        .build();
-//
-//                if (userChatSettings1.getUserId() != null && userChatSettings1.getChatRoomId() != null &&
-//                        userChatSettings2.getUserId() != null && userChatSettings2.getChatRoomId() != null) {
-//                    userChatSettingsList.add(userChatSettings1);
-//                    userChatSettingsList.add(userChatSettings2);
-//                } else {
-//                    System.err.println("Failed to create valid UserChatSettings for chat room ID: " + chatRoomId);
-//                }
-//            }
-//
-//            // Save all entities if they were created properly
-//            if (!chatRooms.isEmpty() && !chatMessages.isEmpty() && !userChatSettingsList.isEmpty()) {
-//                chatRoomRepository.saveAll(chatRooms);
-//                chatMessageRepository.saveAll(chatMessages);
-//                chatSettingsRepository.saveAll(userChatSettingsList);
-//            } else {
-//                System.err.println("No entities were saved. Please check the data creation logic.");
+//                String userId = "b87ddabf-c7bf-4de2-b7e3-23ab264ba662";
+//                List<String> ids = new ArrayList<>();
+//                ids.add(userId);
+//                ids.add(friendId);
+//               ChatRoom chatRoom = ChatRoom.builder().id(userId + "_" + friendId).participantIds(ids).build();
+//               ChatMessage chatMessage = ChatMessage.builder()
+//                       .id(userId + "_" + friendId)
+//                       .chatRoomId(userId + "_" + friendId)
+//                       .messageContent(username)
+//                       .fullDateTime(Instant.now())
+//                       .senderId(userId)
+//                       .recipientId(friendId)
+//                       .build();
+////               chatRoomRepository.save(chatRoom);
+////               chatMessageRepository.save(chatMessage);
+//                UserChatSettings userChatSettings = new UserChatSettings();
+//                userChatSettings.setId(friendId);
+//                userChatSettings.setUserId(userId);
+//                userChatSettings.setDeleted(false);
+//                userChatSettings.setPinned(false);
+//                userChatSettings.setBlocked(false);
+//                userChatSettings.setArchived(false);
+//                userChatSettings.setDeletedTime(null);
+//                userChatSettings.setUnblockedTime(null);
+//                userChatSettings.setBlockedTime(null);
+//                userChatSettings.setUnreadMessageCount(0);
+//                userChatSettings.setChatRoomId(userId + "_" + friendId);
+//                userChatSettingsRepository.save(userChatSettings);
+//                System.out.println("Kullanıcı eklendi: " + username + " ChatRoomId > " + userChatSettings.getChatRoomId());
 //            }
 //        };
 //    }

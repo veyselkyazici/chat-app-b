@@ -5,10 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 public interface IContactsRepository extends JpaRepository<Contacts, UUID> {
     boolean existsContactsByUserContactEmailAndUserId(String contactEmail, UUID userId);
@@ -41,6 +38,16 @@ public interface IContactsRepository extends JpaRepository<Contacts, UUID> {
             @Param("userId") UUID userId,
             @Param("userContactIds") List<UUID> userContactIds
     );
+    @Query("SELECT new com.vky.repository.ContactWithRelationshipDTO(c.id, c.userId, c.userContactId, c.userContactName, ur.userHasAddedRelatedUser, ur.relatedUserHasAddedUser) " +
+            "FROM Contacts c " +
+            "LEFT JOIN UserRelationship ur ON (c.userId = ur.userId AND c.userContactId = ur.relatedUserId) " +
+            "WHERE (c.userId = :userId AND c.userContactId = :userContactId) " +
+            "OR (c.userId = :userContactId AND c.userContactId = :userId)")
+    Optional<ContactWithRelationshipDTO> findContactWithRelationship(
+            @Param("userId") UUID userId,
+            @Param("userContactId") UUID userContactId
+    );
+
 
     /**@Query("SELECT CASE WHEN COUNT(f) > 0 THEN true ELSE false END FROM Friendships f " +
                 "WHERE f.userId = :userId AND f.friendId = :friendId")

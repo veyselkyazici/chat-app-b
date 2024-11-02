@@ -1,5 +1,6 @@
 package com.vky.manager;
 
+import com.vky.dto.request.ContactInformationOfExistingChatRequestDTO;
 import com.vky.dto.request.ContactInformationOfExistingChatsRequestDTO;
 import com.vky.dto.response.FeignClientUserProfileResponseDTO;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -12,4 +13,6 @@ import java.util.List;
 public interface IContactsManager {
     @PostMapping("/get-contact-information-of-existing-chats")
     List<FeignClientUserProfileResponseDTO> getContactInformationOfExistingChats(@RequestBody ContactInformationOfExistingChatsRequestDTO contactInformationOfExistingChatsRequestDTO);
+    @PostMapping("/get-contact-information-of-existing-chat")
+    FeignClientUserProfileResponseDTO getContactInformationOfExistingChat(@RequestBody ContactInformationOfExistingChatRequestDTO contactInformationOfExistingChatRequestDTO);
 }

@@ -5,9 +5,12 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
+
 @Repository
 public interface IUserChatSettingsRepository extends MongoRepository<UserChatSettings, String> {
     List<UserChatSettings> findByUserId(String userId);
     UserChatSettings findByUserIdAndChatRoomIdAndIsDeletedFalse(String userId, String chatRoomId);
-    List<UserChatSettings> findByUserIdAndChatRoomIdInAndIsDeletedFalse(String userId, List<String> chatRoomIds);
+    Optional<UserChatSettings> findByUserIdAndChatRoomId(String userId, String chatRoomId);
+    List<UserChatSettings> findByUserIdAndIsDeletedFalse(String userId);
 }

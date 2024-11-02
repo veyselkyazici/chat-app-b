@@ -18,7 +18,7 @@ import java.util.Date;
 @AllArgsConstructor
 @NoArgsConstructor
 @SuperBuilder
-@Document
+@Document(collection = "chat_messages")
 public class ChatMessage extends BaseEntity{
     private String chatRoomId;
     private String senderId;

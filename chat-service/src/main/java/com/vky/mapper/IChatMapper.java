@@ -8,6 +8,7 @@ import com.vky.repository.entity.ChatMessage;
 import com.vky.repository.entity.ChatRoom;
 import com.vky.repository.entity.UserChatSettings;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 import org.mapstruct.factory.Mappers;
 
@@ -22,5 +23,9 @@ public interface IChatMapper {
     ChatRoomResponseDTO chatRoomToDTO(ChatRoom chatRoom, List<ChatRoomMessageResponseDTO> messages);
 
     ChatRoomMessageResponseDTO chatMessageToDTO(ChatMessage chatMessage);
+    List<ChatRoomMessageResponseDTO> chatMessagesToDTO(List<ChatMessage> chatMessages);
+    @Mapping(source = "blocked", target = "isBlocked")
+    @Mapping(source = "archived", target = "isArchived")
+    @Mapping(source = "pinned", target = "isPinned")
     UserChatSettingsDTO userChatSettingsToDTO(UserChatSettings userChatSettings);
 }

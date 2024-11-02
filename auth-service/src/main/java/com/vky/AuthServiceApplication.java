@@ -1,9 +1,18 @@
 package com.vky;
 
+import com.vky.entity.Auth;
+import com.vky.entity.enums.Role;
+import com.vky.repository.IAuthRepository;
+import com.vky.service.AuthService;
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.cloud.openfeign.EnableFeignClients;
+import org.springframework.context.annotation.Bean;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.util.UUID;
 
 @SpringBootApplication
 @EnableFeignClients
@@ -23,4 +32,27 @@ public class AuthServiceApplication {
 //                    .build();
 //        };
 //    }
+//@Bean
+//public CommandLineRunner commandLineRunner(AuthService authService, PasswordEncoder passwordEncoder, IAuthRepository authRepository) {
+//    return args -> {
+//        for (int i = 6; i <= 50; i++) {
+//            String username = "User" + i;
+//            String email = username.toLowerCase() + "@gmail.com";
+//            String encodedPassword = passwordEncoder.encode("asdasd");
+//            UUID authId = UUID.nameUUIDFromBytes(String.format("User%04d", i).getBytes());
+//
+//            Auth auth = Auth.builder()
+//                    .email(email)
+//                    .id(authId)
+//                    .password(encodedPassword)
+//                    .isFirstEntry(true)
+//                    .isApproved(true)
+//                    .role(Role.USER) // Role olarak USER tanımlayın
+//                    .build();
+//
+//            authRepository.save(auth); // AuthService içinde kaydetme işlemi yapılır
+//            System.out.println("Kullanıcı eklendi: " + username);
+//        }
+//    };
+//}
 }
