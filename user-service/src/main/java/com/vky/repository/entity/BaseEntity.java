@@ -14,7 +14,7 @@ import java.util.UUID;
 @NoArgsConstructor
 public class BaseEntity {
     @Id
-    @GeneratedValue(generator = "guid")
+//    @GeneratedValue(generator = "guid")
     private UUID id;
 
     @Column(name = "created_at")

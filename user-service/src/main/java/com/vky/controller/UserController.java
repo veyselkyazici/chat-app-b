@@ -150,7 +150,10 @@ public class UserController {
         UserProfileResponseDTO userProfileResponseDTO = this.userProfileService.getUserById(userId);
         return ResponseEntity.ok(userProfileResponseDTO);
     }
-
+    @PostMapping("/feign-get-user-by-id")
+    public UserProfileResponseDTO getFeignUserById(@RequestBody UUID userId) {
+        return this.userProfileService.getUserById(userId);
+    }
     @PostMapping("/get-userEmail-ById")
     public String getUserEmailById(@RequestBody UUID userId) {
         UserProfileResponseDTO userProfileResponseDTO = this.userProfileService.getUserById(userId);

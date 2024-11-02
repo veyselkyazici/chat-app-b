@@ -5,6 +5,7 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface IChatRoomRepository extends MongoRepository<ChatRoom, String> {
     //  List<ChatRoom> findByUserIdOrFriendId(String userId, String friendId);
@@ -13,5 +14,7 @@ public interface IChatRoomRepository extends MongoRepository<ChatRoom, String> {
     ChatRoom findByParticipantIdsContainsAll(List<String> participantIds);
 
     List<ChatRoom> findByParticipantIdsContaining(String userId);
-
+    Optional<ChatRoom> findChatRoomById(String id);
+    @Query("{'_id': { $in: ?0 }}")
+    List<ChatRoom> findAllByChatRoomIdsIn(List<String> chatRoomIds);
 }

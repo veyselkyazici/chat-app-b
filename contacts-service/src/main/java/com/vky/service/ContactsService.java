@@ -1,5 +1,6 @@
 package com.vky.service;
 
+import com.vky.dto.request.ContactInformationOfExistingChatRequestDTO;
 import com.vky.dto.request.ContactInformationOfExistingChatsRequestDTO;
 import com.vky.dto.request.ContactRequestDTO;
 import com.vky.dto.request.FeignClientUserProfileRequestDTO;
@@ -288,6 +289,55 @@ public class ContactsService {
         });
         return userResponseDTOS;
     }
+    public FeignClientUserProfileResponseDTO getContactInformationOfSingleChat(ContactInformationOfExistingChatRequestDTO contactInformationOfExistingChatRequestDTO) {
+        Optional<ContactWithRelationshipDTO> optionalContact = contactsRepository.findContactWithRelationship(contactInformationOfExistingChatRequestDTO.getUserId(), contactInformationOfExistingChatRequestDTO.getUserContactId());
+        ContactWithRelationshipDTO contact;
+        UserProfileResponseDTO userProfileResponseDTO = this.userManager.getFeignUserById(contactInformationOfExistingChatRequestDTO.getUserContactId());
+        System.out.println("userProfileResponseDTO > " +  userProfileResponseDTO);
+        if (optionalContact.isPresent()) {
+            contact = optionalContact.get();
+            System.out.println("CONTACT > " +  contact);
+            if(contact.getUserId().equals(contactInformationOfExistingChatRequestDTO.getUserId())) {
+                return FeignClientUserProfileResponseDTO.builder()
+                        .userProfileResponseDTO(userProfileResponseDTO)
+                        .contactsDTO(ContactsDTO.builder()
+                                .userContactName(contact.getUserContactName())
+                                .id(contact.getId())
+                                .userHasAddedRelatedUser(contact.getUserHasAddedRelatedUser())
+                                .relatedUserHasAddedUser(contact.getRelatedUserHasAddedUser())
+                                .userContactId(contact.getUserContactId())
+                                .userId(contact.getUserId())
+                                .build())
+                        .build();
+            } else {
+
+                return FeignClientUserProfileResponseDTO.builder()
+                        .userProfileResponseDTO(userProfileResponseDTO)
+                        .contactsDTO(ContactsDTO.builder()
+                                .userContactName(null)
+                                .id(contact.getId())
+                                .userHasAddedRelatedUser(contact.getRelatedUserHasAddedUser() )
+                                .relatedUserHasAddedUser(contact.getUserHasAddedRelatedUser())
+                                .userContactId(contact.getUserId() )
+                                .userId(contact.getUserContactId())
+                                .build())
+                        .build();
+            }
+        } else {
+            return FeignClientUserProfileResponseDTO.builder()
+                    .userProfileResponseDTO(userProfileResponseDTO)
+                    .contactsDTO(ContactsDTO.builder()
+                            .userContactName(null)
+                            .id(null)
+                            .userHasAddedRelatedUser(false)
+                            .relatedUserHasAddedUser(false)
+                            .userContactId(contactInformationOfExistingChatRequestDTO.getUserContactId())
+                            .userId(contactInformationOfExistingChatRequestDTO.getUserId())
+                            .build())
+                    .build();
+        }
+    }
+
 
     private FeignClientUserProfileResponseDTO convertInvitationToContact(Invitation invitation) {
         InvitationResponseDTO invitationResponseDTO = IInvitationMapper.INSTANCE.toInvitationResponseDTO(invitation);

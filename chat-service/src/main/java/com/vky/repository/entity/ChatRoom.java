@@ -14,7 +14,7 @@ import java.util.UUID;
 @Data
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
-@Document
+@Document(collection = "chat_rooms")
 public class ChatRoom extends ChatRoomBaseEntity{
     private List<String> participantIds;
 
