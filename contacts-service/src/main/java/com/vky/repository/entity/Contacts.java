@@ -16,7 +16,6 @@ import java.util.UUID;
 @SuperBuilder
 @Table(name = "contacts")
 @Entity
-@Where(clause = "is_deleted = false")
 @EqualsAndHashCode(callSuper = true)
 public class Contacts extends BaseEntity{
     private UUID userId;

@@ -6,6 +6,11 @@ spring:
     name: chat-service
   profiles:
     active: ${ACTIVE_PROFILE:dev}
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
   eureka:
     client:
       serviceUrl:
@@ -32,6 +37,9 @@ spring:
         globally_quoted_identifiers: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
+  redis:
+    host: localhost
+    port: 6379
 management:
   endpoints:
     web:

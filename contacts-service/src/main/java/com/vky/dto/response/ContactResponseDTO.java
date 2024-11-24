@@ -11,7 +11,7 @@ import java.util.UUID;
 @Data
 @Builder
 public class ContactResponseDTO  {
-    private UUID id;
+    private ContactsDTO contactsDTO;
     private UserProfileResponseDTO userProfileResponseDTO;
-    private String userContactName;
+    private InvitationResponseDTO invitationResponseDTO;
 }

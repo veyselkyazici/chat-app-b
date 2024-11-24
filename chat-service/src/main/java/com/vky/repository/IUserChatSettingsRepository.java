@@ -13,4 +13,5 @@ public interface IUserChatSettingsRepository extends MongoRepository<UserChatSet
     UserChatSettings findByUserIdAndChatRoomIdAndIsDeletedFalse(String userId, String chatRoomId);
     Optional<UserChatSettings> findByUserIdAndChatRoomId(String userId, String chatRoomId);
     List<UserChatSettings> findByUserIdAndIsDeletedFalse(String userId);
+    Optional<UserChatSettings> findByChatRoomIdAndUserId(String chatRoomId, String userId);
 }

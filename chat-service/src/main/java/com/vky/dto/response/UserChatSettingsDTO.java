@@ -13,6 +13,7 @@ import java.time.Instant;
 @Data
 @Builder
 public class UserChatSettingsDTO {
+    private String id;
     private String userId;
     private String chatRoomId;
     private int unreadMessageCount;

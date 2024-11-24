@@ -37,19 +37,19 @@ public class ChatServiceApplication {
 //                List<String> ids = new ArrayList<>();
 //                ids.add(userId);
 //                ids.add(friendId);
-//               ChatRoom chatRoom = ChatRoom.builder().id(userId + "_" + friendId).participantIds(ids).build();
+//               ChatRoom chatRoom = chatRoomRepository.save(ChatRoom.builder().participantIds(ids).build());
+//
+//
 //               ChatMessage chatMessage = ChatMessage.builder()
-//                       .id(userId + "_" + friendId)
-//                       .chatRoomId(userId + "_" + friendId)
+//                       .chatRoomId(chatRoom.getId())
 //                       .messageContent(username)
 //                       .fullDateTime(Instant.now())
 //                       .senderId(userId)
 //                       .recipientId(friendId)
 //                       .build();
-////               chatRoomRepository.save(chatRoom);
-////               chatMessageRepository.save(chatMessage);
+//               chatMessageRepository.save(chatMessage);
+//
 //                UserChatSettings userChatSettings = new UserChatSettings();
-//                userChatSettings.setId(friendId);
 //                userChatSettings.setUserId(userId);
 //                userChatSettings.setDeleted(false);
 //                userChatSettings.setPinned(false);
@@ -59,8 +59,9 @@ public class ChatServiceApplication {
 //                userChatSettings.setUnblockedTime(null);
 //                userChatSettings.setBlockedTime(null);
 //                userChatSettings.setUnreadMessageCount(0);
-//                userChatSettings.setChatRoomId(userId + "_" + friendId);
+//                userChatSettings.setChatRoomId(chatRoom.getId());
 //                userChatSettingsRepository.save(userChatSettings);
+//
 //                System.out.println("Kullanıcı eklendi: " + username + " ChatRoomId > " + userChatSettings.getChatRoomId());
 //            }
 //        };

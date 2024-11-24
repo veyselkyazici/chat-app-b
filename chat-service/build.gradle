@@ -10,4 +10,6 @@ dependencies {
     implementation libs.webSocket
     implementation libs.springCloudConfigClient
     implementation libs.prometheus
+    implementation libs.springBootRabbitMQ
+    implementation libs.redis
 }
