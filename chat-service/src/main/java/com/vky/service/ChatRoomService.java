@@ -6,6 +6,8 @@ import com.vky.dto.response.*;
 import com.vky.manager.IContactsManager;
 import com.vky.manager.IUserManager;
 import com.vky.mapper.IChatMapper;
+import com.vky.rabbitmq.RabbitMQConsumer;
+import com.vky.rabbitmq.RabbitMQProducer;
 import com.vky.repository.IChatRoomRepository;
 import com.vky.repository.entity.ChatMessage;
 import com.vky.repository.entity.ChatRoom;
@@ -14,7 +16,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -31,6 +32,8 @@ public class ChatRoomService {
     private final IUserManager userManager;
     private final UserChatSettingsService userChatSettingsService;
     private final IContactsManager contactsManager;
+    private final RabbitMQProducer rabbitMQProducer;
+    private final RabbitMQConsumer rabbitMQConsumer;
 
 
     public ChatRoom chatRoomSave(String userId, String friendId) {
@@ -87,15 +90,16 @@ public class ChatRoomService {
         List<String> ids = new ArrayList<>();
         ids.add(userId);
         ids.add(friendId);
+        System.out.println("IDS > " + ids.toString());
         ChatRoom chatRoom = this.chatRoomRepository.findByParticipantIdsContainsAll(ids);
         if (chatRoom != null) {
             UserChatSettings userChatSettings = userChatSettingsService.findByUserIdAndChatRoomId(userId, chatRoom.getId());
-            return ChatRoomWithUserChatSettingsDTO.builder().userId(userId).friendId(friendId).userChatSettings(userChatSettings).id(chatRoom.getId()).build();
+            return ChatRoomWithUserChatSettingsDTO.builder().userId(userId).participantIds(chatRoom.getParticipantIds()).friendId(friendId).userChatSettings(userChatSettings).id(chatRoom.getId()).build();
         } else {
             ChatRoom chatRoomSave = chatRoomSave(userId, friendId);
             UserChatSettings userChatSettings = userChatSettingsService.saveUserChatSettings(chatRoomSave.getId(), userId);
             userChatSettingsService.saveUserChatSettings(chatRoomSave.getId(), friendId);
-            return ChatRoomWithUserChatSettingsDTO.builder().id(chatRoomSave.getId()).userId(userId).friendId(friendId).userChatSettings(userChatSettings).build();
+            return ChatRoomWithUserChatSettingsDTO.builder().id(chatRoomSave.getId()).userId(userId).participantIds(chatRoomSave.getParticipantIds()).friendId(friendId).userChatSettings(userChatSettings).build();
         }
     }
 
@@ -127,9 +131,11 @@ public class ChatRoomService {
     public List<ChatRoom> getUserChatRooms(String userId) {
         return chatRoomRepository.findByParticipantIdsContaining(userId);
     }
+
     public List<ChatRoom> getUserChatRoomsAndDeletedFalse(List<String> chatRoomIds) {
         return chatRoomRepository.findAllByChatRoomIdsIn(chatRoomIds);
     }
+
     public List<ChatMessage> getChatMessages(String chatRoomId) {
         return chatMessageService.getChatMessages(chatRoomId);
     }
@@ -143,13 +149,26 @@ public class ChatRoomService {
         return settings != null && settings.isBlocked();
     }
 
+    //    public void processMessage(MessageRequestDTO messageRequestDTO) {
+//        boolean isSenderBlocked = isUserBlocked(messageRequestDTO.getSenderId(), messageRequestDTO.getChatRoomId());
+//        boolean isRecipientBlocked = isUserBlocked(messageRequestDTO.getRecipientId(), messageRequestDTO.getChatRoomId());
+//
+//        boolean isSuccess = !(isSenderBlocked || isRecipientBlocked);
+//        chatMessageService.sendMessage(messageRequestDTO, isSuccess);
+//    }
     public void processMessage(MessageRequestDTO messageRequestDTO) {
         boolean isSenderBlocked = isUserBlocked(messageRequestDTO.getSenderId(), messageRequestDTO.getChatRoomId());
         boolean isRecipientBlocked = isUserBlocked(messageRequestDTO.getRecipientId(), messageRequestDTO.getChatRoomId());
 
-        boolean isSuccess = !(isSenderBlocked || isRecipientBlocked);
-        chatMessageService.sendMessage(messageRequestDTO, isSuccess);
+        if (isSenderBlocked || isRecipientBlocked) {
+            chatMessageService.sendErrorNotification(messageRequestDTO, isSenderBlocked);
+            return;
+        }
+
+        rabbitMQProducer.sendMessage(messageRequestDTO);
     }
+
+
 
     public List<ChatRoomWithMessagesDTO> getUserChatRoomsAndMessages(String userId) {
         List<ChatRoom> chatRooms = getUserChatRooms(userId);
@@ -199,11 +218,10 @@ public class ChatRoomService {
     public List<ChatSummaryDTO> getUserChatSummariess(String userId) {
         Map<String, UserChatSettings> userChatSettingsMap = userChatSettingsService.findUserChatSettingsByUserId(userId);
         List<String> chatRoomIds = extractChatRoomIdsUserChatSettingsMap(userChatSettingsMap);
-
+        userChatSettingsMap.values().forEach(x -> System.out.println("X > " + x.getChatRoomId()));
         List<ChatRoom> chatRooms = getUserChatRoomsAndDeletedFalse(chatRoomIds);
-
+        chatRooms.forEach(x -> System.out.println("------------------------------------------- > " + x.getId()));
         List<UUID> participantIds = extractParticipantIds(chatRooms, userId);
-
 
 
         Map<String, LastMessageInfo> lastMessageMap = chatMessageService.getLastMessagesForChatRooms(chatRoomIds);
@@ -211,15 +229,30 @@ public class ChatRoomService {
 
         Map<UUID, FeignClientUserProfileResponseDTO> profileResponseDTOMap = getParticipantProfiles(userId, participantIds).stream()
                 .collect(Collectors.toMap(profile -> profile.getUserProfileResponseDTO().getId(), Function.identity()));
-
-        return chatRooms.stream()
+        System.out.println("############################################ > ");
+        profileResponseDTOMap.values().forEach(x -> System.out.println("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY > " + x.getUserProfileResponseDTO().getEmail()));
+        List<ChatSummaryDTO> sortedChatSummaries = chatRooms.stream()
                 .map(chatRoom -> buildChatSummary(chatRoom, lastMessageMap.get(chatRoom.getId()), userChatSettingsMap.get(chatRoom.getId()), userId, profileResponseDTOMap))
                 .filter(Objects::nonNull)
+                .sorted(Comparator.comparingInt(chatSummary -> extractNumericPart(chatSummary.getUserProfileResponseDTO().getEmail())))
                 .collect(Collectors.toList());
+
+        // Sıralama sonrası email değerlerini yazdırarak doğrulama yapalım
+        sortedChatSummaries.forEach(chatSummary ->
+                System.out.println("Email: " + chatSummary.getUserProfileResponseDTO().getEmail())
+        );
+
+        return sortedChatSummaries;
+    }
+
+    private int extractNumericPart(String email) {
+        // `user` ve `@gmail.com` gibi sabit kısımları ayırarak sadece sayıyı alıyoruz
+        String numericPart = email.replaceAll("[^0-9]", ""); // Sadece sayıları bırak
+        return Integer.parseInt(numericPart); // Sayısal değere çevir
     }
 
     public ChatSummaryDTO getUserChatSummary(String userId, String userContactId, String chatRoomId) {
-        // ToDo  String userContactId,
+        // ToDo  String userContactId && UserChatSettings deleted and deletedTime
         ChatRoom chatRoom = chatRoomRepository.findChatRoomById(chatRoomId)
                 .orElseThrow(() -> new RuntimeException("Chat room not found for id: " + chatRoomId));
 
@@ -234,6 +267,7 @@ public class ChatRoomService {
         return ChatSummaryDTO.builder()
                 .chatDTO(ChatDTO.builder()
                         .id(chatRoom.getId())
+                        .participantIds(chatRoom.getParticipantIds())
                         .senderId(lastMessageMap.get(chatRoom.getId()).getSenderId())
                         .recipientId(lastMessageMap.get(chatRoom.getId()).getRecipientId())
                         .lastMessageTime(lastMessageMap.get(chatRoom.getId()).getLastMessageTime())
@@ -260,6 +294,7 @@ public class ChatRoomService {
                 .contactsDTO(profile.getContactsDTO())
                 .chatDTO(ChatDTO.builder()
                         .id(chatRoom.getId())
+                        .participantIds(chatRoom.getParticipantIds())
                         .lastMessage(lastMessageInfo.getLastMessage())
                         .lastMessageTime(lastMessageInfo.getLastMessageTime())
                         .recipientId(lastMessageInfo.getRecipientId())
@@ -284,11 +319,13 @@ public class ChatRoomService {
                 .map(ChatRoom::getId)
                 .toList();
     }
+
     private List<String> extractChatRoomIdsUserChatSettingsMap(Map<String, UserChatSettings> userChatSettingsMap) {
         return userChatSettingsMap.values().stream()
                 .map(UserChatSettings::getChatRoomId)
                 .toList();
     }
+
     private List<FeignClientUserProfileResponseDTO> getParticipantProfiles(String userId, List<UUID> participantIds) {
         ContactInformationOfExistingChatsRequestDTO request = ContactInformationOfExistingChatsRequestDTO.builder()
                 .userId(UUID.fromString(userId))
@@ -300,8 +337,6 @@ public class ChatRoomService {
 
     private UserChatSettingsDTO mapUserChatSettingsDTO(UserChatSettings settings) {
         if (settings == null) return null;
-        System.out.println("SETTINGS > " + settings);
-        System.out.println("SETTINGS1 > " + IChatMapper.INSTANCE.userChatSettingsToDTO(settings));
         return IChatMapper.INSTANCE.userChatSettingsToDTO(settings);
     }
 
@@ -342,7 +377,7 @@ public class ChatRoomService {
      */
 
 
-    public MessagesDTO getLast30Messages(String chatRoomId, int limit) {
+    public MessagesDTO getLast30Messages(String chatRoomId, int limit, String userId) {
         Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "fullDateTime"));
         return chatMessageService.getLast30Messages(chatRoomId, pageable);
     }
@@ -397,6 +432,10 @@ public class ChatRoomService {
         // ToDo Eğer bu chat ten tekrar mesaj gelir veya bu chat e mesaj gönderilirse. deletedTime dan sonraki mesajlar cekilecek ve tekrar deleted false olarak güncellenmeli
         userSettings.setDeletedTime(Instant.now());
         userChatSettingsService.updateUserChatSettings(userSettings);
+    }
+
+    public void readMessage(UnreadMessageCountDTO unreadMessageCountDTO) {
+        rabbitMQProducer.readMessage(unreadMessageCountDTO);
     }
 
 //    public void createChatRoomAndFristMessage(CreateChatRoomDTO createChatRoomDTO) {

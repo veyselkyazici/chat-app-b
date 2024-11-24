@@ -34,7 +34,19 @@ public class ContactsService {
     private final IUserRelationshipRepository userRelationshipRepository;
 
     public boolean isExists(String invitedUserEmail, UUID invitedByUserId) {
-        return contactsRepository.existsContactsByUserContactEmailAndUserId(invitedUserEmail, invitedByUserId);
+        Optional<Contacts> contactOptional = contactsRepository.findContactsByUserContactEmailAndUserId(invitedUserEmail, invitedByUserId);
+
+        if (contactOptional.isPresent()) {
+            Contacts contact = contactOptional.get();
+            if (contact.isDeleted()) {
+                contact.setDeleted(false);
+                contactsRepository.save(contact);
+                return false;
+            } else {
+                throw new IllegalStateException("Contact already exists and is active.");
+            }
+        }
+        return false;
     }
 
     public void saveRegisterUserContact(Invitation invitation, UUID contactId) {
@@ -150,38 +162,86 @@ public class ContactsService {
     }
 
     private void handleExistingContactProcess(ContactRequestDTO contactRequestDTO, UserProfileResponseDTO userProfileResponseDTO) {
-        if (contactsRepository.existsContactsByUserContactEmailAndUserId(userProfileResponseDTO.getEmail(), contactRequestDTO.userId())) {
-            throw new InvitationAlreadyExistsException("Contact already exists for user with email: " + contactRequestDTO.userContactEmail());
-        }
-        Contacts contact = contactsRepository.save(Contacts.builder()
-                .userContactEmail(contactRequestDTO.userContactEmail())
-                .userContactName(contactRequestDTO.userContactName())
-                .userId(contactRequestDTO.userId())
-                .userContactId(userProfileResponseDTO.getId()).build());
-        // ToDo
-        Optional<UserRelationship> relationshipOpt = userRelationshipRepository.findByUserIdAndRelatedUserId(contactRequestDTO.userId(), userProfileResponseDTO.getId());
+        Optional<Contacts> existingContactOpt = contactsRepository.findContactsByUserContactEmailAndUserId(
+                userProfileResponseDTO.getEmail(),
+                contactRequestDTO.userId()
+        );
+
+        Contacts contact = existingContactOpt.map(existingContact -> {
+            if (!existingContact.isDeleted()) {
+                throw new InvitationAlreadyExistsException(
+                        "Contact already exists and is marked as deleted for user with email: " + contactRequestDTO.userContactEmail()
+                );
+            }
+            existingContact.setDeleted(false);
+            existingContact.setUserContactName(contactRequestDTO.userContactName());
+            return contactsRepository.save(existingContact);
+        }).orElseGet(() -> contactsRepository.save(
+                Contacts.builder()
+                        .userContactEmail(contactRequestDTO.userContactEmail())
+                        .userContactName(contactRequestDTO.userContactName())
+                        .userId(contactRequestDTO.userId())
+                        .userContactId(userProfileResponseDTO.getId())
+                        .build()
+        ));
+        UserRelationship reverseRelationship = handleReverseUserRelationship(contactRequestDTO, userProfileResponseDTO);
+        UserRelationship relationship = (reverseRelationship == null) ? handleUserRelationship(contactRequestDTO, userProfileResponseDTO) : null;
+
+        ContactResponseDTO contactResponseDTO = createContactResponseDTO(contact, relationship, reverseRelationship, userProfileResponseDTO);
+        messagingTemplate.convertAndSendToUser(contact.getUserId().toString(), "/queue/add-contact", contactResponseDTO);
+    }
+
+    private UserRelationship handleUserRelationship(ContactRequestDTO contactRequestDTO, UserProfileResponseDTO userProfileResponseDTO) {
+        Optional<UserRelationship> relationshipOpt = userRelationshipRepository.findByUserIdAndRelatedUserId(
+                contactRequestDTO.userId(),
+                userProfileResponseDTO.getId()
+        );
 
         if (relationshipOpt.isPresent()) {
             UserRelationship relationship = relationshipOpt.get();
             relationship.setUserHasAddedRelatedUser(true);
+            return relationship;
         } else {
             UserRelationship newRelationship = new UserRelationship();
             newRelationship.setUserId(contactRequestDTO.userId());
             newRelationship.setRelatedUserId(userProfileResponseDTO.getId());
             newRelationship.setUserHasAddedRelatedUser(true);
             newRelationship.setRelatedUserHasAddedUser(false);
-            userRelationshipRepository.save(newRelationship);
+            return userRelationshipRepository.save(newRelationship);
         }
+    }
 
-        Optional<UserRelationship> reverseRelationshipOpt = userRelationshipRepository.findByUserIdAndRelatedUserId(userProfileResponseDTO.getId(), contactRequestDTO.userId());
+    private UserRelationship handleReverseUserRelationship(ContactRequestDTO contactRequestDTO, UserProfileResponseDTO userProfileResponseDTO) {
+        Optional<UserRelationship> reverseRelationshipOpt = userRelationshipRepository.findByUserIdAndRelatedUserId(
+                userProfileResponseDTO.getId(),
+                contactRequestDTO.userId()
+        );
+
         if (reverseRelationshipOpt.isPresent()) {
             UserRelationship reverseRelationship = reverseRelationshipOpt.get();
             reverseRelationship.setRelatedUserHasAddedUser(true);
-            userRelationshipRepository.save(reverseRelationship);
+            return userRelationshipRepository.save(reverseRelationship);
         }
-        ContactResponseDTO contactResponseDTO = new ContactResponseDTO(contact.getId(), userProfileResponseDTO, contact.getUserContactName());
-        messagingTemplate.convertAndSendToUser(contact.getUserId().toString(), "/queue/add-contact", contactResponseDTO);
+        return null;
     }
+
+    private ContactResponseDTO createContactResponseDTO(Contacts contact, UserRelationship relationship, UserRelationship reverseRelationship, UserProfileResponseDTO userProfileResponseDTO) {
+        ContactResponseDTO dto = new ContactResponseDTO(
+                ContactsDTO.builder()
+                        .id(contact.getId())
+                        .userId(contact.getUserId())
+                        .userContactId(contact.getUserContactId())
+                        .userContactName(contact.getUserContactName())
+                        .relatedUserHasAddedUser(relationship != null ? relationship.isRelatedUserHasAddedUser() : reverseRelationship.isUserHasAddedRelatedUser())
+                        .userHasAddedRelatedUser(relationship != null ? relationship.isUserHasAddedRelatedUser() : reverseRelationship.isUserHasAddedRelatedUser())
+                        .build(),
+                null,
+                null
+        );
+        dto.setUserProfileResponseDTO(userProfileResponseDTO);
+        return dto;
+    }
+
 
     public List<FeignClientUserProfileResponseDTO> getContactList(UUID userId) {
         List<Invitation> invitations = this.invitationService.findInvitationByInviterUserIdOrderByContactName(userId);
@@ -290,6 +350,7 @@ public class ContactsService {
         return userResponseDTOS;
     }
     public FeignClientUserProfileResponseDTO getContactInformationOfSingleChat(ContactInformationOfExistingChatRequestDTO contactInformationOfExistingChatRequestDTO) {
+        System.out.println("contactInformationOfExistingChatRequestDTO > " + contactInformationOfExistingChatRequestDTO.toString());
         Optional<ContactWithRelationshipDTO> optionalContact = contactsRepository.findContactWithRelationship(contactInformationOfExistingChatRequestDTO.getUserId(), contactInformationOfExistingChatRequestDTO.getUserContactId());
         ContactWithRelationshipDTO contact;
         UserProfileResponseDTO userProfileResponseDTO = this.userManager.getFeignUserById(contactInformationOfExistingChatRequestDTO.getUserContactId());

@@ -13,6 +13,7 @@ import java.util.List;
 @NoArgsConstructor
 public class ChatRoomWithUserChatSettingsDTO {
     private String id;
+    private List<String> participantIds;
     private String userId;
     private String friendId;
     private String friendEmail;

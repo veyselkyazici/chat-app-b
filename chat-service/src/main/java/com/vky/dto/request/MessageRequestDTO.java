@@ -18,4 +18,5 @@ public class MessageRequestDTO {
     private String recipientId;
     private String fullDateTime;
     private String chatRoomId;
+    private String userChatSettingsId;
 }

@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.util.List;
 
 @Data
 @Builder
@@ -13,6 +14,7 @@ import java.time.Instant;
 @NoArgsConstructor
 public class ChatDTO {
     private String id;
+    private List<String> participantIds;
     private String lastMessage;
     private Instant lastMessageTime;
     private String senderId;

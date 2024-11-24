@@ -9,8 +9,11 @@ import com.vky.mapper.IChatMapper;
 import com.vky.repository.IChatMessageRepository;
 import com.vky.repository.entity.ChatMessage;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.*;
@@ -27,9 +30,31 @@ public class ChatMessageService {
     private final IChatMessageRepository chatMessageRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
-    public void sendMessage(MessageRequestDTO messageRequestDTO, boolean isSuccess) {
+//    public void sendMessage(MessageRequestDTO messageRequestDTO, boolean isSuccess) {
+//        Instant fullDateTime = Instant.parse(messageRequestDTO.getFullDateTime());
+//        ChatMessage chatMessage = chatMessageRepository.save(ChatMessage.builder()
+//                .messageContent(messageRequestDTO.getMessageContent())
+//                .senderId(messageRequestDTO.getSenderId())
+//                .recipientId(messageRequestDTO.getRecipientId())
+//                .isSeen(false)
+//                .chatRoomId(messageRequestDTO.getChatRoomId())
+//                .fullDateTime(fullDateTime)
+//                .build());
+//
+//        MessageFriendResponseDTO messageFriendResponseDTO = IChatMapper.INSTANCE.toResponseDTO(chatMessage);
+//        messageFriendResponseDTO.setSuccess(isSuccess);
+//
+//        String destination = isSuccess ? "queue/received-message" : "/queue/error";
+//        messagingTemplate.convertAndSendToUser(
+//                isSuccess ? messageRequestDTO.getRecipientId() : messageRequestDTO.getSenderId(),
+//                destination,
+//                messageFriendResponseDTO);
+//
+//
+//    }
+    public ChatMessage sendMessage(MessageRequestDTO messageRequestDTO) {
         Instant fullDateTime = Instant.parse(messageRequestDTO.getFullDateTime());
-        ChatMessage chatMessage = chatMessageRepository.save(ChatMessage.builder()
+        return chatMessageRepository.save(ChatMessage.builder()
                 .messageContent(messageRequestDTO.getMessageContent())
                 .senderId(messageRequestDTO.getSenderId())
                 .recipientId(messageRequestDTO.getRecipientId())
@@ -38,18 +63,15 @@ public class ChatMessageService {
                 .fullDateTime(fullDateTime)
                 .build());
 
-        MessageFriendResponseDTO messageFriendResponseDTO = IChatMapper.INSTANCE.toResponseDTO(chatMessage);
-        messageFriendResponseDTO.setSuccess(isSuccess);
-
-        String destination = isSuccess ? "queue/received-message" : "/queue/error";
-        messagingTemplate.convertAndSendToUser(
-                isSuccess ? messageRequestDTO.getRecipientId() : messageRequestDTO.getSenderId(),
-                destination,
-                messageFriendResponseDTO);
-
-
     }
 
+    public void sendErrorNotification(MessageRequestDTO messageRequestDTO, boolean isSenderBlocked) {
+        String destination = "/queue/error";
+        String errorMessage = isSenderBlocked
+                ? "You are blocked and cannot send messages to this user."
+                : "Recipient has blocked you from sending messages.";
+        messagingTemplate.convertAndSendToUser(messageRequestDTO.getSenderId(), destination, errorMessage);
+    }
     public List<ChatMessage> getChatMessages(String chatRoomId) {
         return chatMessageRepository.findByChatRoomIdAndIsDeletedFalse(chatRoomId);
     }
@@ -102,8 +124,18 @@ public class ChatMessageService {
             );
             lastMessagesMap.put(lastMessage.getChatRoomId(), lastMessageInfo);
         }
-
         return lastMessagesMap;
     }
+
+    public void setIsSeenUpdateForUnreadMessageCount(String chatRoomId, String userId, int unreadMessageCount) {
+        Pageable pageable = PageRequest.of(0, unreadMessageCount, Sort.by(Sort.Direction.DESC, "fullDateTime"));
+        List<ChatMessage> chatMessages = chatMessageRepository.findByChatRoomIdAndRecipientIdOrderByFullDateTimeDesc(chatRoomId, userId,pageable);
+        for (ChatMessage chatMessage : chatMessages) {
+            chatMessage.setSeen(true);
+        }
+        chatMessageRepository.saveAll(chatMessages);
+
+    }
+
 
 }
