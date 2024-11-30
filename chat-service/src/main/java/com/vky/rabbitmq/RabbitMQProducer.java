@@ -31,9 +31,9 @@ public class RabbitMQProducer {
         }
     }
 
-    public void updateUnreadCountToMongo(String chatRoomId, String userId, int unreadCount) {
+    public void updateUnreadCountToMongo(String chatRoomId, String userId, String contactId, int unreadCount) {
         try {
-            String unreadMessageCount = new ObjectMapper().writeValueAsString(new UnreadMessageCountDTO(chatRoomId, userId, unreadCount));
+            String unreadMessageCount = new ObjectMapper().writeValueAsString(new UnreadMessageCountDTO(chatRoomId, userId, contactId, unreadCount));
             rabbitTemplate.convertAndSend("mongo-update-queue", unreadMessageCount);
         } catch (Exception e) {
             throw new RuntimeException("Failed to send update message to RabbitMQ", e);

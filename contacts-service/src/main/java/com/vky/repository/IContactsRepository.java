@@ -11,13 +11,38 @@ public interface IContactsRepository extends JpaRepository<Contacts, UUID> {
     boolean existsContactsByUserContactEmailAndUserId(String contactEmail, UUID userId);
     Optional<Contacts> findContactsByUserContactEmailAndUserId(String contactEmail, UUID userId);
     List<Contacts> findContactsByUserIdOrderByUserContactName(UUID userId);
-    @Query("SELECT new com.vky.repository.ContactWithRelationshipDTO(c.id, c.userId, c.userContactId, c.userContactName, " +
-            "COALESCE(r.userHasAddedRelatedUser, false), COALESCE(r.relatedUserHasAddedUser, false)) " +
-            "FROM Contacts c " +
-            "LEFT JOIN UserRelationship r " +
-            "ON c.userContactId = r.relatedUserId " +
-            "WHERE c.userId = :userId")
-    List<ContactWithRelationshipDTO> findContactsAndRelationshipsByUserId(@Param("userId") UUID userId);
+
+
+    @Query("""
+        SELECT new com.vky.repository.ContactWithRelationshipDTO(
+            c.id,
+            c.userId,
+            c.userContactId,
+            c.userContactName,
+            CASE 
+                WHEN ur.userId = :userId THEN ur.userHasAddedRelatedUser 
+                ELSE ur.relatedUserHasAddedUser 
+            END,
+            CASE 
+                WHEN ur.relatedUserId = :userId THEN ur.userHasAddedRelatedUser 
+                ELSE ur.relatedUserHasAddedUser 
+            END
+        )
+        FROM Contacts c
+        LEFT JOIN UserRelationship ur 
+            ON (ur.userId = c.userId AND ur.relatedUserId = c.userContactId)
+            OR (ur.userId = c.userContactId AND ur.relatedUserId = c.userId)
+        WHERE c.userId = :userId AND c.isDeleted = false
+    """)
+    List<ContactWithRelationshipDTO> findContactsAndRelationshipsByUserId(UUID userId);
+
+//    @Query("SELECT new com.vky.repository.ContactWithRelationshipDTO(c.id, c.userId, c.userContactId, c.userContactName, " +
+//            "COALESCE(r.userHasAddedRelatedUser, false), COALESCE(r.relatedUserHasAddedUser, false)) " +
+//            "FROM Contacts c " +
+//            "LEFT JOIN UserRelationship r " +
+//            "ON c.userContactId = r.relatedUserId " +
+//            "WHERE c.userId = :userId")
+//    List<ContactWithRelationshipDTO> findContactsAndRelationshipsByUserId(@Param("userId") UUID userId);
     @Query("SELECT c.userId FROM Contacts c WHERE c.userContactId = :userId AND c.userId IN :contactIds")
     Set<UUID> findReversedContactIds(@Param("userId") UUID userId, @Param("contactIds") Set<UUID> contactIds);
 

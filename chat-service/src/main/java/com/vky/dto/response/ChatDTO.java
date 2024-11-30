@@ -14,9 +14,11 @@ import java.util.List;
 @NoArgsConstructor
 public class ChatDTO {
     private String id;
+    private String messageId;
     private List<String> participantIds;
     private String lastMessage;
     private Instant lastMessageTime;
     private String senderId;
     private String recipientId;
+    private boolean isSeen;
 }

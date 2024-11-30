@@ -256,9 +256,8 @@ public class ChatRoomService {
         ChatRoom chatRoom = chatRoomRepository.findChatRoomById(chatRoomId)
                 .orElseThrow(() -> new RuntimeException("Chat room not found for id: " + chatRoomId));
 
-        List<String> chatRoomIds = List.of(chatRoom.getId());
         UserChatSettings userChatSettings = userChatSettingsService.findUserChatSettingsByUserIdAndChatRoomId(userId, chatRoom.getId());
-        Map<String, LastMessageInfo> lastMessageMap = chatMessageService.getLastMessagesForChatRooms(chatRoomIds);
+        ChatMessage chatMessage = chatMessageService.getLastMessageForChatRooms(chatRoomId);
 
         FeignClientUserProfileResponseDTO profileResponse = contactsManager.getContactInformationOfExistingChat(ContactInformationOfExistingChatRequestDTO.builder()
                 .userId(UUID.fromString(userId))
@@ -267,11 +266,13 @@ public class ChatRoomService {
         return ChatSummaryDTO.builder()
                 .chatDTO(ChatDTO.builder()
                         .id(chatRoom.getId())
+                        .messageId(chatMessage.getId())
                         .participantIds(chatRoom.getParticipantIds())
-                        .senderId(lastMessageMap.get(chatRoom.getId()).getSenderId())
-                        .recipientId(lastMessageMap.get(chatRoom.getId()).getRecipientId())
-                        .lastMessageTime(lastMessageMap.get(chatRoom.getId()).getLastMessageTime())
-                        .lastMessage(lastMessageMap.get(chatRoom.getId()).getLastMessage())
+                        .senderId(chatMessage.getSenderId())
+                        .recipientId(chatMessage.getRecipientId())
+                        .lastMessageTime(chatMessage.getFullDateTime())
+                        .lastMessage(chatMessage.getMessageContent())
+                        .isSeen(chatMessage.isSeen())
                         .build())
                 .contactsDTO(profileResponse.getContactsDTO())
                 .userChatSettings(mapUserChatSettingsDTO(userChatSettings))
@@ -294,11 +295,13 @@ public class ChatRoomService {
                 .contactsDTO(profile.getContactsDTO())
                 .chatDTO(ChatDTO.builder()
                         .id(chatRoom.getId())
+                        .messageId(lastMessageInfo.getId())
                         .participantIds(chatRoom.getParticipantIds())
                         .lastMessage(lastMessageInfo.getLastMessage())
                         .lastMessageTime(lastMessageInfo.getLastMessageTime())
                         .recipientId(lastMessageInfo.getRecipientId())
                         .senderId(lastMessageInfo.getSenderId())
+                        .isSeen(lastMessageInfo.isSeen())
                         .build())
                 .userChatSettings(mapUserChatSettingsDTO(userChatSettings))
                 .userProfileResponseDTO(profile.getUserProfileResponseDTO())

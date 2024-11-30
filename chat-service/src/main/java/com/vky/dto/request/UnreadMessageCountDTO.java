@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 @Builder
 public class UnreadMessageCountDTO {
     private String chatRoomId;
-    private String userId;
+    private String recipientId;
+    private String senderId;
     private int unreadMessageCount;
 }
