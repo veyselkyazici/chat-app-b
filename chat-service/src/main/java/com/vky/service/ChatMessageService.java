@@ -112,29 +112,39 @@ public class ChatMessageService {
     public Map<String, LastMessageInfo> getLastMessagesForChatRooms(List<String> chatRoomIds) {
         Map<String, LastMessageInfo> lastMessagesMap = new HashMap<>();
 
-        List<ChatMessage> lastMessages = chatMessageRepository.findFirstByChatRoomIdInOrderByFullDateTimeDesc(chatRoomIds);
+        List<ChatMessage> lastMessages = chatMessageRepository.findLatestMessagesByChatRoomIds(chatRoomIds);
 
         for (ChatMessage lastMessage : lastMessages) {
             LastMessageInfo lastMessageInfo = new LastMessageInfo(
                     lastMessage.getChatRoomId(),
+                    lastMessage.getId(),
                     lastMessage.getMessageContent(),
                     lastMessage.getFullDateTime(),
                     lastMessage.getSenderId(),
-                    lastMessage.getRecipientId()
+                    lastMessage.getRecipientId(),
+                    lastMessage.isSeen()
             );
             lastMessagesMap.put(lastMessage.getChatRoomId(), lastMessageInfo);
         }
         return lastMessagesMap;
     }
-
+    public ChatMessage getLastMessageForChatRooms(String chatRoomId) {
+        return chatMessageRepository.findLatestMessageByChatRoomId(chatRoomId);
+    }
     public void setIsSeenUpdateForUnreadMessageCount(String chatRoomId, String userId, int unreadMessageCount) {
         Pageable pageable = PageRequest.of(0, unreadMessageCount, Sort.by(Sort.Direction.DESC, "fullDateTime"));
         List<ChatMessage> chatMessages = chatMessageRepository.findByChatRoomIdAndRecipientIdOrderByFullDateTimeDesc(chatRoomId, userId,pageable);
         for (ChatMessage chatMessage : chatMessages) {
             chatMessage.setSeen(true);
         }
-        chatMessageRepository.saveAll(chatMessages);
-
+        List<ChatMessage> chatMessageList = chatMessageRepository.saveAll(chatMessages);
+        ChatMessage message = chatMessageList.get(0);
+        String senderId = message.getSenderId() == userId ? message.getRecipientId() : message.getSenderId();
+        messagingTemplate.convertAndSendToUser(
+                senderId,
+                "/queue/read-messages",
+                chatMessageList
+        );
     }
 
 

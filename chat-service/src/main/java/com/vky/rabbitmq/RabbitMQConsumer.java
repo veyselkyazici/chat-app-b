@@ -30,7 +30,7 @@ public class RabbitMQConsumer {
 
             ChatMessage savedMessage = chatMessageService.sendMessage(messageRequestDTO);
 
-            int currentCount = unreadMessageCountService.incrementUnreadCount(messageRequestDTO.getChatRoomId(), messageRequestDTO.getRecipientId());
+            int currentCount = unreadMessageCountService.incrementUnreadCount(messageRequestDTO.getChatRoomId(), messageRequestDTO.getRecipientId(), messageRequestDTO.getSenderId());
             MessageFriendResponseDTO messageFriendResponseDTO = IChatMapper.INSTANCE.toResponseDTO(savedMessage);
             messageFriendResponseDTO.setUnreadMessageCount(currentCount);
 
@@ -50,15 +50,23 @@ public class RabbitMQConsumer {
         try {
             UnreadMessageCountDTO readMessageDTO = new ObjectMapper().readValue(message, UnreadMessageCountDTO.class);
 
-            unreadMessageCountService.resetUnreadCount(
+            int count = unreadMessageCountService.resetUnreadCount(
                     readMessageDTO.getChatRoomId(),
-                    readMessageDTO.getUserId()
+                    readMessageDTO.getRecipientId(),
+                    readMessageDTO.getSenderId()
             );
 
-//            chatMessageService.markMessagesAsSeen(
-//                    messageReadDTO.getChatRoomId(),
-//                    messageReadDTO.getUserId()
+//            chatMessageService.setIsSeenUpdateForUnreadMessageCount(
+//                    readMessageDTO.getChatRoomId(),
+//                    readMessageDTO.getUserId(),
+//                    count
 //            );
+
+            messagingTemplate.convertAndSendToUser(
+                    readMessageDTO.getRecipientId(),
+                    "/queue/read-confirmation-recipient",
+                    "Read operation completed for chatRoomId: " + readMessageDTO.getChatRoomId()
+            );
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -71,9 +79,9 @@ public class RabbitMQConsumer {
         try {
             UnreadMessageCountDTO updateDTO = new ObjectMapper().readValue(message, UnreadMessageCountDTO.class);
             if(updateDTO.getUnreadMessageCount() > 0) {
-                userChatSettingsService.incrementUnreadCount(updateDTO.getChatRoomId(), updateDTO.getUserId(), updateDTO.getUnreadMessageCount());
+                userChatSettingsService.incrementUnreadCount(updateDTO.getChatRoomId(), updateDTO.getRecipientId(), updateDTO.getUnreadMessageCount());
             } else {
-                userChatSettingsService.resetUnreadCount(updateDTO.getChatRoomId(), updateDTO.getUserId(), updateDTO.getUnreadMessageCount());
+                userChatSettingsService.resetUnreadCount(updateDTO.getChatRoomId(), updateDTO.getRecipientId(), updateDTO.getUnreadMessageCount());
             }
         } catch (Exception e) {
             e.printStackTrace();
