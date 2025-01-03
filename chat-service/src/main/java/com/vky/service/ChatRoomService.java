@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -34,7 +35,7 @@ public class ChatRoomService {
     private final IContactsManager contactsManager;
     private final RabbitMQProducer rabbitMQProducer;
     private final RabbitMQConsumer rabbitMQConsumer;
-
+    private final SimpMessagingTemplate messagingTemplate;
 
     public ChatRoom chatRoomSave(String userId, String friendId) {
         List<String> participantIds = new ArrayList<>();
@@ -392,10 +393,17 @@ public class ChatRoomService {
 
     public boolean chatBlock(ChatSummaryDTO chatSummaryDTO) {
         try {
-            UserChatSettings userSettings = this.userChatSettingsService.findByUserIdAndChatRoomId(chatSummaryDTO.getContactsDTO().getUserId().toString(), chatSummaryDTO.getChatDTO().getId());
-            userSettings.setBlocked(true);
-            userSettings.setBlockedTime(Instant.now());
-            userChatSettingsService.updateUserChatSettings(userSettings);
+            UserChatSettings[] userChatSettingsArr = new UserChatSettings[2];
+            UserChatSettings userChatSettings = this.userChatSettingsService.findByUserIdAndChatRoomId(chatSummaryDTO.getContactsDTO().getUserId().toString(), chatSummaryDTO.getChatDTO().getId());
+            userChatSettings.setBlocked(true);
+            userChatSettings.setBlockedTime(Instant.now());
+            UserChatSettings contactsUserChatSettings = this.userChatSettingsService.findByUserIdAndChatRoomId(chatSummaryDTO.getContactsDTO().getUserContactId().toString(), chatSummaryDTO.getChatDTO().getId());
+            contactsUserChatSettings.setBlockedMe(true);
+            contactsUserChatSettings.setBlockedTime(Instant.now());
+            userChatSettingsArr[0] = userChatSettings;
+            userChatSettingsArr[1] = contactsUserChatSettings;
+            userChatSettingsService.updateUserChatSettingsSaveAll(userChatSettingsArr);
+            messagingTemplate.convertAndSendToUser(chatSummaryDTO.getContactsDTO().getUserContactId().toString(), "/queue/block", contactsUserChatSettings);
             return true;
         } catch (Exception e) {
             return false;
@@ -404,10 +412,17 @@ public class ChatRoomService {
 
     public boolean chatUnblock(ChatSummaryDTO chatSummaryDTO) {
         try {
-            UserChatSettings userSettings = this.userChatSettingsService.findByUserIdAndChatRoomId(chatSummaryDTO.getContactsDTO().getUserId().toString(), chatSummaryDTO.getChatDTO().getId());
-            userSettings.setBlocked(false);
-            userSettings.setUnblockedTime(Instant.now());
-            userChatSettingsService.updateUserChatSettings(userSettings);
+            UserChatSettings[] userChatSettingsArr = new UserChatSettings[2];
+            UserChatSettings userChatSettings = this.userChatSettingsService.findByUserIdAndChatRoomId(chatSummaryDTO.getContactsDTO().getUserId().toString(), chatSummaryDTO.getChatDTO().getId());
+            userChatSettings.setBlocked(false);
+            userChatSettings.setUnblockedTime(Instant.now());
+            UserChatSettings contactsUserChatSettings = this.userChatSettingsService.findByUserIdAndChatRoomId(chatSummaryDTO.getContactsDTO().getUserContactId().toString(), chatSummaryDTO.getChatDTO().getId());
+            contactsUserChatSettings.setBlockedMe(false);
+            contactsUserChatSettings.setUnblockedTime(Instant.now());
+            userChatSettingsArr[0] = userChatSettings;
+            userChatSettingsArr[1] = contactsUserChatSettings;
+            userChatSettingsService.updateUserChatSettingsSaveAll(userChatSettingsArr);
+            messagingTemplate.convertAndSendToUser(chatSummaryDTO.getContactsDTO().getUserContactId().toString(), "/queue/unblock", contactsUserChatSettings);
             return true;
         } catch (Exception e) {
             return false;

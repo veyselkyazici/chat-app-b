@@ -66,7 +66,7 @@ public class ChatMessageService {
     }
 
     public void sendErrorNotification(MessageRequestDTO messageRequestDTO, boolean isSenderBlocked) {
-        String destination = "/queue/error";
+        String destination = "/queue/message-error";
         String errorMessage = isSenderBlocked
                 ? "You are blocked and cannot send messages to this user."
                 : "Recipient has blocked you from sending messages.";
