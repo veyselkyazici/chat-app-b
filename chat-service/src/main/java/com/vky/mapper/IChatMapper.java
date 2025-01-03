@@ -26,6 +26,7 @@ public interface IChatMapper {
     // @Mapping(source = "seen", target = "isSeen") bunu tek donusume veriyoruz zaten list map yukarda tekli mapperi kullaniyor
     List<ChatRoomMessageResponseDTO> chatMessagesToDTO(List<ChatMessage> chatMessages);
     @Mapping(source = "blocked", target = "isBlocked")
+    @Mapping(source = "blockedMe", target = "isBlockedMe")
     @Mapping(source = "archived", target = "isArchived")
     @Mapping(source = "pinned", target = "isPinned")
     UserChatSettingsDTO userChatSettingsToDTO(UserChatSettings userChatSettings);

@@ -7,6 +7,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -45,7 +46,9 @@ public class UserChatSettingsService {
     public UserChatSettings updateUserChatSettings(UserChatSettings userSettings) {
         return this.userChatSettingsRepository.save(userSettings);
     }
-
+    public List<UserChatSettings> updateUserChatSettingsSaveAll(UserChatSettings[] userSettings) {
+        return this.userChatSettingsRepository.saveAll(Arrays.asList(userSettings));
+    }
 
     public UserChatSettings findUserChatSettingsByUserIdAndChatRoomId(String userId, String chatRoomId) {
         Optional<UserChatSettings> optionalSettings = userChatSettingsRepository.findByUserIdAndChatRoomId(userId, chatRoomId);
