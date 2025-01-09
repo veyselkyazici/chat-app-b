@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @RequestMapping("/api/v1/contacts")
 @RequiredArgsConstructor
@@ -28,17 +29,28 @@ public class ContactsController {
         return ResponseEntity.ok().build();
     }
 
+    //    @GetMapping("/get-contact-list")
+//    public ResponseEntity<List<FeignClientUserProfileResponseDTO>> getFriendList(@RequestParam("userId") UUID userId) {
+//        System.out.println("USERID>> " + userId);
+//        return ResponseEntity.ok(contactsService.getContactList(userId));
+//    }
     @GetMapping("/get-contact-list")
-    public ResponseEntity<List<FeignClientUserProfileResponseDTO>> getFriendList(@RequestParam("userId") UUID userId) {
+    public CompletableFuture<ResponseEntity<List<FeignClientUserProfileResponseDTO>>> getFriendListAsync(@RequestParam("userId") UUID userId) {
         System.out.println("USERID>> " + userId);
-        return ResponseEntity.ok(contactsService.getContactList(userId));
+        return contactsService.getContactListAsync(userId)
+                .thenApply(ResponseEntity::ok);
     }
 
+    //    @PostMapping("/get-contact-information-of-existing-chats")
+//    public List<FeignClientUserProfileResponseDTO> getContactInformationOfExistingChats(@RequestBody ContactInformationOfExistingChatsRequestDTO contactInformationOfExistingChatsRequestDTO) {
+//        System.out.println("USERID 123>> " + contactInformationOfExistingChatsRequestDTO);
+//        return contactsService.getContactInformationOfExistingChats(contactInformationOfExistingChatsRequestDTO);
+//    }
     @PostMapping("/get-contact-information-of-existing-chats")
-    public List<FeignClientUserProfileResponseDTO> getContactInformationOfExistingChats(@RequestBody ContactInformationOfExistingChatsRequestDTO contactInformationOfExistingChatsRequestDTO) {
-        System.out.println("USERID 123>> " + contactInformationOfExistingChatsRequestDTO);
-        return contactsService.getContactInformationOfExistingChats(contactInformationOfExistingChatsRequestDTO);
+    public CompletableFuture<List<FeignClientUserProfileResponseDTO>> getContactInformationOfExistingChats(@RequestBody ContactInformationOfExistingChatsRequestDTO contactInformationOfExistingChatsRequestDTO) {
+        return contactsService.getContactInformationOfExistingChatsAsync(contactInformationOfExistingChatsRequestDTO);
     }
+
     @PostMapping("/get-contact-information-of-existing-chat")
     public FeignClientUserProfileResponseDTO getContactInformationOfExistingChat(@RequestBody ContactInformationOfExistingChatRequestDTO contactInformationOfExistingChatRequestDTO) {
         System.out.println("USERID 123>> " + contactInformationOfExistingChatRequestDTO);
@@ -56,33 +68,4 @@ public class ContactsController {
         contactsService.sendUpdatedPrivacySettings(userProfileResponseDTO);
     }
 
-
-
-
-
-    /**@GetMapping("/get-friend-list")
-    public ResponseEntity<List<FeignClientUserProfileResponseDTO>> getFriendList(@RequestHeader("Authorization") String authorization) {
-        System.out.println("authorization: " + authorization);
-        return ResponseEntity.ok(friendshipsService.getFriendList(authorization));
-    }
-    @MessageMapping("/add-friend")
-    public void sendFriendRequest(@RequestBody FriendRequestRequestDTOWS friendRequestRequestDtoWS) {
-        System.out.println("friend request: " + friendRequestRequestDtoWS);
-        friendshipsService.addToFriends(friendRequestRequestDtoWS);
-    }
-
-    @PostMapping("/awaiting-approval")
-    public ResponseEntity<List<AwaitingApprovalResponseDTO>> awaitingApproval(@RequestHeader("Authorization") String authorization) {
-        List<AwaitingApprovalResponseDTO> awaitingApprovalResponseDTOS = friendshipsService.awaitingApproval(authorization);
-        return ResponseEntity.ok(awaitingApprovalResponseDTOS);
-    }
-    @MessageMapping("/friend-request-reply")
-    public void friendRequestReply(@RequestBody FriendRequestReplyRequestDTOWS friendRequestReplyDTOWS) {
-        friendshipsService.friendRequestReply(friendRequestReplyDTOWS);
-    }
-    @PostMapping("/friend-request-reply-notification")
-    public ResponseEntity<List<FriendRequestReplyNotificationsResponseDTO>> friendRequestReplyNotifications(@RequestHeader("Authorization") String authorization) {
-        List<FriendRequestReplyNotificationsResponseDTO> friendRequestReplyNotificationsResponseDTOS = friendshipsService.friendRequestReplyNotifications(authorization);
-        return ResponseEntity.ok(friendRequestReplyNotificationsResponseDTOS);
-    }*/
-    }
+}

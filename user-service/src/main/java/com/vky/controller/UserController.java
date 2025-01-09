@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping("/api/v1/user")
@@ -22,21 +23,6 @@ import java.util.UUID;
 public class UserController {
     private final UserProfileService userProfileService;
 
-
-    @GetMapping("/hello")
-    public ResponseEntity<String> sayHello()
-    {
-        return ResponseEntity.ok("Hello, ");
-    }
-    @GetMapping("/hello1")
-    public ResponseEntity<UserProfile> sayHello1()
-    {
-        List<UserProfile> userProfiles = userProfileService.getUsers();
-        System.out.println(userProfiles.get(0));
-        System.out.println(userProfiles.get(0).getPrivacySettings()); // PrivacySettings(profilePhotoVisibility=EVERYONE, lastSeenVisibility=EVERYONE, onlineStatusVisibility=EVERYONE, readReceipts=true)
-        System.out.println(userProfiles.get(0)); // UserProfile(authId=a0e09c3d-0d9e-43a0-9541-c7823653ec96, email=veyselkaraniyazici@gmail.com, firstName=Veysel Karani YAZICI, lastName=null, phone=null, about=Meşgul, status=null, lastSeen=2024-09-06T19:16:36.619169, image=null, privacySettings=PrivacySettings(profilePhotoVisibility=EVERYONE, lastSeenVisibility=EVERYONE, onlineStatusVisibility=EVERYONE, readReceipts=true))
-        return ResponseEntity.ok().body(userProfiles.get(0));
-    }
     @PostMapping("/create-new-user")
     public ResponseEntity<Boolean> newUserCreate(@RequestBody @Valid NewUserCreateDTO userCreateDto) {
         try {
@@ -116,28 +102,6 @@ public class UserController {
         return response;
     }
 
-    @PostMapping("/find-by-keyword-ignore-case-users")
-    public ResponseEntity<List<UserProfileResponseDTO>> findByKeywordIgnoreCaseUsers(@RequestHeader(value = "Authorization", required = false, defaultValue = "") String authorization, @RequestBody SearchDTO search) {
-
-        TokenResponseDTO tokenResponseDto = userProfileService.tokenExractAuthId(authorization);
-            List<UserProfileResponseDTO> userProfileDTOList = userProfileService.findByKeywordIgnoreCaseUsers(search.getEmailOrFirstNameOrLastName());
-            return ResponseEntity.ok(userProfileDTOList);
-    }
-
-    @GetMapping("/feign-client-get-userId")
-    public TokenResponseDTO feignClientGetUserByToken(@RequestHeader("Authorization") String authorization) {
-        TokenResponseDTO tokenResponseDto = userProfileService.tokenExractAuthId(authorization);
-            return tokenResponseDto;
-    }
-
-    @PostMapping("/get-userId")
-    public ResponseEntity<UserIdResponseDTO> getUserIdByToken(@RequestBody UserIdRequestDTO userIdRequestDTO) {
-        TokenResponseDTO tokenResponseDto = userProfileService.tokenExractAuthId(userIdRequestDTO.getToken());
-            UserIdResponseDTO userIdResponseDto = new UserIdResponseDTO();
-            userIdResponseDto.setUserId(tokenResponseDto.getUserId());
-            return ResponseEntity.ok(userIdResponseDto);
-    }
-
     @PostMapping("/get-user-with-privacy-settings-by-token")
     public ResponseEntity<UserProfileResponseDTO> getUserWithPrivacySettingsByToken(@RequestBody UserIdRequestDTO userIdRequestDTO) {
         TokenResponseDTO tokenResponseDto = userProfileService.tokenExractAuthId(userIdRequestDTO.getToken());
@@ -145,11 +109,6 @@ public class UserController {
         return ResponseEntity.ok(userProfileResponseDTO);
     }
 
-    @PostMapping("/get-user-by-id")
-    public ResponseEntity<UserProfileResponseDTO> getUserById(@RequestBody UUID userId) {
-        UserProfileResponseDTO userProfileResponseDTO = this.userProfileService.getUserById(userId);
-        return ResponseEntity.ok(userProfileResponseDTO);
-    }
     @PostMapping("/feign-get-user-by-id")
     public UserProfileResponseDTO getFeignUserById(@RequestBody UUID userId) {
         return this.userProfileService.getUserById(userId);
@@ -164,21 +123,22 @@ public class UserController {
         UserProfileResponseDTO userProfileResponseDTO = this.userProfileService.getUserById(id);
         return userProfileResponseDTO.getEmail();
     }
-    @PostMapping("/get-user-list")
-    public List<FeignClientUserProfileResponseDTO> getUserList(@RequestBody List<FeignClientUserProfileRequestDTO> userProfileRequestDTOList) {
-        return this.userProfileService.getUserList(userProfileRequestDTOList);
+//    @PostMapping("/get-user-list")
+//    public List<FeignClientUserProfileResponseDTO> getUserList(@RequestBody List<FeignClientUserProfileRequestDTO> userProfileRequestDTOList) {
+//        return this.userProfileService.getUserList(userProfileRequestDTOList);
+//    }
+    @PostMapping("/get-users-of-contacts")
+    public CompletableFuture<List<FeignClientUserProfileResponseDTO>> getUsersOfContacts(@RequestBody List<FeignClientUserProfileRequestDTO> userProfileRequestDTOList) {
+        return this.userProfileService.getUserListAsync(userProfileRequestDTOList);
     }
-
-    @PostMapping("/get-user-listt")
-    public List<FeignClientUserProfileResponseDTO> getUserListt(@RequestBody List<ContactWithRelationshipDTO> userProfileRequestDTOList) {
-        return this.userProfileService.getUserListt(userProfileRequestDTOList);
+//    @PostMapping("/get-user-listt")
+//    public List<FeignClientUserProfileResponseDTO> getUserListt(@RequestBody List<ContactWithRelationshipDTO> userProfileRequestDTOList) {
+//        return this.userProfileService.getUserListt(userProfileRequestDTOList);
+//    }
+    @PostMapping("/get-users-of-chats")
+    public CompletableFuture<List<FeignClientUserProfileResponseDTO>> getUsersOfChats(@RequestBody List<ContactWithRelationshipDTO> userProfileRequestDTOList) {
+        return this.userProfileService.getUserListtAsync(userProfileRequestDTOList);
     }
-    @GetMapping("/feign-client-get-user")
-    public TokenResponseDTO feignClientGetUser(@RequestHeader("Authorization") String authorization) {
-        TokenResponseDTO tokenResponseDto = userProfileService.tokenExractAuthId(authorization);
-        return tokenResponseDto;
-    }
-
 
     @PutMapping("/{userId}/privacy-settings")
     public ResponseEntity<UserProfileResponseDTO> updatePrivacySettings(

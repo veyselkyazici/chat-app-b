@@ -10,6 +10,7 @@ dependencies {
     implementation libs.eurekaClient
     implementation libs.webSocket
     implementation libs.springBootRabbitMQ
+    implementation libs.webFlux
 }
 
 

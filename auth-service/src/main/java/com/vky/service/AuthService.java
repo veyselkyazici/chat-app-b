@@ -35,27 +35,19 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final TokenService tokenService;
     private final RabbitMQProducer rabbitMQProducer;
-    private final IUserManager userManager;
     private final IMailManager mailManager;
 
-//    private final ObjectMapper objectMapper;
 
-
-    public AuthService(IAuthRepository authRepository, JwtTokenManager jwtTokenManager, PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager, TokenService tokenService, IUserManager userManager, RabbitMQProducer rabbitMQProducer, IMailManager mailManager) {
+    public AuthService(IAuthRepository authRepository, JwtTokenManager jwtTokenManager, PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager, TokenService tokenService,RabbitMQProducer rabbitMQProducer, IMailManager mailManager) {
         this.authRepository = authRepository;
         this.jwtTokenManager = jwtTokenManager;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.tokenService = tokenService;
         this.rabbitMQProducer = rabbitMQProducer;
-        this.userManager = userManager;
         this.mailManager = mailManager;
-//        this.objectMapper = objectMapper;
     }
 
-//    public record LoginRequestDto (@Size(min = 3, max = 20, message = "Kullanici adi en az 3 en fazla 20 karakter icerebilir")String userName, String password){
-//
-//    }
 
 
     public AuthResponseDTO doLoginn(AuthRequestDTO authRequestDTO) {
@@ -80,8 +72,6 @@ public class AuthService {
     private String formatToken(String token) {
         return "Bearer " + token;
     }
-
-
 
     public AuthResponseDTO register(AuthRequestDTO authRequestDTO) {
         Optional<Auth> optionalAuth = authRepository.findAuthByAndEmailIgnoreCase(authRequestDTO.getEmail());
@@ -121,12 +111,6 @@ public class AuthService {
                 .id(registerAuth.getId())
                 .build();
     }
-
-
-    public Auth findById(UUID id) {
-        return this.authRepository.findById(id).orElseThrow();
-    }
-
 
     public Optional<Auth> loadUserByUsername(String email) {
         return this.authRepository.findAuthByAndEmailIgnoreCase(email);
