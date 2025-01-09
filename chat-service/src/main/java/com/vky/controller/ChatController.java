@@ -14,6 +14,7 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequiredArgsConstructor
@@ -27,15 +28,6 @@ public class ChatController {
         return ResponseEntity.ok(this.chatRoomService.findByParticipantIds(createChatRoom.getUserId(), createChatRoom.getFriendId()));
     }
 
-    @GetMapping("/chat-room-with-messages/{userId}")
-    public ResponseEntity<List<ChatRoomWithMessagesDTO>> getUserChatRoomsAndMessages(@PathVariable String userId) {
-        return ResponseEntity.ok(chatRoomService.getUserChatRoomsAndMessages(userId));
-    }
-
-    //    @PostMapping("/create-chat-room")
-//    public void createChatRoom(@Payload CreateChatRoomDTO createChatRoomDTO) {
-//        chatRoomService.createChatRoomAndFristMessage(createChatRoomDTO);
-//    }
     @MessageMapping("/send-message")
     public void handleMessage(@Payload MessageRequestDTO messageRequestDTO) {
         System.out.println("MessageRequestDTO: " + messageRequestDTO);
@@ -58,8 +50,9 @@ public class ChatController {
 //        return ResponseEntity.ok(chatRoomService.getUserChatSummariess(userId));
 //    }
     @GetMapping("/chat-summaries/{userId}")
-    public ResponseEntity<List<ChatSummaryDTO>> getUserChatSummaries(@PathVariable String userId) {
-        return ResponseEntity.ok(chatRoomService.getUserChatSummariess(userId));
+    public CompletableFuture<ResponseEntity<List<ChatSummaryDTO>>> getUserChatSummaries(@PathVariable String userId) {
+        return chatRoomService.getUserChatSummariesAsync(userId)
+                .thenApply(ResponseEntity::ok);
     }
 
     @GetMapping("/chat-summary")
@@ -130,18 +123,6 @@ public class ChatController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
-
-    @GetMapping("/hello")
-    public String getUserChatRoomsAndMessages() {
-        return "HELLO";
-    }
-
-    @PostMapping("/get-chat-list")
-    public ResponseEntity<List<ChatRoomResponseDTO>> getChatList(@RequestBody ChatListRequestDTO chatListRequestDTO) {
-        List<ChatRoomResponseDTO> chatRoomResponseDTOs = chatRoomService.getChatList(chatListRequestDTO.getUserId());
-        return ResponseEntity.ok(chatRoomResponseDTOs);
-    }
-
 
     @PutMapping()
     public ResponseEntity<Boolean> updateUserChatSetting() {

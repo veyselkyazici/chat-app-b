@@ -30,28 +30,6 @@ public class ChatMessageService {
     private final IChatMessageRepository chatMessageRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
-//    public void sendMessage(MessageRequestDTO messageRequestDTO, boolean isSuccess) {
-//        Instant fullDateTime = Instant.parse(messageRequestDTO.getFullDateTime());
-//        ChatMessage chatMessage = chatMessageRepository.save(ChatMessage.builder()
-//                .messageContent(messageRequestDTO.getMessageContent())
-//                .senderId(messageRequestDTO.getSenderId())
-//                .recipientId(messageRequestDTO.getRecipientId())
-//                .isSeen(false)
-//                .chatRoomId(messageRequestDTO.getChatRoomId())
-//                .fullDateTime(fullDateTime)
-//                .build());
-//
-//        MessageFriendResponseDTO messageFriendResponseDTO = IChatMapper.INSTANCE.toResponseDTO(chatMessage);
-//        messageFriendResponseDTO.setSuccess(isSuccess);
-//
-//        String destination = isSuccess ? "queue/received-message" : "/queue/error";
-//        messagingTemplate.convertAndSendToUser(
-//                isSuccess ? messageRequestDTO.getRecipientId() : messageRequestDTO.getSenderId(),
-//                destination,
-//                messageFriendResponseDTO);
-//
-//
-//    }
     public ChatMessage sendMessage(MessageRequestDTO messageRequestDTO) {
         Instant fullDateTime = Instant.parse(messageRequestDTO.getFullDateTime());
         return chatMessageRepository.save(ChatMessage.builder()
@@ -76,9 +54,7 @@ public class ChatMessageService {
         return chatMessageRepository.findByChatRoomIdAndIsDeletedFalse(chatRoomId);
     }
 
-    public ChatMessage getChatLastMessage(String chatRoomId) {
-        return chatMessageRepository.findFirstByChatRoomIdOrderByFullDateTimeDesc(chatRoomId);
-    }
+
 
     public MessagesDTO getLast30Messages(String chatRoomId, Pageable pageable) {
         List<ChatMessage> chatMessages = chatMessageRepository.findTop30ByChatRoomId(chatRoomId, pageable).stream()
@@ -97,17 +73,7 @@ public class ChatMessageService {
         return new MessagesDTO(messages, isLastPage);
     }
 
-    public ChatMessage sendFirstMessage(CreateChatRoomDTO createChatRoomDTO, String chatRoomId) {
-        Instant fullDateTime = Instant.parse(createChatRoomDTO.getLastMessageTime());
-        return chatMessageRepository.save(ChatMessage.builder()
-                .messageContent(createChatRoomDTO.getLastMessage())
-                .senderId(createChatRoomDTO.getUserId())
-                .recipientId(createChatRoomDTO.getFriendId())
-                .isSeen(false)
-                .chatRoomId(chatRoomId)
-                .fullDateTime(fullDateTime)
-                .build());
-    }
+
 
     public Map<String, LastMessageInfo> getLastMessagesForChatRooms(List<String> chatRoomIds) {
         Map<String, LastMessageInfo> lastMessagesMap = new HashMap<>();

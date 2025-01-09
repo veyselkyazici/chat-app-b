@@ -44,15 +44,6 @@ public class AuthController {
         return ResponseEntity.ok(authService.doLoginn(authRequestDTO));
     }
 
-    @GetMapping("/hello")
-    public ResponseEntity<String> sayHello() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication.isAuthenticated() && !authentication.getName().equals("anonymousUser")) {
-            Auth auth = (Auth) authentication.getPrincipal();
-        } else {
-        }
-        return ResponseEntity.ok("Hello, ");
-    }
 
     @GetMapping("/authenticate")
     public Boolean authenticate() {
@@ -60,60 +51,6 @@ public class AuthController {
          return authentication != null && authentication.isAuthenticated() &&
                  !authentication.getName().equals("anonymousUser");
     }
-
-//    @GetMapping("/load-user-by-username")
-//    public UserDetails loadUserByUsername(@RequestParam String email) {
-//        System.out.println("asdfasdfasdf");
-//        return authService.loadUserByUsername(email);
-//    }
-
-
-    @GetMapping("/username")
-    public Object getUsername(Authentication authentication) {
-        return authentication.getPrincipal();
-    }
-
-
-    @GetMapping("/find-by-id-with-tokens/{id}")
-    public ResponseEntity<AuthWithTokensDTO> findByIdWithTokens(@PathVariable UUID id) {
-        Auth auth = authService.findById(id);
-        if (auth != null) {
-
-            List<TokenDTO> tokenDTOs = auth.getTokens().stream()
-                    .map(token -> TokenDTO.builder()
-                            .id(token.getId())
-                            .token(token.getToken())
-                            .revoked(token.isRevoked())
-                            .expired(token.isExpired())
-                            .build())
-                    .collect(Collectors.toList());
-            AuthWithTokensDTO authWithTokensDTO = AuthWithTokensDTO.builder()
-                    .id(auth.getId())
-                    .email(auth.getEmail())
-                    .role(auth.getRole())
-                    .isEnabled(auth.isEnabled())
-                    .tokens(tokenDTOs)
-                    .build();
-
-            return ResponseEntity.ok(authWithTokensDTO);
-        } else {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<AuthDTO> getAuthById(@PathVariable UUID id) {
-        Optional<Auth> authOptional = authRepository.findById(id);
-
-        if (authOptional.isPresent()) {
-            Auth auth = authOptional.get();
-            AuthDTO authDTO = IAuthMapper.INSTANCE.toAuthDTO(auth);
-            return ResponseEntity.ok(authDTO);
-        } else {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
 
     @PostMapping("/save-verified-account")
     public ResponseEntity<Void> saveVerifiedAccount(@RequestBody UUID id) {

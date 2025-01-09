@@ -14,5 +14,6 @@ import java.util.UUID;
 public class InvitationResponseDTO {
     private UUID id;
     private boolean isInvited;
+    private String contactName;
     private UUID inviterUserId;
 }
