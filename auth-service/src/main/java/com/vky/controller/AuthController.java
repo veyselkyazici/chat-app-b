@@ -4,27 +4,21 @@ import com.vky.dto.request.AuthRequestDTO;
 import com.vky.dto.request.CheckOtpRequestDTO;
 import com.vky.dto.request.ForgotPasswordResetPasswordRequestDTO;
 import com.vky.dto.response.*;
-import com.vky.entity.Auth;
-import com.vky.mapper.IAuthMapper;
+import com.vky.repository.entity.Auth;
 import com.vky.repository.IAuthRepository;
 import com.vky.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.apache.tomcat.util.http.parser.Authorization;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/auth")

@@ -1,4 +1,4 @@
-package com.vky.entity;
+package com.vky.repository.entity;
 
 import jakarta.persistence.*;
 import lombok.*;

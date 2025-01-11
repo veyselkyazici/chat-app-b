@@ -1,4 +1,4 @@
-package com.vky.entity.enums;
+package com.vky.repository.entity.enums;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

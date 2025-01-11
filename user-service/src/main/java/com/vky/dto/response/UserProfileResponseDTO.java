@@ -1,6 +1,5 @@
 package com.vky.dto.response;
 
-import com.vky.repository.entity.Image;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

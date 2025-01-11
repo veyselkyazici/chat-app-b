@@ -1,6 +1,6 @@
 package com.vky.repository;
 
-import com.vky.entity.Token;
+import com.vky.repository.entity.Token;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;

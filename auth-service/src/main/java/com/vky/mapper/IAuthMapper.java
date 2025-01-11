@@ -3,7 +3,7 @@ package com.vky.mapper;
 import com.vky.dto.request.CreateConfirmationRequestDTO;
 import com.vky.dto.response.AuthDTO;
 import com.vky.dto.response.AuthResponseDTO;
-import com.vky.entity.Auth;
+import com.vky.repository.entity.Auth;
 import org.mapstruct.Mapper;
 import org.mapstruct.ReportingPolicy;
 import org.mapstruct.factory.Mappers;
