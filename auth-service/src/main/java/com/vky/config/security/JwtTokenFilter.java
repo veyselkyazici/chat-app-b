@@ -1,9 +1,6 @@
 package com.vky.config.security;
 
 
-import com.auth0.jwt.interfaces.Claim;
-import com.vky.entity.Auth;
-import com.vky.repository.ITokenRepository;
 import com.vky.service.TokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -17,10 +14,6 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.security.Principal;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
 
 
 public class JwtTokenFilter extends OncePerRequestFilter {

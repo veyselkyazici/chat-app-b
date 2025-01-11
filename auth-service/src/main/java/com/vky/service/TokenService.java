@@ -1,11 +1,9 @@
 package com.vky.service;
 
-import com.vky.entity.Auth;
-import com.vky.entity.Token;
+import com.vky.repository.entity.Auth;
+import com.vky.repository.entity.Token;
 import com.vky.repository.ITokenRepository;
-import lombok.Getter;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.GetMapping;
 
 import java.util.Optional;
 import java.util.UUID;

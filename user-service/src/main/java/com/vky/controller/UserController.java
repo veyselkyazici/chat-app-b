@@ -9,10 +9,19 @@ import com.vky.repository.entity.UserProfile;
 import com.vky.service.UserProfileService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -22,7 +31,7 @@ import java.util.concurrent.CompletableFuture;
 @RequiredArgsConstructor
 public class UserController {
     private final UserProfileService userProfileService;
-
+    private final String uploadDir = "uploads/profile_photos/";
     @PostMapping("/create-new-user")
     public ResponseEntity<Boolean> newUserCreate(@RequestBody @Valid NewUserCreateDTO userCreateDto) {
         try {
@@ -148,6 +157,51 @@ public class UserController {
         UserProfileResponseDTO response = userProfileService.updatePrivacySettings(userId, privacySettingsRequestDTO);
         System.out.println("RESPONSE > " + response);
         return ResponseEntity.ok(response);
+    }
+
+
+
+    @PostMapping("/{userId}/upload-photo")
+    public ResponseEntity<String> uploadProfilePhoto(@PathVariable UUID userId,
+                                                     @RequestParam("file") MultipartFile file) {
+        try {
+            // Dosya adı ve hedef dizin belirleme
+            String fileName = userId + "_" + file.getOriginalFilename();
+            Path filePath = Paths.get(uploadDir + fileName);
+
+            // Dosyayı hedef dizine kaydetme
+            Files.createDirectories(filePath.getParent());  // Klasör yoksa oluştur
+            Files.write(filePath, file.getBytes());
+
+            // Veritabanına URL kaydetme
+            String photoUrl = "/api/users/photo/" + fileName;
+//            userService.updateUserProfilePhoto(userId, photoUrl);
+
+            return ResponseEntity.ok("Profil fotoğrafı başarıyla yüklendi: " + photoUrl);
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Fotoğraf yüklenirken hata oluştu.");
+        }
+    }
+
+    @GetMapping("/photo/{fileName}")
+    public ResponseEntity<Resource> getProfilePhoto(@PathVariable String fileName) {
+        try {
+            Path filePath = Paths.get(uploadDir + fileName);
+            Resource resource = new UrlResource(filePath.toUri());
+
+            if (resource.exists() || resource.isReadable()) {
+                return ResponseEntity.ok()
+                        .contentType(MediaType.IMAGE_JPEG)
+                        .body(resource);
+            } else {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(null);
+            }
+        } catch (MalformedURLException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(null);
+        }
     }
 }
 

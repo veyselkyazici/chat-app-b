@@ -1,6 +1,6 @@
-package com.vky.entity;
+package com.vky.repository.entity;
 
-import com.vky.entity.enums.Role;
+import com.vky.repository.entity.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;

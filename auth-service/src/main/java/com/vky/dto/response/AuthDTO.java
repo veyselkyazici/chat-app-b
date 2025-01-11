@@ -1,16 +1,13 @@
 package com.vky.dto.response;
 
-import com.vky.entity.Token;
-import com.vky.entity.enums.Role;
+import com.vky.repository.entity.enums.Role;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.OneToMany;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
 import java.util.UUID;
 
 @Data
