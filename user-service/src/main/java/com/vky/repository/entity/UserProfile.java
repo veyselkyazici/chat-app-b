@@ -6,6 +6,7 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.Where;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -14,11 +15,11 @@ import java.util.UUID;
 @NoArgsConstructor
 @Data
 @SuperBuilder
-@ToString(exclude = {"privacySettings","image"},callSuper = true)
+@ToString(exclude = {"privacySettings","image","userKey"},callSuper = true)
 @Table(name = "users")
 @Entity
 @Where(clause = "is_deleted = false")
-@EqualsAndHashCode(exclude = {"privacySettings","image"},callSuper = true)
+@EqualsAndHashCode(exclude = {"privacySettings", "image","userKey"},callSuper = true)
 public class UserProfile extends BaseEntity{
     private UUID authId;
     private String email;
@@ -27,14 +28,21 @@ public class UserProfile extends BaseEntity{
     private String phone;
     private String about;
     private Status status;
-    private LocalDateTime lastSeen;
+    private Instant lastSeen;
+    private String image;
 
+    /** Default
+    @OneToOne	EAGER
+    @ManyToOne	EAGER
 
-    @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "image_id")
-    private Image image;
-
-    @OneToOne(cascade = CascadeType.PERSIST)
-    @JoinColumn(name = "privacy_settings_id", referencedColumnName = "id")
+     @OneToMany	LAZY
+    @ManyToMany	LAZY
+    **/
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private PrivacySettings privacySettings;
+
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private UserKey userKey;
+
 }
+

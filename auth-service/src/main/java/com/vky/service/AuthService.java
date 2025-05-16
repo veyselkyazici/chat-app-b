@@ -99,6 +99,11 @@ public class AuthService {
         rabbitMQProducer.sendCreateUserMessage(CreateUser.builder()
                 .authId(registerAuth.getId())
                 .email(registerAuth.getEmail())
+                .encryptedPrivateKey(authRequestDTO.getEncryptedPrivateKey())
+                .iv(authRequestDTO.getIv())
+                .salt(authRequestDTO.getSalt())
+                .publicKey(authRequestDTO.getPublicKey())
+                .encryptedPrivateKey(authRequestDTO.getEncryptedPrivateKey())
                 .build());
         return AuthResponseDTO.builder()
                 .accessToken("Bearer " + jwt)

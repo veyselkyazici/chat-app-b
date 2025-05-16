@@ -4,7 +4,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.core.io.Resource;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @AllArgsConstructor
@@ -18,5 +20,7 @@ public class UserProfileResponseDTO {
     private String lastName;
     private String imagee;
     private String about;
+    private Instant updatedAt;
     private PrivacySettingsResponseDTO privacySettings;
+    private UserKeyResponseDTO userKey;
 }

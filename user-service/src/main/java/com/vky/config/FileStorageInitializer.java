@@ -11,7 +11,7 @@ import java.nio.file.Paths;
 @Component
 public class FileStorageInitializer {
 
-    private final String uploadDir = "uploads/profile_photos/";
+    private final String uploadDir = "user-service/uploads/profile_photos/";
 
     @PostConstruct
     public void init() {

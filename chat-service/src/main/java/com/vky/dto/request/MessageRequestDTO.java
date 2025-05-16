@@ -11,7 +11,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class MessageRequestDTO {
-    private String messageContent;
+    private String encryptedMessage;
+    private String iv;
+    private String encryptedKeyForRecipient;
+    private String encryptedKeyForSender;
     private String senderId;
     private String recipientId;
     private String fullDateTime;
