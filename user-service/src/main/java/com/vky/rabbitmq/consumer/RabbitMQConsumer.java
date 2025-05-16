@@ -24,10 +24,7 @@ public class RabbitMQConsumer {
         log.info("User received: {}", user.toString());
         try {
             CreateUser userObject = objectMapper.readValue(user, CreateUser.class);
-            userProfileService.createUserProfile(NewUserCreateDTO.builder()
-                    .authId(userObject.getAuthId())
-                    .email(userObject.getEmail())
-                    .build());
+            userProfileService.createUserProfile(userObject);
         } catch (JsonProcessingException e) {
 
         }

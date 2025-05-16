@@ -13,6 +13,12 @@ import java.util.UUID;
 @Data
 @Builder
 public class CreateUser {
-    UUID authId;
-    String email;
+    private UUID authId;
+    private String password;
+    private String email;
+
+    private byte[] publicKey;
+    private byte[] encryptedPrivateKey;
+    private byte[] salt;
+    private byte[] iv;
 }

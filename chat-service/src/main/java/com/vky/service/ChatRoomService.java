@@ -3,6 +3,8 @@ package com.vky.service;
 import com.vky.dto.LastMessageInfo;
 import com.vky.dto.request.*;
 import com.vky.dto.response.*;
+import com.vky.expcetion.ErrorMessage;
+import com.vky.expcetion.ErrorType;
 import com.vky.manager.IContactsManager;
 import com.vky.manager.IUserManager;
 import com.vky.mapper.IChatMapper;
@@ -104,13 +106,14 @@ public class ChatRoomService {
         UserChatSettings settings = userChatSettingsService.findByUserIdAndChatRoomId(userId, chatRoomId);
         return settings != null && settings.isBlocked();
     }
-
+    @Async
     public void processMessage(MessageRequestDTO messageRequestDTO) {
         boolean isSenderBlocked = isUserBlocked(messageRequestDTO.getSenderId(), messageRequestDTO.getChatRoomId());
         boolean isRecipientBlocked = isUserBlocked(messageRequestDTO.getRecipientId(), messageRequestDTO.getChatRoomId());
 
         if (isSenderBlocked || isRecipientBlocked) {
-            chatMessageService.sendErrorNotification(messageRequestDTO, isSenderBlocked);
+            ErrorType errorType = isSenderBlocked ? ErrorType.SENDER_BLOCKED : ErrorType.RECIPIENT_BLOCKED;
+            chatMessageService.sendErrorNotification(messageRequestDTO, errorType);
             return;
         }
 
@@ -219,9 +222,8 @@ public class ChatRoomService {
     }
 
     private int extractNumericPart(String email) {
-        // `user` ve `@gmail.com` gibi sabit kısımları ayırarak sadece sayıyı alıyoruz
-        String numericPart = email.replaceAll("[^0-9]", ""); // Sadece sayıları bırak
-        return Integer.parseInt(numericPart); // Sayısal değere çevir
+        String numericPart = email.replaceAll("[^0-9]", "");
+        return Integer.parseInt(numericPart);
     }
 
     public ChatSummaryDTO getUserChatSummary(String userId, String userContactId, String chatRoomId) {
@@ -244,7 +246,10 @@ public class ChatRoomService {
                         .senderId(chatMessage.getSenderId())
                         .recipientId(chatMessage.getRecipientId())
                         .lastMessageTime(chatMessage.getFullDateTime())
-                        .lastMessage(chatMessage.getMessageContent())
+                        .encryptedMessage(Base64.getEncoder().encodeToString(chatMessage.getEncryptedMessageContent()))
+                        .iv(Base64.getEncoder().encodeToString(chatMessage.getIv()))
+                        .encryptedKeyForRecipient(Base64.getEncoder().encodeToString(chatMessage.getEncryptedKeyForRecipient()))
+                        .encryptedKeyForSender(Base64.getEncoder().encodeToString(chatMessage.getEncryptedKeyForSender()))
                         .isSeen(chatMessage.isSeen())
                         .build())
                 .contactsDTO(profileResponse.getContactsDTO())
@@ -270,7 +275,10 @@ public class ChatRoomService {
                         .id(chatRoom.getId())
                         .messageId(lastMessageInfo.getId())
                         .participantIds(chatRoom.getParticipantIds())
-                        .lastMessage(lastMessageInfo.getLastMessage())
+                        .encryptedMessage(lastMessageInfo.getEncryptedMessage())
+                        .iv(lastMessageInfo.getIv())
+                        .encryptedKeyForRecipient(lastMessageInfo.getEncryptedKeyForRecipient())
+                        .encryptedKeyForSender(lastMessageInfo.getEncryptedKeyForSender())
                         .lastMessageTime(lastMessageInfo.getLastMessageTime())
                         .recipientId(lastMessageInfo.getRecipientId())
                         .senderId(lastMessageInfo.getSenderId())

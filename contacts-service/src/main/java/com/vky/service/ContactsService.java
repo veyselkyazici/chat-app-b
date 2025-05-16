@@ -277,7 +277,6 @@ public class ContactsService {
                 .bodyToMono(new ParameterizedTypeReference<List<FeignClientUserProfileResponseDTO>>() {
                 })
                 .onErrorResume(WebClientResponseException.class, ex -> {
-                    // Log error and return empty list in case of error
                     System.err.println("Error fetching participant profiles: " + ex.getMessage());
                     return Mono.just(Collections.emptyList());
                 })
@@ -465,6 +464,12 @@ public class ContactsService {
                                                         .lastSeenVisibility(user.getUserProfileResponseDTO().getPrivacySettings().getLastSeenVisibility())
                                                         .aboutVisibility(user.getUserProfileResponseDTO().getPrivacySettings().getAboutVisibility())
                                                         .readReceipts(user.getUserProfileResponseDTO().getPrivacySettings().isReadReceipts())
+                                                        .build())
+                                                .userKey(UserKeyResponseDTO.builder()
+                                                        .iv(user.getUserProfileResponseDTO().getUserKey().getIv())
+                                                        .publicKey(user.getUserProfileResponseDTO().getUserKey().getPublicKey())
+                                                        .encryptedPrivateKey(user.getUserProfileResponseDTO().getUserKey().getEncryptedPrivateKey())
+                                                        .salt(user.getUserProfileResponseDTO().getUserKey().getSalt())
                                                         .build())
                                                 .build())
                                         .contactsDTO(ContactsDTO.builder()

@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -21,6 +22,13 @@ public class FindUserProfileByAuthIdResponseDTO {
     private String lastName;
     private String phone;
     private String about;
-    private Image image;
-    private LocalDateTime updatedAt;
+    private String image;
+    private Instant updatedAt;
+
+    public FindUserProfileByAuthIdResponseDTO(UUID authId, String email, String firstName, Instant updatedAt) {
+        this.authId = authId;
+        this.email = email;
+        this.firstName = firstName;
+        this.updatedAt = updatedAt;
+    }
 }

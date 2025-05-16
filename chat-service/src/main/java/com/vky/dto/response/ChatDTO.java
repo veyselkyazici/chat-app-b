@@ -16,7 +16,12 @@ public class ChatDTO {
     private String id;
     private String messageId;
     private List<String> participantIds;
-    private String lastMessage;
+
+    private String encryptedMessage;
+    private String iv;
+    private String encryptedKeyForRecipient;
+    private String encryptedKeyForSender;
+
     private Instant lastMessageTime;
     private String senderId;
     private String recipientId;

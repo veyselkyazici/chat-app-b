@@ -1,20 +1,65 @@
 package com.vky.mapper;
 
 import com.vky.dto.request.EditProfileRequestDTO;
-import com.vky.dto.response.FindUserProfileByAuthIdResponseDTO;
-import com.vky.dto.response.UserProfileResponseDTO;
+import com.vky.dto.response.*;
+import com.vky.repository.entity.PrivacySettings;
+import com.vky.repository.entity.UserKey;
 import com.vky.repository.entity.UserProfile;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 import org.mapstruct.factory.Mappers;
+
+import java.util.Base64;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Mapper(unmappedTargetPolicy = ReportingPolicy.IGNORE, componentModel = "spring")
 public interface IUserProfileMapper {
     IUserProfileMapper INSTANCE = Mappers.getMapper(IUserProfileMapper.class);
-    UserProfile toUserProfile(final EditProfileRequestDTO editProfileRequestDto);
+    FindUserProfileByAuthIdResponseDTO toFindUserProfileResponseDTO(UserProfile userProfile);
+    PrivacySettingsResponseDTO toPrivacySettingsResponseDTO(PrivacySettings privacySettings);
 
-    FindUserProfileByAuthIdResponseDTO userProfileToDTO(final UserProfile userProfile);
+    @Mapping(target = "publicKey", expression = "java(mapByteArrayToBase64(userKey.getPublicKey()))")
+    @Mapping(target = "encryptedPrivateKey", expression = "java(mapByteArrayToBase64(userKey.getEncryptedPrivateKey()))")
+    @Mapping(target = "salt", expression = "java(mapByteArrayToBase64(userKey.getSalt()))")
+    @Mapping(target = "iv", expression = "java(mapByteArrayToBase64(userKey.getIv()))")
+    UserKeyResponseDTO toUserKeyResponseDTO(UserKey userKey);
 
+    @Mapping(target = "userProfileResponseDTO", source = "userProfile")
+    FeignClientUserProfileResponseDTO toFeignClientResponse(UserProfile userProfile);
 
-    UserProfileResponseDTO toUserProfileDTO(UserProfile userProfile);
+    default UserProfileResponseDTO toUserProfileDTO(UserProfile userProfile) {
+        if (userProfile == null) {
+            return null;
+        }
+
+        return UserProfileResponseDTO.builder()
+                .id(userProfile.getId())
+                .email(userProfile.getEmail())
+                .about(userProfile.getAbout())
+                .firstName(userProfile.getFirstName())
+                .lastName(userProfile.getLastName())
+                .imagee(userProfile.getImage())
+                .updatedAt(userProfile.getUpdatedAt())
+                .privacySettings(toPrivacySettingsResponseDTO(userProfile.getPrivacySettings() != null ? userProfile.getPrivacySettings() : null))
+                .userKey(userProfile.getUserKey() != null ? toUserKeyResponseDTO(userProfile.getUserKey()) : null)
+                .build();
+    }
+
+    default List<FeignClientUserProfileResponseDTO> toFeignClientResponseList(List<UserProfile> userProfiles) {
+        if (userProfiles == null) {
+            return Collections.emptyList();
+        }
+        return userProfiles.stream()
+                .filter(Objects::nonNull)
+                .map(this::toFeignClientResponse)
+                .collect(Collectors.toList());
+    }
+
+    default String mapByteArrayToBase64(byte[] bytes) {
+        return bytes != null ? Base64.getEncoder().encodeToString(bytes) : null;
+    }
 }

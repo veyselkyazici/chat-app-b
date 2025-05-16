@@ -1,10 +1,10 @@
 package com.vky.service;
 
 import com.vky.dto.LastMessageInfo;
-import com.vky.dto.request.CreateChatRoom;
-import com.vky.dto.request.CreateChatRoomDTO;
 import com.vky.dto.request.MessageRequestDTO;
 import com.vky.dto.response.*;
+import com.vky.expcetion.ErrorMessage;
+import com.vky.expcetion.ErrorType;
 import com.vky.mapper.IChatMapper;
 import com.vky.repository.IChatMessageRepository;
 import com.vky.repository.entity.ChatMessage;
@@ -13,16 +13,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
 import java.time.*;
-import java.time.format.DateTimeFormatter;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -32,8 +27,12 @@ public class ChatMessageService {
 
     public ChatMessage sendMessage(MessageRequestDTO messageRequestDTO) {
         Instant fullDateTime = Instant.parse(messageRequestDTO.getFullDateTime());
+
         return chatMessageRepository.save(ChatMessage.builder()
-                .messageContent(messageRequestDTO.getMessageContent())
+                .encryptedMessageContent(Base64.getDecoder().decode(messageRequestDTO.getEncryptedMessage()))
+                .iv(Base64.getDecoder().decode(messageRequestDTO.getIv()))
+                .encryptedKeyForRecipient(Base64.getDecoder().decode(messageRequestDTO.getEncryptedKeyForRecipient()))
+                .encryptedKeyForSender(Base64.getDecoder().decode(messageRequestDTO.getEncryptedKeyForSender()))
                 .senderId(messageRequestDTO.getSenderId())
                 .recipientId(messageRequestDTO.getRecipientId())
                 .isSeen(false)
@@ -43,11 +42,9 @@ public class ChatMessageService {
 
     }
 
-    public void sendErrorNotification(MessageRequestDTO messageRequestDTO, boolean isSenderBlocked) {
-        String destination = "/queue/message-error";
-        String errorMessage = isSenderBlocked
-                ? "You are blocked and cannot send messages to this user."
-                : "Recipient has blocked you from sending messages.";
+    public void sendErrorNotification(MessageRequestDTO messageRequestDTO, ErrorType errorType) {
+        String destination = "/queue/error-message";
+        ErrorMessage errorMessage = new ErrorMessage(errorType.getCode(),errorType.getMessage(),null);
         messagingTemplate.convertAndSendToUser(messageRequestDTO.getSenderId(), destination, errorMessage);
     }
     public List<ChatMessage> getChatMessages(String chatRoomId) {
@@ -84,7 +81,10 @@ public class ChatMessageService {
             LastMessageInfo lastMessageInfo = new LastMessageInfo(
                     lastMessage.getChatRoomId(),
                     lastMessage.getId(),
-                    lastMessage.getMessageContent(),
+                    Base64.getEncoder().encodeToString(lastMessage.getEncryptedMessageContent()),
+                    Base64.getEncoder().encodeToString(lastMessage.getIv()),
+                    Base64.getEncoder().encodeToString(lastMessage.getEncryptedKeyForRecipient()),
+                    Base64.getEncoder().encodeToString(lastMessage.getEncryptedKeyForSender()),
                     lastMessage.getFullDateTime(),
                     lastMessage.getSenderId(),
                     lastMessage.getRecipientId(),

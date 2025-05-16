@@ -16,7 +16,10 @@ public class ChatRoomMessageResponseDTO {
     private String chatRoomId;
     private String senderId;
     private String recipientId;
-    private String messageContent;
+    private String encryptedMessage;
+    private String iv;
+    private String encryptedKeyForRecipient;
+    private String encryptedKeyForSender;
     private Instant fullDateTime;
     private boolean isSeen;
 }

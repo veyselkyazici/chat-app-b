@@ -1,5 +1,7 @@
 package com.vky.service;
 
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import com.vky.controller.ContactWithRelationshipDTO;
 import com.vky.dto.request.FeignClientUserProfileRequestDTO;
 import com.vky.dto.request.NewUserCreateDTO;
@@ -7,14 +9,26 @@ import com.vky.dto.request.PrivacySettingsRequestDTO;
 import com.vky.dto.request.UserLastSeenRequestDTO;
 import com.vky.dto.response.*;
 import com.vky.mapper.IUserProfileMapper;
+import com.vky.rabbitmq.model.CreateUser;
 import com.vky.rabbitmq.producer.RabbitMQProducer;
 import com.vky.repository.IUserProfileRepository;
 import com.vky.repository.entity.PrivacySettings;
+import com.vky.repository.entity.UserKey;
 import com.vky.repository.entity.UserProfile;
 import com.vky.utility.JwtTokenManager;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -26,28 +40,49 @@ public class UserProfileService {
     private final IUserProfileRepository userProfileRepository;
     private final JwtTokenManager jwtTokenManager;
     private final RabbitMQProducer rabbitMQProducer;
+    private final String uploadDir = "user-service/uploads/profile_photos/";
+    private final Cloudinary cloudinary;
 
-    public UserProfileService(IUserProfileRepository userProfileRepository, JwtTokenManager jwtTokenManager, RabbitMQProducer rabbitMQProducer) {
+    public UserProfileService(IUserProfileRepository userProfileRepository, JwtTokenManager jwtTokenManager, RabbitMQProducer rabbitMQProducer, Cloudinary cloudinary) {
         this.userProfileRepository = userProfileRepository;
         this.jwtTokenManager = jwtTokenManager;
         this.rabbitMQProducer = rabbitMQProducer;
+        this.cloudinary = cloudinary;
     }
 
-    public void createUserProfile(NewUserCreateDTO userCreateDto) {
+    @Transactional
+    public void createUserProfile(CreateUser createUser) {
 
-        UserProfile savedUserProfile = userProfileRepository.save(UserProfile.builder()
-                .authId(userCreateDto.getAuthId())
-                .email(userCreateDto.getEmail())
+        UserProfile savedUserProfile = UserProfile.builder()
+                .authId(createUser.getAuthId())
+                .email(createUser.getEmail())
                 .privacySettings(new PrivacySettings())
-                .build());
+                .build();
+        UserKey userKey = new UserKey();
+        userKey.setPublicKey(createUser.getPublicKey());
+        userKey.setIv(createUser.getIv());
+        userKey.setSalt(createUser.getSalt());
+        userKey.setEncryptedPrivateKey(createUser.getEncryptedPrivateKey());
+        userKey.setUser(savedUserProfile);
+        savedUserProfile.setUserKey(userKey);
+
+        userProfileRepository.save(savedUserProfile);
         rabbitMQProducer.checkContactUser(savedUserProfile);
     }
 
     public FindUserProfileByAuthIdResponseDTO findByAuthId(UUID authId) {
-        return userProfileRepository.findByAuthId(authId)
-                .map(IUserProfileMapper.INSTANCE::userProfileToDTO)
+        Optional<FindUserProfileByAuthIdResponseDTO> userProfile = userProfileRepository.findDtoByAuthId(authId);
+        if (userProfile.isPresent()) {
+            return userProfile.get();
+        }
+        return null;
+    }
+    @Transactional(readOnly = true)
+    public UserProfileResponseDTO findWithUserKeyByAuthId(UUID authId) {
+        UserProfileResponseDTO userProfileResponseDTO = userProfileRepository.findWithUserKeyByAuthId(authId)
+                .map(IUserProfileMapper.INSTANCE::toUserProfileDTO)
                 .orElse(null);
-
+        return userProfileResponseDTO;
     }
 
     public TokenResponseDTO tokenExractAuthId(String authorization) {
@@ -99,7 +134,6 @@ public class UserProfileService {
     public List<FeignClientUserProfileResponseDTO> getUserList(List<FeignClientUserProfileRequestDTO> userProfileRequestDTOList) {
         System.out.println("REQUESTDTO > " + userProfileRequestDTOList);
 
-        // FeignClientUserProfileRequestDTO listesini UUID'ye göre bir haritaya çeviriyoruz
         Map<UUID, FeignClientUserProfileRequestDTO> contactNameMap = userProfileRequestDTOList.stream()
                 .collect(Collectors.toMap(
                         FeignClientUserProfileRequestDTO::getId,
@@ -108,24 +142,19 @@ public class UserProfileService {
 
         List<UUID> userIdList = new ArrayList<>(contactNameMap.keySet());
 
-        // userProfiles'ı userIdList üzerinden getiriyoruz
         List<UserProfile> userProfiles = this.userProfileRepository.findAllById(userIdList);
 
-        // Her userProfile için DTO oluşturuyoruz
         List<FeignClientUserProfileResponseDTO> dto = userProfiles.stream()
                 .filter(Objects::nonNull)
                 .map(userProfile -> {
-                    // requestDTO ile userProfile arasında ilişki kuruyoruz
                     FeignClientUserProfileRequestDTO requestDTO = contactNameMap.get(userProfile.getId());
 
-                    // Her zaman userProfiles'tan gelen verilerle userProfileResponseDTO'yu dolduruyoruz
                     UserProfileResponseDTO userProfileResponseDTO = UserProfileResponseDTO.builder()
                             .id(userProfile.getId())
                             .email(userProfile.getEmail())
                             .firstName(userProfile.getFirstName())
                             .lastName(userProfile.getLastName())
                             .about(userProfile.getAbout())
-                            // PrivacySettings her zaman userProfiles'tan alınacak
                             .privacySettings(
                                     PrivacySettingsResponseDTO.builder()
                                             .id(userProfile.getPrivacySettings().getId())
@@ -134,12 +163,10 @@ public class UserProfileService {
                                             .profilePhotoVisibility(userProfile.getPrivacySettings().getProfilePhotoVisibility())
                                             .onlineStatusVisibility(userProfile.getPrivacySettings().getOnlineStatusVisibility())
                                             .readReceipts(userProfile.getPrivacySettings().isReadReceipts())
-//                                            .isInContactList(userProfile.getPrivacySettings().isInContactList())  // userProfiles'tan al
                                             .build()
                             )
                             .build();
 
-                    // FeignClientUserProfileResponseDTO'yu oluştur
                     return FeignClientUserProfileResponseDTO.builder()
                             .userProfileResponseDTO(userProfileResponseDTO)
                             .build();
@@ -150,10 +177,10 @@ public class UserProfileService {
         return dto;
     }
     @Async("taskExecutor")
-    public CompletableFuture<List<FeignClientUserProfileResponseDTO>> getUserListAsync(List<FeignClientUserProfileRequestDTO> userProfileRequestDTOList) {
-        System.out.println("REQUESTDTO > " + userProfileRequestDTOList);
+    @Transactional(readOnly = true)
+    // LAZY alanlar için ya servis katmanında Transactional(Hibernate session açık tutar) veya repositoryde EntityGraph kullanılmalı (UserKey de @Lob alanlar bulunduğu için varsayılan olarak LAZY davranırlar ve EntityGraph burada çalışamz)
+    public CompletableFuture<List<FeignClientUserProfileResponseDTO>> getUsersOfContactsAsync(List<FeignClientUserProfileRequestDTO> userProfileRequestDTOList) {
 
-        // FeignClientUserProfileRequestDTO listesini UUID'ye göre bir haritaya çeviriyoruz
         Map<UUID, FeignClientUserProfileRequestDTO> contactNameMap = userProfileRequestDTOList.stream()
                 .collect(Collectors.toMap(
                         FeignClientUserProfileRequestDTO::getId,
@@ -162,24 +189,20 @@ public class UserProfileService {
 
         List<UUID> userIdList = new ArrayList<>(contactNameMap.keySet());
 
-        // userProfiles'ı userIdList üzerinden getiriyoruz
-        List<UserProfile> userProfiles = this.userProfileRepository.findAllById(userIdList);
+        List<UserProfile> userProfiles = this.userProfileRepository.findUsersByIdList(userIdList);
 
-        // Her userProfile için DTO oluşturuyoruz
         List<FeignClientUserProfileResponseDTO> dto = userProfiles.stream()
                 .filter(Objects::nonNull)
                 .map(userProfile -> {
-                    // requestDTO ile userProfile arasında ilişki kuruyoruz
                     FeignClientUserProfileRequestDTO requestDTO = contactNameMap.get(userProfile.getId());
 
-                    // Her zaman userProfiles'tan gelen verilerle userProfileResponseDTO'yu dolduruyoruz
                     UserProfileResponseDTO userProfileResponseDTO = UserProfileResponseDTO.builder()
                             .id(userProfile.getId())
                             .email(userProfile.getEmail())
                             .firstName(userProfile.getFirstName())
                             .lastName(userProfile.getLastName())
                             .about(userProfile.getAbout())
-                            // PrivacySettings her zaman userProfiles'tan alınacak
+                            .imagee(userProfile.getImage() != null ? userProfile.getImage() : null)
                             .privacySettings(
                                     PrivacySettingsResponseDTO.builder()
                                             .id(userProfile.getPrivacySettings().getId())
@@ -191,9 +214,14 @@ public class UserProfileService {
 //                                            .isInContactList(userProfile.getPrivacySettings().isInContactList())  // userProfiles'tan al
                                             .build()
                             )
+                            .userKey(UserKeyResponseDTO.builder()
+                                    .iv(Base64.getEncoder().encodeToString(userProfile.getUserKey().getIv()))
+                                    .publicKey(Base64.getEncoder().encodeToString(userProfile.getUserKey().getPublicKey()))
+                                    .encryptedPrivateKey(Base64.getEncoder().encodeToString(userProfile.getUserKey().getEncryptedPrivateKey()))
+                                    .salt(Base64.getEncoder().encodeToString(userProfile.getUserKey().getSalt()))
+                                    .build())
                             .build();
 
-                    // FeignClientUserProfileResponseDTO'yu oluştur
                     return FeignClientUserProfileResponseDTO.builder()
                             .userProfileResponseDTO(userProfileResponseDTO)
                             .build();
@@ -204,7 +232,7 @@ public class UserProfileService {
         return CompletableFuture.completedFuture(dto);
     }
     public List<FeignClientUserProfileResponseDTO> getUserListt(List<ContactWithRelationshipDTO> userProfileRequestDTOList) {
-        System.out.println("REQUESTDTO > " + userProfileRequestDTOList);
+
         Map<UUID, ContactWithRelationshipDTO> contactNameMap = userProfileRequestDTOList.stream()
                 .collect(Collectors.toMap(
                         ContactWithRelationshipDTO::getUserContactId,
@@ -239,6 +267,12 @@ public class UserProfileService {
                                             .lastName(userProfile.getLastName())
                                             .about(userProfile.getAbout())
                                             .privacySettings(privacySettingsDTO)  // userProfile'dan gelen PrivacySettings
+                                            .userKey(UserKeyResponseDTO.builder()
+                                                .iv(Base64.getEncoder().encodeToString(userProfile.getUserKey().getIv()))
+                                                .publicKey(Base64.getEncoder().encodeToString(userProfile.getUserKey().getPublicKey()))
+                                                .encryptedPrivateKey(Base64.getEncoder().encodeToString(userProfile.getUserKey().getEncryptedPrivateKey()))
+                                                .salt(Base64.getEncoder().encodeToString(userProfile.getUserKey().getSalt()))
+                                                    .build())
                                             .build())
                             .build();
                 })
@@ -247,8 +281,9 @@ public class UserProfileService {
     }
 
     @Async("taskExecutor")
-    public CompletableFuture<List<FeignClientUserProfileResponseDTO>> getUserListtAsync(List<ContactWithRelationshipDTO> userProfileRequestDTOList) {
-        System.out.println("REQUESTDTO > " + userProfileRequestDTOList);
+    @Transactional(readOnly = true)
+    public CompletableFuture<List<FeignClientUserProfileResponseDTO>> getUsersOfChatsAsync(List<ContactWithRelationshipDTO> userProfileRequestDTOList) {
+
         Map<UUID, ContactWithRelationshipDTO> contactNameMap = userProfileRequestDTOList.stream()
                 .collect(Collectors.toMap(
                         ContactWithRelationshipDTO::getUserContactId,
@@ -282,7 +317,14 @@ public class UserProfileService {
                                             .firstName(userProfile.getFirstName())
                                             .lastName(userProfile.getLastName())
                                             .about(userProfile.getAbout())
-                                            .privacySettings(privacySettingsDTO)  // userProfile'dan gelen PrivacySettings
+                                            .imagee(userProfile.getImage() != null ? userProfile.getImage() : null)
+                                            .privacySettings(privacySettingsDTO)
+                                            .userKey(UserKeyResponseDTO.builder()
+                                                    .iv(Base64.getEncoder().encodeToString(userProfile.getUserKey().getIv()))
+                                                    .publicKey(Base64.getEncoder().encodeToString(userProfile.getUserKey().getPublicKey()))
+                                                    .encryptedPrivateKey(Base64.getEncoder().encodeToString(userProfile.getUserKey().getEncryptedPrivateKey()))
+                                                    .salt(Base64.getEncoder().encodeToString(userProfile.getUserKey().getSalt()))
+                                                    .build())
                                             .build())
                             .build();
                 })
@@ -293,7 +335,7 @@ public class UserProfileService {
         UserProfile userProfile = this.userProfileRepository.findById(userId).orElseThrow(() -> new NoSuchElementException("User not found witdh ID: " + userId));
         return IUserProfileMapper.INSTANCE.toUserProfileDTO(userProfile);
     }
-
+    @Transactional(readOnly = true)
     public UserProfileResponseDTO getUserByEmail(String contactEmail) {
         return userProfileRepository.findUserProfileByEmailIgnoreCase(contactEmail).map(IUserProfileMapper.INSTANCE::toUserProfileDTO).orElse(null);
     }
@@ -303,7 +345,7 @@ public class UserProfileService {
         Optional<UserProfile> userProfile = this.userProfileRepository.findById(userLastSeenRequestDTO.getUserId());
 
         userProfile.ifPresent(profile -> {
-            profile.setLastSeen(LocalDateTime.now());
+            profile.setLastSeen(Instant.now());
             userProfileRepository.save(profile);
         });
     }
@@ -341,4 +383,73 @@ public class UserProfileService {
         userProfileRepository.save(userProfile);
         return IUserProfileMapper.INSTANCE.toUserProfileDTO(userProfile);
     }
+
+
+    public String uploadProfilePhoto(UUID userId, MultipartFile file) {
+        try {
+            String originalFileName = file.getOriginalFilename();
+            String fileExtension = "";
+
+            if (originalFileName != null && originalFileName.contains(".")) {
+                fileExtension = originalFileName.substring(originalFileName.lastIndexOf(".") + 1);
+            }
+
+            String fileName = UUID.randomUUID().toString() +"." + fileExtension;
+            Path filePath = Paths.get(uploadDir).resolve(fileName);
+            UserProfile userProfile = this.userProfileRepository.findById(userId).orElseThrow(() -> new NoSuchElementException("User not found witdh ID: " + userId));
+            userProfile.setImage(fileName);
+            this.userProfileRepository.save(userProfile);
+            Files.createDirectories(filePath.getParent());
+            Files.write(filePath, file.getBytes());
+            return fileName;
+        } catch (IOException e) {
+            throw new RuntimeException("Profil fotoğrafı yüklenirken hata oluştu: " + e.getMessage(), e);
+        }
+
+    }
+
+    public Resource getUserProfilePhoto(String fileName) {
+        try {
+            Path filePath = Paths.get(uploadDir).resolve(fileName);
+
+            if (!Files.exists(filePath) || !Files.isReadable(filePath)) {
+                throw new NoSuchElementException("Dosya bulunamadı veya okunamıyor: " + fileName);
+            }
+
+            return new UrlResource(filePath.toUri());
+        } catch (MalformedURLException e) {
+            throw new RuntimeException("Dosya URL'si oluşturulurken hata oluştu: " + e.getMessage());
+        }
+    }
+
+    public String uploadProfilePicture(UUID userId, MultipartFile file) {
+        try {
+            UserProfile user = userProfileRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            if (user.getImage() != null && !user.getImage().isEmpty()) {
+                String publicId = extractPublicIdFromUrl(user.getImage());
+
+                cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
+            }
+
+            Map uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
+            String profilePictureUrl = uploadResult.get("url").toString();
+
+
+            user.setImage(profilePictureUrl);
+            userProfileRepository.save(user);
+            return user.getImage();
+        } catch (IOException e) {
+            throw new RuntimeException("Error uploading file", e);
+        }
+    }
+
+
+    public String extractPublicIdFromUrl(String profilePictureUrl) {
+        String[] parts = profilePictureUrl.split("/");
+        String publicIdWithExtension = parts[parts.length - 1];
+        return publicIdWithExtension.split("\\.")[0];
+    }
+
 }

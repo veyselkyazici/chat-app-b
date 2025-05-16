@@ -1,5 +1,7 @@
 package com.vky.controller;
 
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import com.vky.dto.request.*;
 import com.vky.dto.response.*;
 import com.vky.exception.ErrorType;
@@ -23,6 +25,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -31,16 +35,17 @@ import java.util.concurrent.CompletableFuture;
 @RequiredArgsConstructor
 public class UserController {
     private final UserProfileService userProfileService;
-    private final String uploadDir = "uploads/profile_photos/";
-    @PostMapping("/create-new-user")
-    public ResponseEntity<Boolean> newUserCreate(@RequestBody @Valid NewUserCreateDTO userCreateDto) {
-        try {
-            userProfileService.createUserProfile(userCreateDto);
-            return ResponseEntity.ok(true);
-        } catch (Exception e) {
-            throw new UserManagerException(ErrorType.USER_DONT_CREATE);
-        }
-    }
+
+
+//    @PostMapping("/create-new-user")
+//    public ResponseEntity<Boolean> newUserCreate(@RequestBody @Valid NewUserCreateDTO userCreateDto) {
+//        try {
+//            userProfileService.createUserProfile(userCreateDto);
+//            return ResponseEntity.ok(true);
+//        } catch (Exception e) {
+//            throw new UserManagerException(ErrorType.USER_DONT_CREATE);
+//        }
+//    }
     @GetMapping("/get-user")
     public ResponseEntity<UserProfileResponseDTO> getUserByEmail(@RequestParam String contactEmail) {
         return ResponseEntity.ok(userProfileService.getUserByEmail(contactEmail));
@@ -56,7 +61,16 @@ public class UserController {
         }
     }
 
+    @PostMapping("/get-user-with-user-key-by-auth-id")
+    public ResponseEntity<UserProfileResponseDTO> getUserWithUserKeyByAuthId(@RequestBody FindUserProfileByAuthIdRequestDTO requestDTO) {
+        UserProfileResponseDTO responseDTO = userProfileService.findWithUserKeyByAuthId(requestDTO.getAuthId());
 
+        if (responseDTO != null) {
+            return new ResponseEntity<>(responseDTO, HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+    }
 
     @PutMapping("/update-user-name")
     public ResponseEntity<Boolean>  updateUserName(@RequestHeader(value = "Authorization", required = false, defaultValue = "") String authorization,
@@ -138,7 +152,7 @@ public class UserController {
 //    }
     @PostMapping("/get-users-of-contacts")
     public CompletableFuture<List<FeignClientUserProfileResponseDTO>> getUsersOfContacts(@RequestBody List<FeignClientUserProfileRequestDTO> userProfileRequestDTOList) {
-        return this.userProfileService.getUserListAsync(userProfileRequestDTOList);
+        return this.userProfileService.getUsersOfContactsAsync(userProfileRequestDTOList);
     }
 //    @PostMapping("/get-user-listt")
 //    public List<FeignClientUserProfileResponseDTO> getUserListt(@RequestBody List<ContactWithRelationshipDTO> userProfileRequestDTOList) {
@@ -146,7 +160,7 @@ public class UserController {
 //    }
     @PostMapping("/get-users-of-chats")
     public CompletableFuture<List<FeignClientUserProfileResponseDTO>> getUsersOfChats(@RequestBody List<ContactWithRelationshipDTO> userProfileRequestDTOList) {
-        return this.userProfileService.getUserListtAsync(userProfileRequestDTOList);
+        return this.userProfileService.getUsersOfChatsAsync(userProfileRequestDTOList);
     }
 
     @PutMapping("/{userId}/privacy-settings")
@@ -160,48 +174,11 @@ public class UserController {
     }
 
 
-
-    @PostMapping("/{userId}/upload-photo")
-    public ResponseEntity<String> uploadProfilePhoto(@PathVariable UUID userId,
-                                                     @RequestParam("file") MultipartFile file) {
-        try {
-            // Dosya adı ve hedef dizin belirleme
-            String fileName = userId + "_" + file.getOriginalFilename();
-            Path filePath = Paths.get(uploadDir + fileName);
-
-            // Dosyayı hedef dizine kaydetme
-            Files.createDirectories(filePath.getParent());  // Klasör yoksa oluştur
-            Files.write(filePath, file.getBytes());
-
-            // Veritabanına URL kaydetme
-            String photoUrl = "/api/users/photo/" + fileName;
-//            userService.updateUserProfilePhoto(userId, photoUrl);
-
-            return ResponseEntity.ok("Profil fotoğrafı başarıyla yüklendi: " + photoUrl);
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Fotoğraf yüklenirken hata oluştu.");
-        }
+    @PostMapping("/{userId}/upload-profile-picture")
+    public ResponseEntity<String> uploadProfilePicture(@PathVariable UUID userId, @RequestParam("file") MultipartFile file) {
+        return ResponseEntity.ok(userProfileService.uploadProfilePicture(userId, file));
     }
 
-    @GetMapping("/photo/{fileName}")
-    public ResponseEntity<Resource> getProfilePhoto(@PathVariable String fileName) {
-        try {
-            Path filePath = Paths.get(uploadDir + fileName);
-            Resource resource = new UrlResource(filePath.toUri());
 
-            if (resource.exists() || resource.isReadable()) {
-                return ResponseEntity.ok()
-                        .contentType(MediaType.IMAGE_JPEG)
-                        .body(resource);
-            } else {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(null);
-            }
-        } catch (MalformedURLException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(null);
-        }
-    }
 }
 

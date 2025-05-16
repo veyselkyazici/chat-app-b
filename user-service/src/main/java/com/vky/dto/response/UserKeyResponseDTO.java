@@ -5,15 +5,13 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.util.UUID;
-
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
 @Builder
-public class UserLastSeenResponseDTO {
-    private UUID id;
-    private Instant lastSeen;
+public class UserKeyResponseDTO {
+    private String publicKey;
+    private String encryptedPrivateKey;
+    private String salt;
+    private String iv;
 }

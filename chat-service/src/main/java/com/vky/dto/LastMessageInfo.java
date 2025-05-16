@@ -10,7 +10,10 @@ import java.time.Instant;
 public class LastMessageInfo {
     private String chatRoomId;
     private String id;
-    private String lastMessage;
+    private String encryptedMessage;
+    private String iv;
+    private String encryptedKeyForRecipient;
+    private String encryptedKeyForSender;
     private Instant lastMessageTime;
     private String senderId;
     private String recipientId;

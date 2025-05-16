@@ -10,5 +10,7 @@ dependencies {
     implementation libs.springCloudConfigClient
     implementation libs.eurekaClient
     implementation libs.springBootRabbitMQ
+    implementation libs.cloudinary
+    implementation libs.bounycastle
 }
 

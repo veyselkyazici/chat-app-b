@@ -5,6 +5,7 @@ import com.vky.config.RabbitMQConfig;
 import com.vky.dto.request.MessageRequestDTO;
 import com.vky.dto.request.UnreadMessageCountDTO;
 import com.vky.dto.response.MessageFriendResponseDTO;
+import com.vky.expcetion.ErrorType;
 import com.vky.mapper.IChatMapper;
 import com.vky.repository.entity.ChatMessage;
 import com.vky.service.ChatMessageService;
@@ -14,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -25,8 +27,9 @@ public class RabbitMQConsumer {
 
     @RabbitListener(queues = RabbitMQConfig.CHAT_QUEUE,concurrency = "5-10")
     public void sendMessage(String message) {
+        MessageRequestDTO messageRequestDTO = null;
         try {
-            MessageRequestDTO messageRequestDTO = new ObjectMapper().readValue(message, MessageRequestDTO.class);
+            messageRequestDTO = new ObjectMapper().readValue(message, MessageRequestDTO.class);
 
             ChatMessage savedMessage = chatMessageService.sendMessage(messageRequestDTO);
 
@@ -41,10 +44,10 @@ public class RabbitMQConsumer {
             );
 
         } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Failed to process message from RabbitMQ", e);
+            chatMessageService.sendErrorNotification(messageRequestDTO, ErrorType.UNEXPECTED_ERROR);
         }
     }
+
     @RabbitListener(queues = RabbitMQConfig.MESSAGE_READ_QUEUE, concurrency = "5-10")
     public void handleReadMessage(String message) {
         try {

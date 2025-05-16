@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Data
@@ -15,6 +16,6 @@ public class UserStatusMessage {
     private String userId;
     private String friendId;
     private boolean online;
-    private LocalDateTime lastSeen;
+    private Instant lastSeen;
 
 }
