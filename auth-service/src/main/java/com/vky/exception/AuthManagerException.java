@@ -4,9 +4,6 @@ import lombok.Getter;
 
 @Getter
 public class AuthManagerException extends RuntimeException{
-    /**
-     * Uygujlama içinde fırlatılacak olan özelleştirilmiş hatalar için kullanılacaktır.
-     */
     private final ErrorType errorType;
 
     public AuthManagerException(ErrorType errorType) {

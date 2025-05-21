@@ -25,7 +25,7 @@ public class JwtUserDetails implements UserDetailsService {
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         Auth auth = authService.loadUserByUsername(email).orElseThrow(() -> new UsernameNotFoundException("User not found"));
         if (!auth.isApproved()) {
-            throw new AuthManagerException(ErrorType.Email_Confirmation_Not_Completed);
+            throw new AuthManagerException(ErrorType.EMAIL_NEEDS_VERIFICATION);
         }
         return new org.springframework.security.core.userdetails.User(auth.getEmail(), auth.getPassword(), new ArrayList<>());
     }

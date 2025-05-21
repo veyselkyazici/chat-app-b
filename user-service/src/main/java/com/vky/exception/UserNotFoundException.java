@@ -3,18 +3,18 @@ package com.vky.exception;
 import lombok.Getter;
 
 @Getter
-public class UserManagerException extends RuntimeException{
+public class UserNotFoundException extends RuntimeException{
     /**
      * Uygujlama içinde fırlatılacak olan özelleştirilmiş hatalar için kullanılacaktır.
      */
     private final ErrorType errorType;
 
-    public UserManagerException(ErrorType errorType) {
+    public UserNotFoundException(ErrorType errorType) {
         super(errorType.getMessage());
         this.errorType = errorType;
     }
 
-    public UserManagerException(ErrorType errorType, String customMessage){
+    public UserNotFoundException(ErrorType errorType, String customMessage){
         super(customMessage);
         this.errorType = errorType;
     }

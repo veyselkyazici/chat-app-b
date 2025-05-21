@@ -1,11 +1,11 @@
 package com.vky.controller;
 
-import com.vky.dto.request.AuthRequestDTO;
+import com.vky.dto.request.LoginRequestDTO;
+import com.vky.dto.request.RegisterRequestDTO;
 import com.vky.dto.request.CheckOtpRequestDTO;
 import com.vky.dto.request.ForgotPasswordResetPasswordRequestDTO;
 import com.vky.dto.response.*;
 import com.vky.repository.entity.Auth;
-import com.vky.repository.IAuthRepository;
 import com.vky.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,17 +25,17 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AuthController {
     private final AuthService authService;
-    private final IAuthRepository authRepository;
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponseDTO> register(@RequestBody @Valid AuthRequestDTO authRequestDTO) {
-
-        return ResponseEntity.ok(authService.register(authRequestDTO));
+    public ResponseEntity<ApiResponse<Void>> register(@RequestBody @Valid RegisterRequestDTO registerRequestDTO) {
+        authService.register(registerRequestDTO);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Registration successful", null));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponseDTO> login(@RequestBody @Valid AuthRequestDTO authRequestDTO) {
-        return ResponseEntity.ok(authService.doLoginn(authRequestDTO));
+    public ResponseEntity<ApiResponse<LoginResponseDTO>> login(@RequestBody @Valid LoginRequestDTO loginRequestDTO) {
+        LoginResponseDTO loginResponseDTO = authService.login(loginRequestDTO);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Login successful", loginResponseDTO));
     }
 
 

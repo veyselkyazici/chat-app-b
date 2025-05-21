@@ -13,7 +13,7 @@ import java.util.UUID;
 @NoArgsConstructor
 public class BaseEntity {
     @Id
-//    @GeneratedValue(generator = "guid")
+    @GeneratedValue(generator = "guid")
     private UUID id;
 
     @Column(name = "created_at")
@@ -22,8 +22,6 @@ public class BaseEntity {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
     private boolean isDeleted;
-
-    // Getter and Setter methods for id, createdAt, and updatedAt
 
     @PrePersist
     protected void onCreate() {

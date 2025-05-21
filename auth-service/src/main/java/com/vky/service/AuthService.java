@@ -2,10 +2,8 @@ package com.vky.service;
 
 import com.vky.config.security.JwtTokenManager;
 import com.vky.dto.request.*;
-import com.vky.dto.response.AuthResponseDTO;
 import com.vky.dto.response.HttpResponse;
-import com.vky.repository.entity.Auth;
-import com.vky.repository.entity.enums.Role;
+import com.vky.dto.response.LoginResponseDTO;
 import com.vky.exception.AuthManagerException;
 import com.vky.exception.ErrorType;
 import com.vky.manager.IMailManager;
@@ -13,13 +11,16 @@ import com.vky.mapper.IAuthMapper;
 import com.vky.rabbitmq.model.CreateUser;
 import com.vky.rabbitmq.producer.RabbitMQProducer;
 import com.vky.repository.IAuthRepository;
+import com.vky.repository.entity.Auth;
+import com.vky.repository.entity.enums.Role;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -47,71 +48,80 @@ public class AuthService {
 
 
 
-    public AuthResponseDTO doLoginn(AuthRequestDTO authRequestDTO) {
-        UsernamePasswordAuthenticationToken authToken =
-                new UsernamePasswordAuthenticationToken(authRequestDTO.getEmail(), authRequestDTO.getPassword());
-        Authentication auth = authenticationManager.authenticate(authToken);
+    public LoginResponseDTO login(LoginRequestDTO loginRequestDTO) {
+        Auth authUser = authRepository.findByEmailIgnoreCase(loginRequestDTO.getEmail())
+                .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
 
-        Auth user = (Auth) auth.getPrincipal();
+        if (!authUser.isApproved()) {
+            throw new AuthManagerException(ErrorType.EMAIL_NEEDS_VERIFICATION);
+        }
 
-        String jwtToken = jwtTokenManager.generateToken(auth, user.getId());
+        try {
+            UsernamePasswordAuthenticationToken authToken =
+                    new UsernamePasswordAuthenticationToken(loginRequestDTO.getEmail(), loginRequestDTO.getPassword());
+            Authentication auth = authenticationManager.authenticate(authToken);
 
-        AuthResponseDTO authResponseDTO = IAuthMapper.INSTANCE.toResponseDTO(user);
-        authResponseDTO.setAccessToken(formatToken(jwtToken));
-        authResponseDTO.setRefreshToken(formatToken(jwtTokenManager.generateRefreshToken(auth, user.getId())));
-        authResponseDTO.setResponsecode(200L);
 
-        tokenService.saveToken(user, jwtToken);
+            String jwtToken = jwtTokenManager.generateToken(auth, authUser.getId());
 
-        return authResponseDTO;
+            LoginResponseDTO loginResponseDTO = LoginResponseDTO.builder()
+                    .accessToken(jwtToken)
+                    .refreshToken(jwtTokenManager.generateRefreshToken(auth, authUser.getId()))
+                    .id(authUser.getId())
+                    .build();
+            loginResponseDTO.setAccessToken(formatToken(jwtToken));
+            loginResponseDTO.setRefreshToken(formatToken(jwtTokenManager.generateRefreshToken(auth, authUser.getId())));
+
+            tokenService.saveToken(authUser, jwtToken);
+
+            return loginResponseDTO;
+        } catch (BadCredentialsException ex) {
+            throw new BadCredentialsException("Invalid credentials");
+        }
     }
 
     private String formatToken(String token) {
         return "Bearer " + token;
     }
+    @Transactional
+    public void register(RegisterRequestDTO registerRequestDTO) {
+        Optional<Auth> optionalAuth = authRepository.findAuthByAndEmailIgnoreCase(registerRequestDTO.getEmail());
 
-    public AuthResponseDTO register(AuthRequestDTO authRequestDTO) {
-        Optional<Auth> optionalAuth = authRepository.findAuthByAndEmailIgnoreCase(authRequestDTO.getEmail());
-
-        if (optionalAuth.isPresent() && optionalAuth.get().isApproved())
-            throw new AuthManagerException(ErrorType.EMAIL_ALLREADY_EXISTS_ERROR);
-        else if (optionalAuth.isPresent() && !optionalAuth.get().isApproved()) {
-            CreateConfirmationRequestDTO createConfirmationRequestDTO = IAuthMapper.INSTANCE.toAuthDTOO(optionalAuth.get());
-            mailManager.createConfirmation(createConfirmationRequestDTO);
-            throw new AuthManagerException(ErrorType.EMAIL_ALLREADY_EXISTS_ERROR_VERIFIY);
+        if (optionalAuth.isPresent()) {
+            if (optionalAuth.get().isApproved()) {
+                throw new AuthManagerException(ErrorType.EMAIL_ALREADY_EXISTS);
+            } else {
+                CreateConfirmationRequestDTO createConfirmationRequestDTO = IAuthMapper.INSTANCE.toAuthDTOO(optionalAuth.get());
+                mailManager.createConfirmation(createConfirmationRequestDTO);
+                throw new AuthManagerException(ErrorType.EMAIL_NEEDS_VERIFICATION);
+            }
         }
 
-        Auth registerAuth = Auth.builder()
-                .email(authRequestDTO.getEmail())
-                .password(passwordEncoder.encode(authRequestDTO.getPassword()))
+        Auth registerAuth = createNewAuth(registerRequestDTO);
+        sendConfirmationAndUserCreationMessages(registerAuth, registerRequestDTO);
+    }
+
+    private Auth createNewAuth(RegisterRequestDTO registerRequestDTO) {
+        Auth auth = Auth.builder()
+                .email(registerRequestDTO.getEmail())
+                .password(passwordEncoder.encode(registerRequestDTO.getPassword()))
                 .role(Role.USER)
                 .build();
-        this.authRepository.save(registerAuth);
+        return authRepository.save(auth);
+    }
 
-        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(authRequestDTO.getEmail(), authRequestDTO.getPassword());
-        Authentication auth = authenticationManager.authenticate(authToken);
-        SecurityContextHolder.getContext().setAuthentication(auth);
-        String jwt = jwtTokenManager.generateToken(auth, registerAuth.getId());
-        this.tokenService.saveToken(registerAuth, jwt);
+    private void sendConfirmationAndUserCreationMessages(Auth auth, RegisterRequestDTO registerRequestDTO) {
+        CreateConfirmationRequestDTO confirmationDTO = IAuthMapper.INSTANCE.toAuthDTOO(auth);
+        mailManager.createConfirmation(confirmationDTO);
 
-        CreateConfirmationRequestDTO createConfirmationRequestDTO = IAuthMapper.INSTANCE.toAuthDTOO(registerAuth);
-        mailManager.createConfirmation(createConfirmationRequestDTO);
         rabbitMQProducer.sendCreateUserMessage(CreateUser.builder()
-                .authId(registerAuth.getId())
-                .email(registerAuth.getEmail())
-                .encryptedPrivateKey(authRequestDTO.getEncryptedPrivateKey())
-                .iv(authRequestDTO.getIv())
-                .salt(authRequestDTO.getSalt())
-                .publicKey(authRequestDTO.getPublicKey())
-                .encryptedPrivateKey(authRequestDTO.getEncryptedPrivateKey())
+                .authId(auth.getId())
+                .email(auth.getEmail())
+                .encryptedPrivateKey(registerRequestDTO.getEncryptedPrivateKey())
+                .iv(registerRequestDTO.getIv())
+                .salt(registerRequestDTO.getSalt())
+                .publicKey(registerRequestDTO.getPublicKey())
                 .build());
-        return AuthResponseDTO.builder()
-                .accessToken("Bearer " + jwt)
-                .refreshToken(jwtTokenManager.generateRefreshToken(auth, registerAuth.getId()))
-                .message("Kayit İşlemi Başarılı")
-                .responsecode(200L)
-                .id(registerAuth.getId())
-                .build();
     }
 
     public Optional<Auth> loadUserByUsername(String email) {

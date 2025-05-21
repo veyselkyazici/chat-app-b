@@ -3,11 +3,10 @@ package com.vky.service;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import com.vky.controller.ContactWithRelationshipDTO;
-import com.vky.dto.request.FeignClientUserProfileRequestDTO;
-import com.vky.dto.request.NewUserCreateDTO;
-import com.vky.dto.request.PrivacySettingsRequestDTO;
-import com.vky.dto.request.UserLastSeenRequestDTO;
+import com.vky.dto.request.*;
 import com.vky.dto.response.*;
+import com.vky.exception.ErrorType;
+import com.vky.exception.UserNotFoundException;
 import com.vky.mapper.IUserProfileMapper;
 import com.vky.rabbitmq.model.CreateUser;
 import com.vky.rabbitmq.producer.RabbitMQProducer;
@@ -79,10 +78,9 @@ public class UserProfileService {
     }
     @Transactional(readOnly = true)
     public UserProfileResponseDTO findWithUserKeyByAuthId(UUID authId) {
-        UserProfileResponseDTO userProfileResponseDTO = userProfileRepository.findWithUserKeyByAuthId(authId)
+        return userProfileRepository.findWithUserKeyByAuthId(authId)
                 .map(IUserProfileMapper.INSTANCE::toUserProfileDTO)
-                .orElse(null);
-        return userProfileResponseDTO;
+                .orElseThrow(() -> new UserNotFoundException(ErrorType.USER_NOT_FOUND));
     }
 
     public TokenResponseDTO tokenExractAuthId(String authorization) {
@@ -98,34 +96,18 @@ public class UserProfileService {
         return responseDTO;
     }
 
-    public void updateUserName(UUID authId, String name) {
-        Optional<UserProfile> userProfileOptional = userProfileRepository.findByAuthId(authId);
+    public void updateUserName(UpdateUserDTO dto) {
+        Optional<UserProfile> userProfileOptional = userProfileRepository.findById(dto.getId());
         userProfileOptional.ifPresent(userProfile -> {
-            userProfile.setFirstName(name);
+            userProfile.setFirstName(dto.getValue());
             userProfileRepository.save(userProfile);
         });
     }
 
-    public void updateUserSurname(UUID authId, String surname) {
-        Optional<UserProfile> userProfileOptional = userProfileRepository.findByAuthId(authId);
+    public void updateUserAbout(UpdateUserDTO dto) {
+        Optional<UserProfile> userProfileOptional = userProfileRepository.findById(dto.getId());
         userProfileOptional.ifPresent(userProfile -> {
-            userProfile.setLastName(surname);
-            userProfileRepository.save(userProfile);
-        });
-    }
-
-    public void updateUserPhone(UUID authId, String phoneNumber) {
-        Optional<UserProfile> userProfileOptional = userProfileRepository.findByAuthId(authId);
-        userProfileOptional.ifPresent(userProfile -> {
-            userProfile.setPhone(phoneNumber);
-            userProfileRepository.save(userProfile);
-        });
-    }
-
-    public void updateUserAbout(UUID authId, String about) {
-        Optional<UserProfile> userProfileOptional = userProfileRepository.findByAuthId(authId);
-        userProfileOptional.ifPresent(userProfile -> {
-            userProfile.setAbout(about);
+            userProfile.setAbout(dto.getValue());
             userProfileRepository.save(userProfile);
         });
     }
