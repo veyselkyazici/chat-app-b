@@ -1,6 +1,7 @@
 package com.vky.dto.request;
 
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,7 +13,10 @@ import java.util.UUID;
 @NoArgsConstructor
 @Data
 @Builder
-public class FindUserProfileByAuthIdRequestDTO {
-    @NotNull(message = "authId cannot be null")
-    private UUID authId;
+public class UpdateUserDTO {
+    @NotNull(message = "Id cannot be empty")
+    private UUID id;
+    @NotNull(message = "Value cannot be empty")
+    @Size(min = 2, max = 50)
+    private String value;
 }

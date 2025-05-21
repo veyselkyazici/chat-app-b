@@ -1,13 +1,17 @@
 package com.vky.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vky.exception.AuthManagerException;
+import com.vky.exception.ErrorType;
 import com.vky.repository.IAuthRepository;
+import com.vky.repository.entity.Auth;
 import feign.Logger;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -21,8 +25,14 @@ public class ConfigurationSpring {
     private final IAuthRepository authRepository;
     @Bean
     public UserDetailsService userDetailsService() {
-        return email -> authRepository.findByEmailIgnoreCase(email)
-                    .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        return email -> {
+            Auth auth = authRepository.findByEmailIgnoreCase(email)
+                    .orElseThrow(() -> new BadCredentialsException("Invalid Credentials"));
+            if (!auth.isApproved()) {
+                throw new AuthManagerException(ErrorType.EMAIL_NEEDS_VERIFICATION);
+            }
+            return auth;
+        };
 
     }
     @Bean

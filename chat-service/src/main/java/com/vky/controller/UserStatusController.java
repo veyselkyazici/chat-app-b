@@ -44,24 +44,12 @@ public class UserStatusController {
         messagingTemplate.convertAndSendToUser(message.getUserId(), "/queue/online-status", message);
     }
 
-//    @MessageMapping("/typing")
-//    public void typing(@Payload TypingMessage message) {
-//        messagingTemplate.convertAndSendToUser(message.getUserId(), "/queue/typing", message);
-//    }
     @MessageMapping("/typing")
     public void typing(@Payload TypingMessage message) {
         System.out.println("Message > " + message);
         messagingTemplate.convertAndSendToUser(message.getFriendId(), "/queue/typing", message);
         messagingTemplate.convertAndSendToUser(message.getFriendId(), "/queue/message-box-typing", message);
     }
-
-
-//    @MessageMapping("/stop-typing")
-//    public void stopTyping(@Payload TypingMessage message) {
-//        System.out.println("STOP TYPING > " + message);
-//        message.setTyping(false);
-//        messagingTemplate.convertAndSendToUser(message.getFriendId(), "/queue/typing", message);
-//    }
 
     @GetMapping("/is-online/{userId}")
     public ResponseEntity<UserStatusMessage> isUserOnline(@PathVariable String userId) {
