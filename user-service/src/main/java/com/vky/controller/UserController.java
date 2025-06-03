@@ -32,18 +32,16 @@ public class UserController {
     }
 
     @PutMapping("/update-user-name")
-    public ResponseEntity<Boolean>  updateUserName(@RequestBody @Valid UpdateUserDTO dto)
+    public ResponseEntity<ApiResponse<UpdateUserDTO>>  updateUserName(@RequestBody @Valid UpdateUserDTO dto)
     {
-            userProfileService.updateUserName(dto);
-            return ResponseEntity.ok(true);
+        return ResponseEntity.ok(new ApiResponse<>(true, "success", userProfileService.updateUserName(dto)));
 
     }
 
     @PutMapping("/update-user-about")
-    public ResponseEntity<Boolean>  userAboutUpdate(@RequestBody @Valid UpdateUserDTO dto)
+    public ResponseEntity<ApiResponse<UpdateUserDTO>>  userAboutUpdate(@RequestBody @Valid UpdateUserDTO dto)
     {
-            userProfileService.updateUserAbout(dto);
-            return ResponseEntity.ok(true);
+        return ResponseEntity.ok(new ApiResponse<>(true, "success", userProfileService.updateUserAbout(dto)));
     }
 
     @PutMapping("/update-user-last-seen")
@@ -100,8 +98,8 @@ public class UserController {
 
 
     @PostMapping("/{userId}/upload-profile-picture")
-    public ResponseEntity<String> uploadProfilePicture(@PathVariable UUID userId, @RequestParam("file") MultipartFile file) {
-        return ResponseEntity.ok(userProfileService.uploadProfilePicture(userId, file));
+    public ResponseEntity<ApiResponse<UserProfilePhotoURLResponseDTO>> uploadProfilePicture(@PathVariable UUID userId, @RequestParam("file") MultipartFile file) {
+        return ResponseEntity.ok(new ApiResponse<>(true,"success",userProfileService.uploadProfilePhoto(userId, file)));
     }
 
 

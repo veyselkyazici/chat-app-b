@@ -1,9 +1,6 @@
 package com.vky.service;
 
-import com.vky.dto.request.ContactInformationOfExistingChatRequestDTO;
-import com.vky.dto.request.ContactInformationOfExistingChatsRequestDTO;
-import com.vky.dto.request.ContactRequestDTO;
-import com.vky.dto.request.FeignClientUserProfileRequestDTO;
+import com.vky.dto.request.*;
 import com.vky.dto.response.*;
 import com.vky.exception.ContactNotFoundException;
 import com.vky.exception.InvitationAlreadyExistsException;
@@ -16,6 +13,7 @@ import com.vky.repository.entity.Contacts;
 import com.vky.repository.entity.Invitation;
 import com.vky.repository.entity.UserRelationship;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
@@ -91,27 +89,27 @@ public class ContactsService {
 
         return dto;
     }
-
-    public void sendUpdatedPrivacySettings(UserProfileResponseDTO userProfileResponseDTO) {
-        List<UserRelationship> userRelationships = userRelationshipRepository.findByUserIdOrRelatedUserId(userProfileResponseDTO.getId());
-        Set<String> alreadyMessagedUsers = new HashSet<>();
+    public void sendUpdatedPrivacySettings(UpdatePrivacySettingsRequestDTO updatePrivacySettingsRequestDTO) {
+        List<UserRelationship> userRelationships = userRelationshipRepository.findByUserIdOrRelatedUserId(updatePrivacySettingsRequestDTO.getId());
         userRelationships.forEach(userRelationship -> {
-            if (userRelationship.getUserId().equals(userProfileResponseDTO.getId())) {
-                if (!alreadyMessagedUsers.contains(userRelationship.getRelatedUserId().toString())) {
-                    alreadyMessagedUsers.add(userRelationship.getRelatedUserId().toString());
-                    messagingTemplate.convertAndSendToUser(userRelationship.getRelatedUserId().toString(), "/queue/update-privacy-response", userProfileResponseDTO);
-                }
-
+            if (userRelationship.getUserId().equals(updatePrivacySettingsRequestDTO.getId())) {
+                    messagingTemplate.convertAndSendToUser(userRelationship.getRelatedUserId().toString(), "/queue/update-privacy-response", updatePrivacySettingsRequestDTO);
             } else {
-                if (!alreadyMessagedUsers.contains(userRelationship.getUserId().toString())) {
-                    alreadyMessagedUsers.add(userRelationship.getUserId().toString());
-                    messagingTemplate.convertAndSendToUser(userRelationship.getUserId().toString(), "/queue/update-privacy-response", userProfileResponseDTO);
-                }
+                    messagingTemplate.convertAndSendToUser(userRelationship.getUserId().toString(), "/queue/update-privacy-response", updatePrivacySettingsRequestDTO);
 
             }
         });
     }
-
+    public void sendUpdatedProfilePhoto(UpdatedProfilePhotoRequestDTO dto) {
+        List<UserRelationship> userRelationships = userRelationshipRepository.findByUserIdOrRelatedUserId(dto.getUserId());
+        userRelationships.forEach(userRelationship -> {
+            if (userRelationship.getUserId().equals(dto.getUserId())) {
+                    messagingTemplate.convertAndSendToUser(userRelationship.getRelatedUserId().toString(), "/queue/updated-profile-photo-message", dto);
+            } else {
+                    messagingTemplate.convertAndSendToUser(userRelationship.getUserId().toString(), "/queue/updated-profile-photo-message", dto);
+            }
+        });
+    }
 
     public record AddInvitationResponseDTO(UUID id, UUID userContactId, String userContactEmail, String userContactName,
                                            boolean isInvited, String about, String image, String name) {

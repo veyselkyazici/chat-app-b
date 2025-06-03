@@ -96,20 +96,24 @@ public class UserProfileService {
         return responseDTO;
     }
 
-    public void updateUserName(UpdateUserDTO dto) {
-        Optional<UserProfile> userProfileOptional = userProfileRepository.findById(dto.getId());
-        userProfileOptional.ifPresent(userProfile -> {
-            userProfile.setFirstName(dto.getValue());
-            userProfileRepository.save(userProfile);
-        });
+    public UpdateUserDTO updateUserName(UpdateUserDTO dto) {
+        UserProfile userProfile = userProfileRepository.findById(dto.getId())
+                .orElseThrow(() -> new UserNotFoundException(ErrorType.USER_NOT_FOUND));
+
+        userProfile.setFirstName(dto.getValue());
+        UserProfile updatedUserProfile = userProfileRepository.save(userProfile);
+        dto.setValue(updatedUserProfile.getFirstName());
+        return dto;
     }
 
-    public void updateUserAbout(UpdateUserDTO dto) {
-        Optional<UserProfile> userProfileOptional = userProfileRepository.findById(dto.getId());
-        userProfileOptional.ifPresent(userProfile -> {
-            userProfile.setAbout(dto.getValue());
-            userProfileRepository.save(userProfile);
-        });
+    public UpdateUserDTO updateUserAbout(UpdateUserDTO dto) {
+        UserProfile userProfile = userProfileRepository.findById(dto.getId())
+                .orElseThrow(() -> new UserNotFoundException(ErrorType.USER_NOT_FOUND));
+
+        userProfile.setFirstName(dto.getValue());
+        UserProfile updatedUserProfile = userProfileRepository.save(userProfile);
+        dto.setValue(updatedUserProfile.getAbout());
+        return dto;
     }
 
 
@@ -323,32 +327,25 @@ public class UserProfileService {
     }
 
     public void updateUserLastSeen(UserLastSeenRequestDTO userLastSeenRequestDTO) {
+        UserProfile userProfile = userProfileRepository.findById(userLastSeenRequestDTO.getUserId())
+                .orElseThrow(() -> new UserNotFoundException(ErrorType.USER_NOT_FOUND));
 
-        Optional<UserProfile> userProfile = this.userProfileRepository.findById(userLastSeenRequestDTO.getUserId());
-
-        userProfile.ifPresent(profile -> {
-            profile.setLastSeen(Instant.now());
-            userProfileRepository.save(profile);
-        });
+        userProfile.setLastSeen(Instant.now());
+            userProfileRepository.save(userProfile);
     }
 
     public UserLastSeenResponseDTO getUserLastSeen(UUID userId) {
-
-        Optional<UserProfile> userProfile = this.userProfileRepository.findById(userId);
-        if (userProfile.isPresent()) {
-            UserProfile profile = userProfile.get();
+        UserProfile userProfile = userProfileRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(ErrorType.USER_NOT_FOUND));
             UserLastSeenResponseDTO responseDTO = new UserLastSeenResponseDTO();
-            responseDTO.setLastSeen(profile.getLastSeen());
-            responseDTO.setId(profile.getId());
+            responseDTO.setLastSeen(userProfile.getLastSeen());
+            responseDTO.setId(userProfile.getId());
             return responseDTO;
-        } else {
-
-            return null;
-        }
     }
 
     public UserProfileResponseDTO updatePrivacySettings(UUID userId, PrivacySettingsRequestDTO privacySettingsRequestDTO) {
-        UserProfile userProfile = this.userProfileRepository.findById(userId).orElseThrow(() -> new NoSuchElementException("User not found witdh ID: " + userId));
+        UserProfile userProfile = userProfileRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(ErrorType.USER_NOT_FOUND));
 
         PrivacySettings privacySettings = userProfile.getPrivacySettings();
         if (privacySettings == null) {
@@ -366,45 +363,7 @@ public class UserProfileService {
         return IUserProfileMapper.INSTANCE.toUserProfileDTO(userProfile);
     }
 
-
-    public String uploadProfilePhoto(UUID userId, MultipartFile file) {
-        try {
-            String originalFileName = file.getOriginalFilename();
-            String fileExtension = "";
-
-            if (originalFileName != null && originalFileName.contains(".")) {
-                fileExtension = originalFileName.substring(originalFileName.lastIndexOf(".") + 1);
-            }
-
-            String fileName = UUID.randomUUID().toString() +"." + fileExtension;
-            Path filePath = Paths.get(uploadDir).resolve(fileName);
-            UserProfile userProfile = this.userProfileRepository.findById(userId).orElseThrow(() -> new NoSuchElementException("User not found witdh ID: " + userId));
-            userProfile.setImage(fileName);
-            this.userProfileRepository.save(userProfile);
-            Files.createDirectories(filePath.getParent());
-            Files.write(filePath, file.getBytes());
-            return fileName;
-        } catch (IOException e) {
-            throw new RuntimeException("Profil fotoğrafı yüklenirken hata oluştu: " + e.getMessage(), e);
-        }
-
-    }
-
-    public Resource getUserProfilePhoto(String fileName) {
-        try {
-            Path filePath = Paths.get(uploadDir).resolve(fileName);
-
-            if (!Files.exists(filePath) || !Files.isReadable(filePath)) {
-                throw new NoSuchElementException("Dosya bulunamadı veya okunamıyor: " + fileName);
-            }
-
-            return new UrlResource(filePath.toUri());
-        } catch (MalformedURLException e) {
-            throw new RuntimeException("Dosya URL'si oluşturulurken hata oluştu: " + e.getMessage());
-        }
-    }
-
-    public String uploadProfilePicture(UUID userId, MultipartFile file) {
+    public UserProfilePhotoURLResponseDTO uploadProfilePhoto(UUID userId, MultipartFile file) {
         try {
             UserProfile user = userProfileRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("User not found"));
@@ -421,7 +380,7 @@ public class UserProfileService {
 
             user.setImage(profilePictureUrl);
             userProfileRepository.save(user);
-            return user.getImage();
+            return UserProfilePhotoURLResponseDTO.builder().url(user.getImage()).build();
         } catch (IOException e) {
             throw new RuntimeException("Error uploading file", e);
         }

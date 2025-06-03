@@ -30,10 +30,11 @@ public class UserChatSettingsService {
         return userChatSettingsRepository.findByUserIdAndChatRoomIdAndIsDeletedFalse(userId, chatRoomId);
     }
 
-    public UserChatSettings saveUserChatSettings(String chatId, String userId){
+    public UserChatSettings saveUserChatSettings(String chatId, String userId, String otherUserId){
         UserChatSettings userChatSettings = UserChatSettings.builder()
                         .isDeleted(false)
                 .userId(userId)
+                .chatUserId(otherUserId)
                                 .chatRoomId(chatId)
                                         .deletedTime(null)
                                                 .isArchived(false)
@@ -77,7 +78,9 @@ public class UserChatSettingsService {
         return settings.stream()
                 .collect(Collectors.toMap(UserChatSettings::getChatRoomId, Function.identity()));
     }
-
+    public List<UserChatSettings> findReverseUserChatSettingsByUserIdList(String userId) {
+        return userChatSettingsRepository.findByChatUserIdAndIsDeletedFalse(userId);
+    }
     public Optional<UserChatSettings> findUserChatSettingsByChatRoomIdAndUserId(String chatRoomId, String userId) {
         return userChatSettingsRepository.findByChatRoomIdAndUserId(chatRoomId, userId);
     }
