@@ -1,8 +1,6 @@
 package com.vky.controller;
 
-import com.vky.dto.request.ContactInformationOfExistingChatRequestDTO;
-import com.vky.dto.request.ContactInformationOfExistingChatsRequestDTO;
-import com.vky.dto.request.ContactRequestDTO;
+import com.vky.dto.request.*;
 import com.vky.dto.response.DeleteContactResponseDTO;
 import com.vky.dto.response.FeignClientUserProfileResponseDTO;
 import com.vky.dto.response.UserProfileResponseDTO;
@@ -62,10 +60,13 @@ public class ContactsController {
         return ResponseEntity.ok(contactsService.deleteContact(id));
     }
 
-    @MessageMapping("/update-privacy")
-    public void typing(@Payload UserProfileResponseDTO userProfileResponseDTO) {
-        System.out.println("Message > " + userProfileResponseDTO);
-        contactsService.sendUpdatedPrivacySettings(userProfileResponseDTO);
+    @MessageMapping("/updated-privacy-send-message")
+    public void typing(@Payload UpdatePrivacySettingsRequestDTO updatePrivacySettingsRequestDTO) {
+        contactsService.sendUpdatedPrivacySettings(updatePrivacySettingsRequestDTO);
+    }
+    @MessageMapping("/updated-profile-photo-send-message")
+    public void typing(@Payload UpdatedProfilePhotoRequestDTO dto) {
+        contactsService.sendUpdatedProfilePhoto(dto);
     }
 
 }

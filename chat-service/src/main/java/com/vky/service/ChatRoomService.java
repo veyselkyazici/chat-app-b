@@ -3,7 +3,6 @@ package com.vky.service;
 import com.vky.dto.LastMessageInfo;
 import com.vky.dto.request.*;
 import com.vky.dto.response.*;
-import com.vky.expcetion.ErrorMessage;
 import com.vky.expcetion.ErrorType;
 import com.vky.manager.IContactsManager;
 import com.vky.manager.IUserManager;
@@ -64,8 +63,8 @@ public class ChatRoomService {
             return ChatRoomWithUserChatSettingsDTO.builder().userId(userId).participantIds(chatRoom.getParticipantIds()).friendId(friendId).userChatSettings(userChatSettings).id(chatRoom.getId()).build();
         } else {
             ChatRoom chatRoomSave = chatRoomSave(userId, friendId);
-            UserChatSettings userChatSettings = userChatSettingsService.saveUserChatSettings(chatRoomSave.getId(), userId);
-            userChatSettingsService.saveUserChatSettings(chatRoomSave.getId(), friendId);
+            UserChatSettings userChatSettings = userChatSettingsService.saveUserChatSettings(chatRoomSave.getId(), userId,friendId);
+            userChatSettingsService.saveUserChatSettings(chatRoomSave.getId(), friendId,userId);
             return ChatRoomWithUserChatSettingsDTO.builder().id(chatRoomSave.getId()).userId(userId).participantIds(chatRoomSave.getParticipantIds()).friendId(friendId).userChatSettings(userChatSettings).build();
         }
     }
@@ -384,6 +383,5 @@ public class ChatRoomService {
     public void readMessage(UnreadMessageCountDTO unreadMessageCountDTO) {
         rabbitMQProducer.readMessage(unreadMessageCountDTO);
     }
-
 
 }

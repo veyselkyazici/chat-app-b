@@ -8,9 +8,9 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Configuration
 public class WebClientConfig {
     @Value("${raceapplication.url.user}")
-    private String contactsBaseUrl;
+    private String userBaseUrl;
     @Bean
     public WebClient webClient(WebClient.Builder builder) {
-        return builder.baseUrl(contactsBaseUrl + "api/v1/user").build();
+        return builder.baseUrl(userBaseUrl + "api/v1/user").build();
     }
 }
