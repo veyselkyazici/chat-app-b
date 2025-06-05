@@ -18,6 +18,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
@@ -61,7 +62,7 @@ public class ContactsService {
                 .userContactEmail(invitation.getInviteeEmail()).build());
         messagingTemplate.convertAndSendToUser(contact.getUserId().toString(), "/topic/invitation", contact);
     }
-
+    @Transactional
     public DeleteContactResponseDTO deleteContact(UUID id) {
         Contacts contact = contactsRepository.findById(id)
                 .orElseThrow(() -> new ContactNotFoundException("Contact not found for id: " + id));
@@ -70,32 +71,23 @@ public class ContactsService {
         contact.setDeleted(true);
         contactsRepository.save(contact);
 
-        Invitation invitation = invitationService.findInvitationAndDelete(contact.getUserId(), contact.getUserContactEmail());
-
-        DeleteContactResponseDTO dto = new DeleteContactResponseDTO(
-                invitation != null ? invitation.getId() : null,
-                invitation != null ? invitation.getInviteeEmail() : null,
-                invitation != null ? invitation.getContactName() : null,
-                invitation != null ? invitation.getInviterUserId() : null,
-                contact.getId(),
-                invitation != null ? invitation.isInvited() : null
-        );
-
-        messagingTemplate.convertAndSendToUser(
-                contact.getUserId().toString(),
-                "queue/delete/contact",
-                dto
-        );
-
-        return dto;
+        UserRelationship userRelationship = userRelationshipRepository.findRelationshipBetweenUsers(contact.getUserId(), contact.getUserContactId())
+                .orElseThrow(() -> new ContactNotFoundException("Contact not found for id: " + id));
+        if(userRelationship.getUserId().equals(contact.getUserId())) {
+            userRelationship.setUserHasAddedRelatedUser(false);
+        } else {
+            userRelationship.setRelatedUserHasAddedUser(false);
+        }
+        userRelationshipRepository.save(userRelationship);
+        return new DeleteContactResponseDTO();
     }
     public void sendUpdatedPrivacySettings(UpdatePrivacySettingsRequestDTO updatePrivacySettingsRequestDTO) {
         List<UserRelationship> userRelationships = userRelationshipRepository.findByUserIdOrRelatedUserId(updatePrivacySettingsRequestDTO.getId());
         userRelationships.forEach(userRelationship -> {
             if (userRelationship.getUserId().equals(updatePrivacySettingsRequestDTO.getId())) {
-                    messagingTemplate.convertAndSendToUser(userRelationship.getRelatedUserId().toString(), "/queue/update-privacy-response", updatePrivacySettingsRequestDTO);
+                    messagingTemplate.convertAndSendToUser(userRelationship.getRelatedUserId().toString(), "/queue/updated-privacy-response", updatePrivacySettingsRequestDTO);
             } else {
-                    messagingTemplate.convertAndSendToUser(userRelationship.getUserId().toString(), "/queue/update-privacy-response", updatePrivacySettingsRequestDTO);
+                    messagingTemplate.convertAndSendToUser(userRelationship.getUserId().toString(), "/queue/updated-privacy-response", updatePrivacySettingsRequestDTO);
 
             }
         });
@@ -130,8 +122,9 @@ public class ContactsService {
             throw new InvitationAlreadyExistsException("Invitation already exists for user with email: " + contactRequestDTO.userContactEmail());
         } else {
             Invitation invitation = invitationService.addInvitation(contactRequestDTO);
-            AddInvitationResponseDTO addInvitationResponseDTO = new AddInvitationResponseDTO(invitation.getId(), null, invitation.getInviteeEmail(), invitation.getContactName(), invitation.isInvited(), null, null, null);
-            messagingTemplate.convertAndSendToUser(invitation.getInviterUserId().toString(), "/queue/add-invitation", addInvitationResponseDTO);
+            FeignClientUserProfileResponseDTO dto = new FeignClientUserProfileResponseDTO();
+            dto.setInvitationResponseDTO(new InvitationResponseDTO(invitation.getId(),invitation.isInvited(),invitation.getContactName(),invitation.getInviterUserId()));
+            messagingTemplate.convertAndSendToUser(invitation.getInviterUserId().toString(), "/queue/add-invitation", dto);
         }
     }
 
