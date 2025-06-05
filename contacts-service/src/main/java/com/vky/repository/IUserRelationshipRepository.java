@@ -3,6 +3,7 @@ package com.vky.repository;
 import com.vky.repository.entity.UserRelationship;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -13,4 +14,10 @@ public interface IUserRelationshipRepository extends JpaRepository<UserRelations
     @Query("SELECT ur FROM UserRelationship ur " +
             "WHERE ur.userId = :id OR ur.relatedUserId = :id")
     List<UserRelationship> findByUserIdOrRelatedUserId(UUID id);
+    @Query("SELECT ur FROM UserRelationship ur WHERE " +
+            "(ur.userId = :userId AND ur.relatedUserId = :relatedUserId) OR " +
+            "(ur.userId = :relatedUserId AND ur.relatedUserId = :userId)")
+    Optional<UserRelationship> findRelationshipBetweenUsers(
+            @Param("userId") UUID userId,
+            @Param("relatedUserId") UUID relatedUserId);
 }
