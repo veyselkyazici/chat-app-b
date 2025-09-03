@@ -1,12 +1,15 @@
 package com.vky.manager;
 
-import com.vky.dto.request.NewUserCreateDTO;
+import com.vky.dto.response.ResetUserKeyDTO;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
-@FeignClient(url = "${raceapplication.url.user}api/v1/user",name = "user-service-userprofile",dismiss404 = true)
+import java.util.UUID;
+
+@FeignClient(name = "user-service", path = "/api/v1/user", dismiss404 = true)
 public interface IUserManager {
-    @PostMapping("/create-new-user")
-    void newUserCreate(NewUserCreateDTO dto);
+
+    @PostMapping("/reset-user-key")
+    void resetUserKey(@RequestBody ResetUserKeyDTO resetUserKeyDTO);
 }

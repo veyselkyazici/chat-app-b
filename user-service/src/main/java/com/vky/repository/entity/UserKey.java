@@ -34,6 +34,10 @@ public class UserKey extends BaseEntity{
     @Basic(fetch = FetchType.LAZY)
     @Column(name = "iv")
     private byte[] iv;
+    @Lob
+    @Basic(fetch = FetchType.EAGER)
+    @Column(name = "encrypted_private_key_with_master_key")
+    private byte[] encryptedPrivateKeyWithMasterKey;
 
 
     @OneToOne(fetch = FetchType.LAZY)

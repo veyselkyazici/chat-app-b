@@ -95,12 +95,12 @@ public class MailService {
             messageBodyPart.setContent(text, TEXT_HTML_ENCONDING);
             mimeMultipart.addBodyPart(messageBodyPart);
 
-            // Add images to the email body
-            BodyPart imageBodyPart = new MimeBodyPart();
-            DataSource dataSource = new FileDataSource(System.getProperty("user.home") + "/Downloads/picture.jpg");
-            imageBodyPart.setDataHandler(new DataHandler(dataSource));
-            imageBodyPart.setHeader("Content-ID", "image");
-            mimeMultipart.addBodyPart(imageBodyPart);
+//            // Add images to the email body
+//            BodyPart imageBodyPart = new MimeBodyPart();
+//            DataSource dataSource = new FileDataSource(System.getProperty("user.home") + "/Downloads/picture.jpg");
+//            imageBodyPart.setDataHandler(new DataHandler(dataSource));
+//            imageBodyPart.setHeader("Content-ID", "image");
+//            mimeMultipart.addBodyPart(imageBodyPart);
             message.setContent(mimeMultipart);
             mailSender.send(message);
         } catch (Exception exception) {

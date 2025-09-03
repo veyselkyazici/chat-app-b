@@ -1,9 +1,6 @@
 package com.vky.mapper;
 
-import com.vky.dto.response.ChatRoomMessageResponseDTO;
-import com.vky.dto.response.ChatRoomResponseDTO;
-import com.vky.dto.response.MessageFriendResponseDTO;
-import com.vky.dto.response.UserChatSettingsDTO;
+import com.vky.dto.response.*;
 import com.vky.repository.entity.ChatMessage;
 import com.vky.repository.entity.ChatRoom;
 import com.vky.repository.entity.UserChatSettings;
@@ -26,16 +23,15 @@ public interface IChatMapper {
     @Mapping(source = "encryptedKeyForSender", target = "encryptedKeyForSender", qualifiedByName = "byteArrayToBase64")
     MessageFriendResponseDTO toResponseDTO(final ChatMessage chatMessage);
 
-    ChatRoomResponseDTO chatRoomToDTO(ChatRoom chatRoom, List<ChatRoomMessageResponseDTO> messages);
 
     @Mapping(source = "encryptedMessageContent", target = "encryptedMessage", qualifiedByName = "byteArrayToBase64")
     @Mapping(source = "iv", target = "iv", qualifiedByName = "byteArrayToBase64")
     @Mapping(source = "encryptedKeyForRecipient", target = "encryptedKeyForRecipient", qualifiedByName = "byteArrayToBase64")
     @Mapping(source = "encryptedKeyForSender", target = "encryptedKeyForSender", qualifiedByName = "byteArrayToBase64")
     @Mapping(source = "seen", target = "isSeen")
-    ChatRoomMessageResponseDTO chatMessageToDTO(ChatMessage chatMessage);
+    MessageDTO chatMessageToDTO(ChatMessage chatMessage);
     // @Mapping(source = "seen", target = "isSeen") bunu tek donusume veriyoruz zaten list map yukarda tekli mapperi kullaniyor
-    List<ChatRoomMessageResponseDTO> chatMessagesToDTO(List<ChatMessage> chatMessages);
+    List<MessageDTO> chatMessagesToDTO(List<ChatMessage> chatMessages);
     @Mapping(source = "blocked", target = "isBlocked")
     @Mapping(source = "blockedMe", target = "isBlockedMe")
     @Mapping(source = "archived", target = "isArchived")

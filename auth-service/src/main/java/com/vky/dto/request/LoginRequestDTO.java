@@ -1,9 +1,6 @@
 package com.vky.dto.request;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,11 +11,13 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class LoginRequestDTO {
-    @Email(message = "Geçerli bir email adresi giriniz")
-    @NotBlank(message = "Email boş olamaz")
+    @Email(message = "Please enter a valid email address")
+    @NotBlank(message = "Email cannot be empty")
     private String email;
 
-    @NotBlank(message = "Şifre boş olamaz")
-    @Size(min = 6, max = 32, message = "Şifre en az 6, en fazla 32 karakter olmalıdır")
+    @NotBlank(message = "Password cannot be empty")
+    @Size(min = 6, max = 32, message = "Password must be 6-32 characters long")
     private String password;
+    @NotBlank()
+    private String recaptchaToken;
 }

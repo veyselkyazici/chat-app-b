@@ -53,23 +53,30 @@ public class ChatMessageService {
 
 
 
-    public MessagesDTO getLast30Messages(String chatRoomId, Pageable pageable) {
+    public ChatDTO getLast30Messages(String chatRoomId, Pageable pageable) {
         List<ChatMessage> chatMessages = chatMessageRepository.findTop30ByChatRoomId(chatRoomId, pageable).stream()
                 .sorted(Comparator.comparing(ChatMessage::getFullDateTime))
                 .toList();
-        boolean isLastPage = chatMessages.size() < pageable.getPageSize();
-        List<ChatRoomMessageResponseDTO> messages = IChatMapper.INSTANCE.chatMessagesToDTO(chatMessages);
-        return new MessagesDTO(messages, isLastPage);
-
+        return getChatDTO(pageable, chatMessages);
     }
 
-    public MessagesDTO getOlderMessages(String chatRoomId, Instant before, Pageable pageable) {
+    public ChatDTO getOlderMessages(String chatRoomId, Instant before, Pageable pageable) {
         List<ChatMessage> chatMessages = chatMessageRepository.findNext30ByChatRoomIdAndFullDateTimeBefore(chatRoomId, before, pageable);
-        boolean isLastPage = chatMessages.size() < pageable.getPageSize();
-        List<ChatRoomMessageResponseDTO> messages = IChatMapper.INSTANCE.chatMessagesToDTO(chatMessages);
-        return new MessagesDTO(messages, isLastPage);
+        return getChatDTO(pageable, chatMessages);
     }
 
+    private ChatDTO getChatDTO(Pageable pageable, List<ChatMessage> chatMessages) {
+        boolean isLastPage = chatMessages.size() < pageable.getPageSize();
+
+        ChatDTO chatDTO = new ChatDTO();
+        chatDTO.setParticipantIds(new ArrayList<>());
+        chatDTO.setMessages(IChatMapper.INSTANCE.chatMessagesToDTO(chatMessages));
+        chatDTO.setLastPage(!isLastPage);
+        chatDTO.setId(chatMessages.get(0).getChatRoomId());
+        chatDTO.getParticipantIds().add(chatMessages.get(0).getSenderId());
+        chatDTO.getParticipantIds().add(chatMessages.get(0).getRecipientId());
+        return chatDTO;
+    }
 
 
     public Map<String, LastMessageInfo> getLastMessagesForChatRooms(List<String> chatRoomIds) {

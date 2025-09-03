@@ -9,10 +9,8 @@ import java.util.Optional;
 
 @Repository
 public interface IUserChatSettingsRepository extends MongoRepository<UserChatSettings, String> {
-    List<UserChatSettings> findByUserId(String userId);
-    UserChatSettings findByUserIdAndChatRoomIdAndIsDeletedFalse(String userId, String chatRoomId);
+    Optional<UserChatSettings> findByUserIdAndChatRoomIdAndIsDeletedFalse(String userId, String chatRoomId);
     Optional<UserChatSettings> findByUserIdAndChatRoomId(String userId, String chatRoomId);
     List<UserChatSettings> findByUserIdAndIsDeletedFalse(String userId);
-    List<UserChatSettings> findByChatUserIdAndIsDeletedFalse(String userId);
     Optional<UserChatSettings> findByChatRoomIdAndUserId(String chatRoomId, String userId);
 }

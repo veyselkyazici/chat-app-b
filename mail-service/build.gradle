@@ -8,10 +8,11 @@ dependencies {
     implementation libs.postgresql
     implementation libs.springBootDataJpa
     implementation libs.springBootStarterMail
-//    implementation libs.springBootRabbitMQ
     implementation libs.springCloudConfigClient
     implementation libs.springBootStarterThymeleaf
     implementation libs.eurekaClient
+    implementation libs.redis
+    implementation libs.springBootWeb
     testImplementation "org.springframework.boot:spring-boot-starter-test"
 }
 

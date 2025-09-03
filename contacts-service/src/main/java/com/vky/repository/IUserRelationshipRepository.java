@@ -20,4 +20,16 @@ public interface IUserRelationshipRepository extends JpaRepository<UserRelations
     Optional<UserRelationship> findRelationshipBetweenUsers(
             @Param("userId") UUID userId,
             @Param("relatedUserId") UUID relatedUserId);
+
+    @Query("""
+        SELECT ur 
+        FROM UserRelationship ur 
+        WHERE 
+            (ur.userId = :userId AND ur.relatedUserId IN :chatIds) OR 
+            (ur.relatedUserId = :userId AND ur.userId IN :chatIds)
+    """)
+    List<UserRelationship> findRelationshipsForUser(
+            @Param("userId") UUID userId,
+            @Param("chatIds") List<UUID> chatIds
+    );
 }

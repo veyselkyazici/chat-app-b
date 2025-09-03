@@ -14,9 +14,7 @@ import java.util.UUID;
 @Data
 @Builder
 public class UpdateUserDTO {
-    @NotNull(message = "Id cannot be empty")
-    private UUID id;
     @NotNull(message = "Value cannot be empty")
-    @Size(min = 2, max = 50)
+    @Size(min = 2, max = 32,message = "Value must be 2-32 characters long")
     private String value;
 }

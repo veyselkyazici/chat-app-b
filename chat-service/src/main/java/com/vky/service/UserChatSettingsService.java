@@ -1,9 +1,9 @@
 package com.vky.service;
 
+import com.vky.expcetion.ErrorType;
+import com.vky.expcetion.ChatServiceException;
 import com.vky.repository.IUserChatSettingsRepository;
-import com.vky.repository.MongoTemplateUserChatSettings;
 import com.vky.repository.entity.UserChatSettings;
-import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -17,17 +17,15 @@ import java.util.stream.Collectors;
 @Service
 public class UserChatSettingsService {
     private final IUserChatSettingsRepository userChatSettingsRepository;
-    private final MongoTemplateUserChatSettings mongoTemplateUserChatSettings;
     private final ChatMessageService chatMessageService;
 
-    public UserChatSettingsService(IUserChatSettingsRepository userChatSettingsRepository, MongoTemplateUserChatSettings mongoTemplateUserChatSettings, ChatMessageService chatMessageService) {
+    public UserChatSettingsService(IUserChatSettingsRepository userChatSettingsRepository, ChatMessageService chatMessageService) {
         this.userChatSettingsRepository = userChatSettingsRepository;
-        this.mongoTemplateUserChatSettings = mongoTemplateUserChatSettings;
         this.chatMessageService = chatMessageService;
     }
 
     public UserChatSettings findByUserIdAndChatRoomId(String userId, String chatRoomId) {
-        return userChatSettingsRepository.findByUserIdAndChatRoomIdAndIsDeletedFalse(userId, chatRoomId);
+        return userChatSettingsRepository.findByUserIdAndChatRoomIdAndIsDeletedFalse(userId, chatRoomId).orElseThrow(() -> new ChatServiceException(ErrorType.USER_CHAT_SETTINGS_NOT_FOUND));
     }
 
     public UserChatSettings saveUserChatSettings(String chatId, String userId, String otherUserId){
@@ -77,9 +75,6 @@ public class UserChatSettingsService {
         List<UserChatSettings> settings = userChatSettingsRepository.findByUserIdAndIsDeletedFalse(userId);
         return settings.stream()
                 .collect(Collectors.toMap(UserChatSettings::getChatRoomId, Function.identity()));
-    }
-    public List<UserChatSettings> findReverseUserChatSettingsByUserIdList(String userId) {
-        return userChatSettingsRepository.findByChatUserIdAndIsDeletedFalse(userId);
     }
     public Optional<UserChatSettings> findUserChatSettingsByChatRoomIdAndUserId(String chatRoomId, String userId) {
         return userChatSettingsRepository.findByChatRoomIdAndUserId(chatRoomId, userId);

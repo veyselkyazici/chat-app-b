@@ -8,4 +8,5 @@ dependencies {
     implementation libs.springCloudStarterCircuitBreaker
     implementation libs.springCloudStarterCircuitBreakerReactor
     implementation libs.eurekaClient
+    implementation libs.redisReactive
 }

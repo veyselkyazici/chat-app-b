@@ -1,6 +1,9 @@
 package com.vky.controller;
 
-import com.vky.dto.request.*;
+import com.vky.dto.request.FindUserProfileByAuthIdRequestDTO;
+import com.vky.dto.request.PrivacySettingsRequestDTO;
+import com.vky.dto.request.UpdateUserDTO;
+import com.vky.dto.request.UserLastSeenRequestDTO;
 import com.vky.dto.response.*;
 import com.vky.service.UserProfileService;
 import jakarta.validation.Valid;
@@ -12,7 +15,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping("/api/v1/user")
@@ -26,82 +28,79 @@ public class UserController {
     }
 
     @PostMapping("/get-user-with-user-key-by-auth-id")
-    public ResponseEntity<ApiResponse<UserProfileResponseDTO>> getUserWithUserKeyByAuthId(@RequestBody @Valid FindUserProfileByAuthIdRequestDTO requestDTO) {
-        UserProfileResponseDTO responseDTO = userProfileService.findWithUserKeyByAuthId(requestDTO.getAuthId());
+    public ResponseEntity<ApiResponse<UserProfileResponseDTO>> getUserWithUserKeyByAuthId(@RequestHeader("X-Id") String tokenUserId) {
+        UserProfileResponseDTO responseDTO = userProfileService.findWithUserKeyByAuthId(tokenUserId);
+        System.out.println(responseDTO.getUserKey());
         return ResponseEntity.ok(new ApiResponse<>(true, "success", responseDTO));
     }
 
     @PutMapping("/update-user-name")
-    public ResponseEntity<ApiResponse<UpdateUserDTO>>  updateUserName(@RequestBody @Valid UpdateUserDTO dto)
+    public ResponseEntity<ApiResponse<UpdateUserDTO>>  updateUserName(@RequestBody @Valid UpdateUserDTO dto,@RequestHeader("X-Id") String tokenUserId)
     {
-        return ResponseEntity.ok(new ApiResponse<>(true, "success", userProfileService.updateUserName(dto)));
+        return ResponseEntity.ok(new ApiResponse<>(true, "success", userProfileService.updateUserName(dto,tokenUserId)));
 
     }
 
     @PutMapping("/update-user-about")
-    public ResponseEntity<ApiResponse<UpdateUserDTO>>  userAboutUpdate(@RequestBody @Valid UpdateUserDTO dto)
+    public ResponseEntity<ApiResponse<UpdateUserDTO>>  userAboutUpdate(@RequestBody @Valid UpdateUserDTO dto,@RequestHeader("X-Id") String tokenUserId)
     {
-        return ResponseEntity.ok(new ApiResponse<>(true, "success", userProfileService.updateUserAbout(dto)));
+        return ResponseEntity.ok(new ApiResponse<>(true, "success", userProfileService.updateUserAbout(dto,tokenUserId)));
     }
 
     @PutMapping("/update-user-last-seen")
-    public ResponseEntity<Void> updateUserLastSeen(@RequestBody UserLastSeenRequestDTO userLastSeenRequestDTO) {
-        this.userProfileService.updateUserLastSeen(userLastSeenRequestDTO);
+    public ResponseEntity<Void> updateUserLastSeen(@RequestHeader("X-Id") String tokenUserId) {
+        this.userProfileService.updateUserLastSeen(tokenUserId);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
     @GetMapping("/get-user-last-seen")
     public UserLastSeenResponseDTO getUserLastSeen(@RequestParam UUID userId) {
-        UserLastSeenResponseDTO response = this.userProfileService.getUserLastSeen(userId);
-        return response;
+        return this.userProfileService.getUserLastSeen(userId);
     }
-
-    @PostMapping("/get-user-with-privacy-settings-by-token")
-    public ResponseEntity<UserProfileResponseDTO> getUserWithPrivacySettingsByToken(@RequestBody UserIdRequestDTO userIdRequestDTO) {
-        TokenResponseDTO tokenResponseDto = userProfileService.tokenExractAuthId(userIdRequestDTO.getToken());
-        UserProfileResponseDTO userProfileResponseDTO = userProfileService.getUserById(tokenResponseDto.getUserId());
-        return ResponseEntity.ok(userProfileResponseDTO);
-    }
-
-    @PostMapping("/feign-get-user-by-id")
+    @PostMapping("/get-user-by-id")
     public UserProfileResponseDTO getFeignUserById(@RequestBody UUID userId) {
         return this.userProfileService.getUserById(userId);
     }
-    @PostMapping("/get-userEmail-ById")
-    public String getUserEmailById(@RequestBody UUID userId) {
-        UserProfileResponseDTO userProfileResponseDTO = this.userProfileService.getUserById(userId);
-        return userProfileResponseDTO.getEmail();
-    }
+
     @GetMapping("/get-user-email-by-id")
-    public String getUserEmailByIdd(@RequestParam("id") UUID id) {
+    public String getUserEmailById(@RequestParam("id") UUID id) {
         UserProfileResponseDTO userProfileResponseDTO = this.userProfileService.getUserById(id);
         return userProfileResponseDTO.getEmail();
     }
-    @PostMapping("/get-users-of-contacts")
-    public CompletableFuture<List<FeignClientUserProfileResponseDTO>> getUsersOfContacts(@RequestBody List<FeignClientUserProfileRequestDTO> userProfileRequestDTOList) {
-        return this.userProfileService.getUsersOfContactsAsync(userProfileRequestDTOList);
+    @PostMapping("/get-users")
+    public List<FeignClientUserProfileResponseDTO> getUsersOfContacts(@RequestBody List<UUID> ids) {
+        return this.userProfileService.getUsers(ids);
     }
 
-    @PostMapping("/get-users-of-chats")
-    public CompletableFuture<List<FeignClientUserProfileResponseDTO>> getUsersOfChats(@RequestBody List<ContactWithRelationshipDTO> userProfileRequestDTOList) {
-        return this.userProfileService.getUsersOfChatsAsync(userProfileRequestDTOList);
+    @PutMapping("/privacy-settings")
+    public ResponseEntity<ApiResponse<UserProfileResponseDTO>> updatePrivacySettings(
+            @RequestBody PrivacySettingsRequestDTO privacySettingsRequestDTO, @RequestHeader("X-Id") String tokenUserId) {
+
+        UserProfileResponseDTO response = userProfileService.updatePrivacySettings(privacySettingsRequestDTO, tokenUserId);
+        return ResponseEntity.ok(new ApiResponse<>(true, "success", response));
     }
 
-    @PutMapping("/{userId}/privacy-settings")
-    public ResponseEntity<UserProfileResponseDTO> updatePrivacySettings(
-            @PathVariable UUID userId,
-            @RequestBody PrivacySettingsRequestDTO privacySettingsRequestDTO) {
 
-        UserProfileResponseDTO response = userProfileService.updatePrivacySettings(userId, privacySettingsRequestDTO);
-        System.out.println("RESPONSE > " + response);
+    @PostMapping("/upload-profile-picture")
+    public ResponseEntity<ApiResponse<UserProfilePhotoURLResponseDTO>> uploadProfilePicture(@RequestParam("file") MultipartFile file, @RequestHeader("X-Id") String tokenUserId) {
+        return ResponseEntity.ok(new ApiResponse<>(true,"success",userProfileService.uploadProfilePhoto(file, tokenUserId)));
+    }
+
+    @PostMapping("/reset-user-key")
+    void resetUserKey(@RequestBody ResetUserKeyDTO resetUserKeyDTO) {
+        this.userProfileService.resetUserKey(resetUserKeyDTO);
+    }
+
+    @DeleteMapping("/remove-profile-picture")
+    public ResponseEntity<ApiResponse<Void>> removeProfilePicture(@RequestHeader("X-Id") String tokenUserId) {
+        userProfileService.removeProfilePicture(tokenUserId);
+
+        ApiResponse<Void> response = new ApiResponse<>(
+                true,
+                "Profile picture removed successfully",
+                null
+        );
+
         return ResponseEntity.ok(response);
     }
-
-
-    @PostMapping("/{userId}/upload-profile-picture")
-    public ResponseEntity<ApiResponse<UserProfilePhotoURLResponseDTO>> uploadProfilePicture(@PathVariable UUID userId, @RequestParam("file") MultipartFile file) {
-        return ResponseEntity.ok(new ApiResponse<>(true,"success",userProfileService.uploadProfilePhoto(userId, file)));
-    }
-
-
 }
 

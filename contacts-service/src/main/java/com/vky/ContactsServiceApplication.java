@@ -11,9 +11,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.Bean;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 @SpringBootApplication
@@ -23,15 +24,15 @@ public class ContactsServiceApplication {
         SpringApplication.run(ContactsServiceApplication.class, args);
     }
 
-    //    @Bean
+//    @Bean
 //    CommandLineRunner loadData(IInvitationRepository invitationRepository) {
 //        return args -> {
-//            UUID fixedUUID = UUID.fromString("7c6f47eb-dad2-44b3-a036-ffbf92343ae2");
+//            UUID fixedUUID = UUID.fromString("19039fbc-3adc-3722-b6ad-ca4063cf3618");
 //            // 80 adet Invitation nesnesi oluşturulması ve kaydedilmesi
-//            IntStream.range(0, 80).forEach(i -> {
+//            IntStream.range(0, 50).forEach(i -> {
 //                Invitation invitation = Invitation.builder()
-//                        .inviteeEmail("user" + i + "@example.com")
-//                        .contactName("User " + i)
+//                        .inviteeEmail("userInvitation" + i + "@example.com")
+//                        .contactName("userInvitation " + i)
 //                        .inviterUserId(fixedUUID)
 //                        .build();
 //                invitationRepository.save(invitation);
@@ -41,31 +42,27 @@ public class ContactsServiceApplication {
 //    @Bean
 //    public CommandLineRunner commandLineRunner(IContactsRepository contactsRepository, IUserRelationshipRepository userRelationshipRepository) {
 //        return args -> {
-//            for (int i = 6; i <= 50; i++) {
+//            for (int i = 0; i <= 200; i++) {
 //                String username = "User" + i;
-//                String email = username.toLowerCase() + "@gmail.com";
-//                UUID userId = UUID.fromString("b87ddabf-c7bf-4de2-b7e3-23ab264ba662");
-//                UUID userContactIdId = UUID.nameUUIDFromBytes(String.format("User%03d", i).getBytes());
-//                UUID contactsId = UUID.nameUUIDFromBytes(String.format("User%03d", i).getBytes());
+//                String email = username.toLowerCase() + "@gmailgmail.com";
+//                UUID userId = UUID.fromString("19039fbc-3adc-3722-b6ad-ca4063cf3618");
+//                UUID userContactIdId = UUID.nameUUIDFromBytes(String.format("User%04d", i).getBytes());
 //                Contacts contacts = Contacts.builder()
 //                        .userContactName(username)
 //                        .userId(userId)
 //                        .userContactId(userContactIdId)
-//                        .userEmail("veyselkaraniyazici@gmail.com")
+//                        .userEmail("veysel.06.fb@hotmail.com")
 //                        .userContactEmail(email)
-//                        .id(contactsId)
 //                        .build();
 //                UserRelationship userRelationship = new UserRelationship();
 //                userRelationship.setUserId(userId);
-//                userRelationship.setId(contactsId);
-//                userRelationship.setRelatedUserId(contactsId);
+//                userRelationship.setRelatedUserId(userContactIdId);
 //                userRelationship.setRelatedUserHasAddedUser(false);
 //                userRelationship.setUserHasAddedRelatedUser(true);
 //                contactsRepository.save(contacts);
-////                userRelationshipRepository.save(userRelationship);
-//                System.out.println("Kullanıcı eklendi: " + username + " Id: " + userContactIdId);
-//                System.out.println("Kullanıcı eklendi: " + username + " Id: " + contactsId);
+//                userRelationshipRepository.save(userRelationship);
 //            }
 //        };
 //    }
+
 }

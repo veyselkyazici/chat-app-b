@@ -18,11 +18,8 @@ public interface IUserManager {
     @GetMapping("/get-user-email-by-id")
     String getUserByEmailByIdd(@RequestParam("id") UUID id);
 
-    @PostMapping("/get-users-of-contacts")
-    List<FeignClientUserProfileResponseDTO> getUsersOfContacts(List<FeignClientUserProfileRequestDTO> userRequestDTOList);
-
-    @PostMapping("/get-users-of-chats")
-    List<FeignClientUserProfileResponseDTO> getUsersOfChats(List<ContactWithRelationshipDTO> userRequestDTOList);
-    @PostMapping("/feign-get-user-by-id")
+    @PostMapping("/get-users")
+    List<FeignClientUserProfileResponseDTO> getUsers(List<UUID> ids);
+    @PostMapping("/get-user-by-id")
     UserProfileResponseDTO getFeignUserById(@RequestBody UUID userId);
 }
