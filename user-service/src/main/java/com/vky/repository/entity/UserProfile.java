@@ -15,12 +15,12 @@ import java.util.UUID;
 @NoArgsConstructor
 @Data
 @SuperBuilder
-@ToString(exclude = {"privacySettings","image","userKey"},callSuper = true)
+@ToString(exclude = {"privacySettings","userKey"},callSuper = true)
 @Table(name = "users")
 @Entity
 @Where(clause = "is_deleted = false")
-@EqualsAndHashCode(exclude = {"privacySettings", "image","userKey"},callSuper = true)
-public class UserProfile extends BaseEntity{
+@EqualsAndHashCode(exclude = {"privacySettings", "userKey"},callSuper = true)
+public class UserProfile extends BaseEntityManualId{
     private UUID authId;
     private String email;
     private String firstName;
@@ -41,7 +41,7 @@ public class UserProfile extends BaseEntity{
     @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private PrivacySettings privacySettings;
 
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     private UserKey userKey;
 
 }

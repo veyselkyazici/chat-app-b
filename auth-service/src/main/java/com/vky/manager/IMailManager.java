@@ -7,12 +7,9 @@ import com.vky.dto.request.ForgotPasswordResetPasswordRequestDTO;
 import com.vky.dto.response.HttpResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 
-import java.util.UUID;
-
-@FeignClient(url = "${raceapplication.url.mail}api/v1/mail",name = "mail-service",dismiss404 = true)
+@FeignClient(name = "mail-service", path = "/api/v1/mail", dismiss404 = true)
 public interface IMailManager {
     @PostMapping("/create-forgot-password")
     ResponseEntity<Void> createForgotPassword(ForgotPasswordRequestDTO forgotPasswordRequestDTO);

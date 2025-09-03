@@ -12,5 +12,6 @@ dependencies {
     implementation libs.springBootRabbitMQ
     implementation libs.cloudinary
     implementation libs.bounycastle
+    implementation libs.springBootWeb
 }
 

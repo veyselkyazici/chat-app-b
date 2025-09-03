@@ -1,7 +1,7 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.1.2'
-    id 'io.spring.dependency-management' version '1.1.2'
+    id 'org.springframework.boot' version '3.5.4'
+    id 'io.spring.dependency-management' version '1.1.7'
 }
 
 allprojects{
@@ -13,16 +13,16 @@ allprojects{
     apply plugin : 'java-library'
     apply from: "${rootDir}/dependencies.gradle"
 }
-subprojects{
-    group 'com.vky'
-    version 'v.0.1'
-    sourceCompatibility = JavaVersion.VERSION_18
-    targetCompatibility = JavaVersion.VERSION_18
-    tasks.withType(JavaCompile) {
-        options.encoding = 'UTF-8'
+
+group = 'com.vky'
+version = 'v.0.1'
+
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(24)
     }
 }
-
 allprojects{
     repositories {
         mavenCentral()
@@ -33,10 +33,9 @@ allprojects{
             mavenCentral()
         }
     }
-
     dependencies {
         implementation libs.springBoot
-        implementation libs.springBootWeb
+
         implementation libs.springBootActuator
         implementation libs.springBootValidation
         developmentOnly libs.springBootDevtools
@@ -48,7 +47,11 @@ allprojects{
         implementation libs.openApi
         implementation libs.springOpenFeign
         implementation libs.javaJWT
-
+    }
+    dependencyManagement {
+        imports {
+            mavenBom "org.springframework.cloud:spring-cloud-dependencies:${versions.springCloud}"
+        }
     }
 }
 

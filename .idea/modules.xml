@@ -8,6 +8,7 @@
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/config-server/ChatApp.config-server.main.iml" filepath="$PROJECT_DIR$/.idea/modules/config-server/ChatApp.config-server.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/contacts-service/ChatApp.contacts-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/contacts-service/ChatApp.contacts-service.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/eureka-server/ChatApp.eureka-server.main.iml" filepath="$PROJECT_DIR$/.idea/modules/eureka-server/ChatApp.eureka-server.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/mail-service/ChatApp.mail-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/mail-service/ChatApp.mail-service.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/user-service/ChatApp.user-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/user-service/ChatApp.user-service.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/auth-service/WhatsappApp.auth-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/auth-service/WhatsappApp.auth-service.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/WhatsappApp.main.iml" filepath="$PROJECT_DIR$/.idea/modules/WhatsappApp.main.iml" />

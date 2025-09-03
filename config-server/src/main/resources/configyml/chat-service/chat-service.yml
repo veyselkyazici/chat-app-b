@@ -1,0 +1,58 @@
+server:
+  port: ${SERVER_PORT:9040}
+
+spring:
+  application:
+    name: chat-service
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+  data:
+    mongodb:
+      username: ${MONGODB_USERNAME}
+      password: ${MONGODB_PASSWORD}
+      host: ${MONGODB_HOST}
+      port: ${MONGODB_PORT}
+      database: ${MONGODB_DB}
+      authentication-database: admin
+  jpa:
+    generate-ddl: true
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+        globally_quoted_identifiers: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  redis:
+    host: ${REDIS_HOST}
+    port: ${REDIS_PORT}
+
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    instance-id: ${spring.application.name}:${server.port}
+
+raceapplication:
+  url:
+    auth: http://localhost:${AUTH_PORT}/
+    mail: http://localhost:${MAIL_PORT}/
+    user: http://localhost:${USER_PORT}/
+    contacts: http://localhost:${CONTACTS_PORT}/
+    chat: http://localhost:${CHAT_PORT}/
+
+application:
+  security:
+    jwt:
+      secret-key: ${SECRET_KEY}
+      expiration: ${EXPIRATION}
+      refresh-token:
+        expiration: ${REFRESH_TOKEN_EXPIRATION}

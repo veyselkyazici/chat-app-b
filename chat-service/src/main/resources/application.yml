@@ -5,4 +5,6 @@ spring:
   config:
     import: "configserver:"
   application:
-    name: chat-service-application
+    name: chat-service
+  profiles:
+    active: dev

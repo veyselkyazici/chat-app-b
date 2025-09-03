@@ -5,5 +5,8 @@ spring:
   config:
     import: "configserver:"
   application:
-    name: mail-service-application
+    name: mail-service
+  profiles:
+    active: dev
+
 

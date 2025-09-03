@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 public class UserStatusMessage {
     private String userId;
     private String friendId;
-    private boolean online;
+    private String status;
     private Instant lastSeen;
 
 }

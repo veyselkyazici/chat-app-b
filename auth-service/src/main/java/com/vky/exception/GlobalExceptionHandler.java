@@ -3,8 +3,8 @@ package com.vky.exception;
 import com.vky.dto.response.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.InternalAuthenticationServiceException;
+//import org.springframework.security.authentication.BadCredentialsException;
+//import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -29,8 +29,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(errorType.getHttpStatus())
                 .body(new ApiResponse<>(false, errorType.getMessage(), List.of(errorMessage)));
     }
-
-
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Void>> handleValidationExceptions(MethodArgumentNotValidException ex) {
@@ -61,16 +59,16 @@ public class GlobalExceptionHandler {
                 .body(new ApiResponse<>(false, "Internal server error", List.of(errorMessage)));
     }
 
-    @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<ApiResponse<Void>> handleBadCredentialsException(BadCredentialsException ex) {
-        ErrorMessage errorMessage = ErrorMessage.builder()
-                .code(ErrorType.INVALID_CREDENTIALS.getCode())
-                .message("Incorrect email address or password.")
-                .fields(Collections.emptyList())
-                .build();
-
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(new ApiResponse<>(false, "Incorrect email address or password.", List.of(errorMessage)));
-    }
+//    @ExceptionHandler(BadCredentialsException.class)
+//    public ResponseEntity<ApiResponse<Void>> handleBadCredentialsException(BadCredentialsException ex) {
+//        ErrorMessage errorMessage = ErrorMessage.builder()
+//                .code(ErrorType.INVALID_CREDENTIALS.getCode())
+//                .message("Incorrect email address or password.")
+//                .fields(Collections.emptyList())
+//                .build();
+//
+//        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+//                .body(new ApiResponse<>(false, "Incorrect email address or password.", List.of(errorMessage)));
+//    }
 
 }

@@ -1,0 +1,62 @@
+server:
+  port: ${SERVER_PORT:9000}
+
+spring:
+  application:
+    name: auth-service
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+  cloud:
+    openfeign:
+      clients:
+        mail-service:
+          url: ${raceapplication.url.mail}
+        user-service:
+          url: ${raceapplication.url.user}
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_SQL_HOST}:${POSTGRES_SQL_PORT}/${POSTGRES_SQL_DB}
+    username: ${POSTGRES_SQL_USERNAME}
+    password: ${POSTGRES_SQL_PASSWORD}
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+  jpa:
+    generate-ddl: true
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+        globally_quoted_identifiers: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    instance-id: ${spring.application.name}:${server.port}
+
+raceapplication:
+  url:
+    auth: http://localhost:${AUTH_PORT}/
+    mail: http://localhost:${MAIL_PORT}/
+    user: http://localhost:${USER_PORT}/
+    contacts: http://localhost:${CONTACTS_PORT}/
+    chat: http://localhost:${CHAT_PORT}/
+
+
+application:
+  security:
+    jwt:
+      secret-key: ${SECRET_KEY}
+      expiration: ${EXPIRATION}
+      refresh-token:
+        expiration: ${REFRESH_TOKEN_EXPIRATION}

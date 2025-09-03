@@ -5,5 +5,7 @@ spring:
   config:
     import: "configserver:"
   application:
-    name: auth-service-application
+    name: auth-service
+  profiles:
+    active: dev
 

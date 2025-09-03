@@ -1,39 +1,27 @@
 package com.vky.exception;
 
+import com.vky.dto.response.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.util.Collections;
+import java.util.List;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    private record ErrorDetail(int errorCode, String errorType) { }
 
-    @ExceptionHandler(UserNotFoundException.class)
-    public ResponseEntity<String> handleUserNotFound(UserNotFoundException e) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-    }
+    @ExceptionHandler(ContactsServiceException.class)
+    public ResponseEntity<ApiResponse<?>> handleUserServiceException(ContactsServiceException ex) {
 
-    @ExceptionHandler(InvalidDataException.class)
-    public ResponseEntity<String> handleInvalidData(InvalidDataException e) {
-        return ResponseEntity.badRequest().body(e.getMessage());
-    }
-
-    @ExceptionHandler(InvitationAlreadyExistsException.class)
-    public ResponseEntity<String> handleInvitationAlreadyExists(InvitationAlreadyExistsException e) {
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
-    }
-    @ExceptionHandler(ContactAlreadyExistsException.class)
-    public ResponseEntity<String> handleContactAlreadyExists(ContactAlreadyExistsException e) {
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
-    }
-
-    @ExceptionHandler(ContactNotFoundException.class)
-    public ResponseEntity<String> handleContactNotFound(ContactNotFoundException e) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-    }
-    @ExceptionHandler(InvitationNotFoundException.class)
-    public ResponseEntity<String> handleInvitationNotFound(InvitationNotFoundException e) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        return ResponseEntity.status(ex.getErrorType().getHttpStatus())
+                .body(new ApiResponse<>(
+                        false,
+                        ex.getMessage(),
+                        new ErrorDetail(ex.getErrorType().getCode(), ex.getErrorType().name())
+                ));
     }
 
     @ExceptionHandler(Exception.class)
