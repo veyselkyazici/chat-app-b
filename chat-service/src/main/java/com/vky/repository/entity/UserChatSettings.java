@@ -18,7 +18,6 @@ import java.time.Instant;
 @Document(collection = "user_chat_settings")
 public class UserChatSettings extends BaseEntity{
     private String userId;
-    private String chatUserId;
     private String chatRoomId;
     private int unreadMessageCount;
     private boolean isArchived;

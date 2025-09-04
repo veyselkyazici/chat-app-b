@@ -11,8 +11,9 @@ import java.util.List;
 
 public interface IChatMessageRepository extends MongoRepository<ChatMessage, String> {
     List<ChatMessage> findByChatRoomIdAndIsDeletedFalse(String chatRoomId);
-    @Query("{ 'chatRoomId': ?0 }")
-    List<ChatMessage> findTop30ByChatRoomId(String chatRoomId, Pageable pageable);
+    @Query("{ 'chatRoomId': ?0, 'fullDateTime': { $gt: ?1 } }")
+    List<ChatMessage> findTop30ByChatRoomIdAfterDeletedTime(String chatRoomId, Instant deletedTime, Pageable pageable);
+
     @Query("{ 'chatRoomId': ?0, 'fullDateTime': { $lt: ?1 } }")
     List<ChatMessage> findNext30ByChatRoomIdAndFullDateTimeBefore(String chatRoomId, Instant before, Pageable pageable);
     @Query("{'chatRoomId': ?0, 'recipientId': ?1}")
@@ -29,9 +30,9 @@ public interface IChatMessageRepository extends MongoRepository<ChatMessage, Str
     })
     List<ChatMessage> findLatestMessagesByChatRoomIds(List<String> chatRoomIds);
     @Aggregation(pipeline = {
-            "{ '$match': { 'chatRoomId': ?0 } }", // Tek bir chatRoomId ile eşleşen kayıtları filtreler
-            "{ '$sort': { 'fullDateTime': -1 } }", // Tarihe göre azalan sıralama yapar (en yeni önce)
-            "{ '$limit': 1 }" // Sadece en yeni mesajı döner
+            "{ '$match': { 'chatRoomId': ?0 } }",
+            "{ '$sort': { 'fullDateTime': -1 } }",
+            "{ '$limit': 1 }"
     })
     ChatMessage findLatestMessageByChatRoomId(String chatRoomId);
 

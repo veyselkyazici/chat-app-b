@@ -25,14 +25,13 @@ public class UserChatSettingsService {
     }
 
     public UserChatSettings findByUserIdAndChatRoomId(String userId, String chatRoomId) {
-        return userChatSettingsRepository.findByUserIdAndChatRoomIdAndIsDeletedFalse(userId, chatRoomId).orElseThrow(() -> new ChatServiceException(ErrorType.USER_CHAT_SETTINGS_NOT_FOUND));
+        return userChatSettingsRepository.findByUserIdAndChatRoomId(userId, chatRoomId).orElseThrow(() -> new ChatServiceException(ErrorType.USER_CHAT_SETTINGS_NOT_FOUND));
     }
 
     public UserChatSettings saveUserChatSettings(String chatId, String userId, String otherUserId){
         UserChatSettings userChatSettings = UserChatSettings.builder()
                         .isDeleted(false)
                 .userId(userId)
-                .chatUserId(otherUserId)
                                 .chatRoomId(chatId)
                                         .deletedTime(null)
                                                 .isArchived(false)
@@ -50,25 +49,17 @@ public class UserChatSettingsService {
     }
 
     public UserChatSettings findUserChatSettingsByUserIdAndChatRoomId(String userId, String chatRoomId) {
-        Optional<UserChatSettings> optionalSettings = userChatSettingsRepository.findByUserIdAndChatRoomId(userId, chatRoomId);
-
-        if (optionalSettings.isEmpty()) {
-            throw new RuntimeException("Beklenmedik bir hata olustu");
-        }
-
-        UserChatSettings settings = optionalSettings.get();
-
-        if (settings.isDeleted()) {
-            System.out.println("SETTINGS OPTIONAL > " + settings);
-            settings.setDeleted(false);
-            settings.setDeletedTime(Instant.now());
-            return userChatSettingsRepository.save(settings);
-            
-        } else {
-            System.out.println("SETTINGS OPTIONAL ELSE > " + settings);
-            return settings;
-        }
-
+        return userChatSettingsRepository.findByUserIdAndChatRoomId(userId, chatRoomId)
+                .map(settings -> {
+                    if (settings.isDeleted()) {
+                        settings.setDeleted(false);
+                        return userChatSettingsRepository.save(settings);
+                    }
+                    return settings;
+                })
+                .orElseThrow(() -> new ChatServiceException(
+                        ErrorType.USER_CHAT_SETTINGS_NOT_FOUND
+                ));
     }
 
     public Map<String, UserChatSettings> findUserChatSettingsByUserId(String userId) {

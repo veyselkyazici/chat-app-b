@@ -16,6 +16,7 @@ public class UnreadMessageCountService {
     private final RedisTemplate<String, Object> redisTemplate;
     private final UserChatSettingsService userChatSettingsService;
     private final RabbitMQProducer rabbitMQProducer;
+    private final ChatMessageService chatMessageService;
     private static final Duration REDIS_TTL = Duration.ofHours(24);
 
     public int incrementUnreadCount(String chatRoomId, String recipientId, String senderId) {
@@ -38,12 +39,12 @@ public class UnreadMessageCountService {
 
         Integer currentCount = (Integer) redisTemplate.opsForValue().get(redisKey);
         if (currentCount == null) {
+
             currentCount = setUnreadCountFromMongo(chatRoomId, recipientId);
         }
-
+        chatMessageService.setIsSeenUpdateForUnreadMessageCount(chatRoomId,recipientId,currentCount);
         redisTemplate.opsForValue().set(redisKey, 0, REDIS_TTL);
 
-        rabbitMQProducer.updateUnreadCountToMongo(chatRoomId, recipientId, senderId, 0);
         return currentCount;
     }
 
@@ -68,8 +69,13 @@ public class UnreadMessageCountService {
         return unreadCount;
     }
 
-    private String generateUnreadKey(String chatRoomId, String recipientId) {
+    public String generateUnreadKey(String chatRoomId, String recipientId) {
         return String.format("unread:%s:%s", chatRoomId, recipientId);
+    }
+
+    public void deleteUnreadMessageCount(String chatRoomId, String userId) {
+        String redisKey = generateUnreadKey(chatRoomId, userId);
+        redisTemplate.delete(redisKey);
     }
 }
 

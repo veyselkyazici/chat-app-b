@@ -9,9 +9,11 @@ import com.vky.service.AuthService;
 import com.vky.service.TokenBlacklistService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.util.Map;
 import java.util.UUID;
 
@@ -46,10 +48,15 @@ public class AuthController {
     }
 
 
-    @PostMapping("/save-verified-account")
+    @PostMapping("/save-verified-account-id")
     public ResponseEntity<Void> saveVerifiedAccount(@RequestBody UUID id) {
-        authService.saveVerifiedAccount(id);
-        return ResponseEntity.ok().build();
+        boolean isSuccess = authService.saveVerifiedAccountId(id);
+
+        if (isSuccess) {
+            return ResponseEntity.ok().build();  // redirect yerine 200 OK
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
     }
 
     @PostMapping("create-forgot-password")

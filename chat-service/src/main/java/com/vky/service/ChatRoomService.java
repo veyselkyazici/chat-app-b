@@ -38,6 +38,7 @@ public class ChatRoomService {
     private final IContactsManager contactsManager;
     private final RabbitMQProducer rabbitMQProducer;
     private final SimpMessagingTemplate messagingTemplate;
+    private final UnreadMessageCountService unreadMessageCountService;
 
     public ChatRoom chatRoomSave(String userId, String friendId) {
         List<String> participantIds = new ArrayList<>();
@@ -62,28 +63,6 @@ public class ChatRoomService {
             return ChatRoomWithUserChatSettingsDTO.builder().id(chatRoomSave.getId()).userId(userId).participantIds(chatRoomSave.getParticipantIds()).friendId(friendId).userChatSettings(userChatSettings).build();
         }
     }
-
-    public CheckChatRoomExistsResponseDTO checkChatRoomExists(String userId, String friendId) {
-        List<String> ids = new ArrayList<>();
-        ids.add(userId);
-        ids.add(friendId);
-        ChatRoom chatRoom = this.chatRoomRepository.findByParticipantIdsContainsAll(ids);
-        CheckChatRoomExistsResponseDTO checkChatRoomExistsResponseDTO = new CheckChatRoomExistsResponseDTO();
-
-        if (chatRoom != null) {
-            UserChatSettings userChatSettings = userChatSettingsService.findByUserIdAndChatRoomId(userId, chatRoom.getId());
-            UserChatSettingsDTO userChatSettingsDTO = IChatMapper.INSTANCE.userChatSettingsToDTO(userChatSettings);
-            checkChatRoomExistsResponseDTO.setId(chatRoom.getId());
-            checkChatRoomExistsResponseDTO.setExists(true);
-            checkChatRoomExistsResponseDTO.setUserChatSettings(userChatSettingsDTO);
-        } else {
-            checkChatRoomExistsResponseDTO.setExists(false);
-        }
-        return checkChatRoomExistsResponseDTO;
-
-    }
-
-
 
     public List<ChatRoom> getUserChatRoomsAndDeletedFalse(List<String> chatRoomIds) {
         return chatRoomRepository.findAllByChatRoomIdsIn(chatRoomIds);
@@ -140,18 +119,14 @@ public class ChatRoomService {
                             profiles
                     ))
                     .filter(Objects::nonNull)
-                    .sorted(Comparator.comparingInt(chatSummary ->
-                            extractNumericPart(chatSummary.getUserProfileResponseDTO().getEmail())))
+                    .sorted(Comparator.comparing(
+                            (ChatSummaryDTO c) -> c.getChatDTO().getMessages().get(0).getFullDateTime()
+                    ).reversed())
                     .collect(Collectors.toList());
             return CompletableFuture.completedFuture(chatSummaries);
         } catch (Exception e) {
             throw new RuntimeException("Error fetching chat summaries", e);
         }
-    }
-
-    private int extractNumericPart(String email) {
-        String numericPart = email.replaceAll("[^0-9]", "");
-        return Integer.parseInt(numericPart);
     }
 
     public CompletableFuture<ChatSummaryDTO>  getUserChatSummary(String userId, String userContactId, String chatRoomId) {
@@ -258,8 +233,9 @@ public class ChatRoomService {
     }
 
     public ChatDTO getLast30Messages(String chatRoomId, int limit, String userId) {
+        UserChatSettings userChatSettings = userChatSettingsService.findByUserIdAndChatRoomId(userId, chatRoomId);
         Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "fullDateTime"));
-        return chatMessageService.getLast30Messages(chatRoomId, pageable);
+        return chatMessageService.getLast30Messages(chatRoomId, pageable, userChatSettings.getDeletedTime());
     }
 
     public ChatDTO getOlderMessages(String chatRoomId, Instant before, int limit, String userId) {
@@ -306,15 +282,17 @@ public class ChatRoomService {
             userChatSettingsArr[1] = contactsUserChatSettings;
             userChatSettingsService.updateUserChatSettingsSaveAll(userChatSettingsArr);
             messagingTemplate.convertAndSendToUser(chatSummaryDTO.getContactsDTO().getUserContactId().toString(), "/queue/unblock", contactsUserChatSettings);
-
     }
 
     public void deleteChat(UserChatSettingsDTO userChatSettingsDTO, String userId) {
         UserChatSettings userSettings = this.userChatSettingsService.findByUserIdAndChatRoomId(userId, userChatSettingsDTO.getChatRoomId());
         userSettings.setDeleted(true);
+        userSettings.setUnreadMessageCount(0);
+        unreadMessageCountService.generateUnreadKey(userSettings.getChatRoomId(),userId);
         // ToDo Eğer bu chat ten tekrar mesaj gelir veya bu chat e mesaj gönderilirse. deletedTime dan sonraki mesajlar cekilecek ve tekrar deleted false olarak güncellenmeli
         userSettings.setDeletedTime(Instant.now());
         userChatSettingsService.updateUserChatSettings(userSettings);
+        unreadMessageCountService.deleteUnreadMessageCount(userSettings.getChatRoomId(),userId);
     }
 
     public void readMessage(UnreadMessageCountDTO unreadMessageCountDTO) {

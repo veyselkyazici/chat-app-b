@@ -18,6 +18,7 @@ public class MessageDTO {
     private String senderId;
     private String recipientId;
     private String encryptedMessage;
+    private String decryptedMessage;
     private String iv;
     private String encryptedKeyForRecipient;
     private String encryptedKeyForSender;

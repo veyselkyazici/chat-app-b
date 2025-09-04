@@ -118,7 +118,7 @@ public class AuthService {
             throw new AuthManagerException(ErrorType.INVALID_TOKEN);
         }
     }
-    @Transactional
+    @Transactional(rollbackFor=Exception.class)
     public void register(RegisterRequestDTO registerRequestDTO) {
         captcha(registerRequestDTO.getRecaptchaToken(),"register");
         Optional<Auth> optionalAuth = authRepository.findAuthByAndEmailIgnoreCase(registerRequestDTO.getEmail());
@@ -181,12 +181,25 @@ public class AuthService {
         return this.authRepository.findAuthByAndEmailIgnoreCase(email);
     }
 
-    public void saveVerifiedAccount(UUID id) {
+    public boolean saveVerifiedAccountId(UUID id) {
         Auth existingAuth = authRepository.findById(id).orElse(null);
         if (existingAuth != null) {
             existingAuth.setApproved(true);
             this.authRepository.save(existingAuth);
+            return true;
         } else {
+            return false;
+        }
+
+    }
+    public boolean saveVerifiedAccountEmail(String email) {
+        Auth existingAuth = authRepository.findByEmailIgnoreCase(email).orElse(null);
+        if (existingAuth != null) {
+            existingAuth.setApproved(true);
+            this.authRepository.save(existingAuth);
+            return true;
+        } else {
+            return false;
         }
 
     }

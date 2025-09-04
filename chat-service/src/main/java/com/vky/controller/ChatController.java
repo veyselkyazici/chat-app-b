@@ -39,7 +39,7 @@ public class ChatController {
 
     @MessageMapping("/read-message")
     public void readMessage(@Payload UnreadMessageCountDTO unreadMessageCountDTO, Principal principal) {
-        unreadMessageCountDTO.setSenderId(principal.getName());
+        unreadMessageCountDTO.setRecipientId(principal.getName());
         chatRoomService.readMessage(unreadMessageCountDTO);
     }
 
@@ -78,19 +78,15 @@ public class ChatController {
     }
 
     @PutMapping("/chat-block")
-    public ResponseEntity<ApiResponse<?>> chatBlock(@RequestBody ChatSummaryDTO chatSummaryDTO, @RequestHeader("X-Id") String tokenUserId) {
+    public ResponseEntity<Void> chatBlock(@RequestBody ChatSummaryDTO chatSummaryDTO, @RequestHeader("X-Id") String tokenUserId) {
         this.chatRoomService.chatBlock(chatSummaryDTO, tokenUserId);
-        String message = chatSummaryDTO.getUserProfileResponseDTO().getEmail() + " kişisini engellediniz.";
-        Map<String, String> response = Map.of("message", message);
-        return ResponseEntity.ok(new ApiResponse<>(true, "success", response));
+        return ResponseEntity.ok().build();
     }
 
     @PutMapping("/chat-unblock")
-    public ResponseEntity<ApiResponse<?>> chatUnblock(@RequestBody ChatSummaryDTO chatSummaryDTO, @RequestHeader("X-Id") String tokenUserId) {
+    public ResponseEntity<Void> chatUnblock(@RequestBody ChatSummaryDTO chatSummaryDTO, @RequestHeader("X-Id") String tokenUserId) {
         this.chatRoomService.chatUnblock(chatSummaryDTO, tokenUserId);
-        Map<String, String> response = new HashMap<>();
-        response.put("message", chatSummaryDTO.getUserProfileResponseDTO().getEmail() + " kişisinin engelini kaldırdınız.");
-        return ResponseEntity.ok(new ApiResponse<>(true,"success",response));
+        return ResponseEntity.ok().build();
     }
 
     @PutMapping("/delete-chat")

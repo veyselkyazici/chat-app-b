@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.Map;
 
@@ -31,22 +32,15 @@ public class MailController {
         return ResponseEntity.ok().build();
     }
     @GetMapping()
-    public ResponseEntity<HttpResponse> confirmUserAccount(@RequestParam("token") String verificationToken) {
-        Boolean isSuccess = confirmationService.verifyToken(verificationToken);
-        return ResponseEntity.ok().body(
-                HttpResponse.builder()
-                        .timeStamp(LocalDateTime.now().toString())
-                        .data(Map.of("Success", isSuccess))
-                        .message("Account Verified")
-                        .status(HttpStatus.OK)
-                        .statusCode(HttpStatus.OK.value())
-                        .build());
+    public ResponseEntity<Void> confirmUserAccount(@RequestParam("token") String verificationToken) {
+        confirmationService.verifyToken(verificationToken);
+        return ResponseEntity.ok().build();
     }
 
 
     @PostMapping("/send-invitation-email")
     public ResponseEntity<String> sendInvitationEmail(@RequestBody SendInvitationEmailDTO sendInvitationEmailDTO){
         mailService.sendInvitationEmail(sendInvitationEmailDTO);
-        return ResponseEntity.ok("Davet başarıyla gönderildi.");
+        return ResponseEntity.ok("Invitation sent successfully.");
     }
 }
