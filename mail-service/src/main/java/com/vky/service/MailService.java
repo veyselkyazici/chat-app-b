@@ -51,69 +51,50 @@ public class MailService {
             helper.setSubject(NEW_USER_ACCOUNT_VERIFICATION);
             helper.setFrom(fromEmail);
             helper.setTo(email);
-            //helper.setText(text, true);
+
             Context context = new Context();
             context.setVariables(Map.of("name", email, "url", getVerificationUrl(host, token)));
             String text = templateEngine.process(EMAIL_TEMPLATE, context);
 
-
             MimeMultipart mimeMultipart = new MimeMultipart("related");
             BodyPart messageBodyPart = new MimeBodyPart();
             messageBodyPart.setContent(text, TEXT_HTML_ENCONDING);
             mimeMultipart.addBodyPart(messageBodyPart);
 
-
-            BodyPart imageBodyPart = new MimeBodyPart();
-            DataSource dataSource = new FileDataSource(System.getProperty("user.home") + "/Downloads/picture.jpg");
-            imageBodyPart.setDataHandler(new DataHandler(dataSource));
-            imageBodyPart.setHeader("Content-ID", "image");
-            mimeMultipart.addBodyPart(imageBodyPart);
             message.setContent(mimeMultipart);
             mailSender.send(message);
         } catch (Exception exception) {
             throw new RuntimeException(exception.getMessage());
         }
-
     }
+
     @Async
     public void sendHtmlEmailWithEmbeddedFilesForgotPassword(String email, String oneTimePassword) {
         try {
             MimeMessage message = getMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, UTF_8_ENCODING);
+            MimeMessageHelper helper = new MimeMessageHelper(message, UTF_8_ENCODING);
             helper.setPriority(1);
             helper.setSubject(FORGOT_PASSWORD);
             helper.setFrom(fromEmail);
             helper.setTo(email);
-            //helper.setText(text, true);
+
             Context context = new Context();
             context.setVariables(Map.of("name", email, "oneTimePassword", oneTimePassword));
             String text = templateEngine.process(FORGOT_PASSWORD_TEMPLATE, context);
 
-            // Add HTML email body
-            MimeMultipart mimeMultipart = new MimeMultipart("related");
-            BodyPart messageBodyPart = new MimeBodyPart();
-            messageBodyPart.setContent(text, TEXT_HTML_ENCONDING);
-            mimeMultipart.addBodyPart(messageBodyPart);
-
-//            // Add images to the email body
-//            BodyPart imageBodyPart = new MimeBodyPart();
-//            DataSource dataSource = new FileDataSource(System.getProperty("user.home") + "/Downloads/picture.jpg");
-//            imageBodyPart.setDataHandler(new DataHandler(dataSource));
-//            imageBodyPart.setHeader("Content-ID", "image");
-//            mimeMultipart.addBodyPart(imageBodyPart);
-            message.setContent(mimeMultipart);
+            helper.setText(text, true);
             mailSender.send(message);
         } catch (Exception exception) {
             throw new RuntimeException(exception.getMessage());
         }
-
     }
+
 
     @Async
     public void sendInvitationEmail(SendInvitationEmailDTO sendInvitationEmailDTO) {
         try {
             MimeMessage message = getMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, UTF_8_ENCODING);
+            MimeMessageHelper helper = new MimeMessageHelper(message, UTF_8_ENCODING);
             helper.setPriority(1);
             helper.setSubject(INVITATION);
             helper.setFrom(fromEmail);
@@ -126,22 +107,14 @@ public class MailService {
             ));
             String text = templateEngine.process(INVITATION_TEMPLATE, context);
 
-            MimeMultipart mimeMultipart = new MimeMultipart("related");
-            BodyPart messageBodyPart = new MimeBodyPart();
-            messageBodyPart.setContent(text, TEXT_HTML_ENCONDING);
-            mimeMultipart.addBodyPart(messageBodyPart);
-
-            message.setContent(mimeMultipart);
+            helper.setText(text, true);
             mailSender.send(message);
         } catch (Exception exception) {
-            throw new InvitationException("Davet gönderilirken bir hata oluştu.");
+            throw new InvitationException("An error occurred while sending the invitation.");
         }
     }
+
     private MimeMessage getMimeMessage() {
         return mailSender.createMimeMessage();
-    }
-
-    private String getContentId(String filename) {
-        return "<" + filename + ">";
     }
 }

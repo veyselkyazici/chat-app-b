@@ -53,8 +53,11 @@ public class ChatMessageService {
 
 
 
-    public ChatDTO getLast30Messages(String chatRoomId, Pageable pageable) {
-        List<ChatMessage> chatMessages = chatMessageRepository.findTop30ByChatRoomId(chatRoomId, pageable).stream()
+    public ChatDTO getLast30Messages(String chatRoomId, Pageable pageable, Instant fullDateTime) {
+        Instant effectiveDeletedTime = fullDateTime == null ? Instant.EPOCH : fullDateTime;
+        List<ChatMessage> chatMessages = chatMessageRepository
+                .findTop30ByChatRoomIdAfterDeletedTime(chatRoomId, effectiveDeletedTime, pageable)
+                .stream()
                 .sorted(Comparator.comparing(ChatMessage::getFullDateTime))
                 .toList();
         return getChatDTO(pageable, chatMessages);
@@ -112,7 +115,7 @@ public class ChatMessageService {
         }
         List<ChatMessage> chatMessageList = chatMessageRepository.saveAll(chatMessages);
         ChatMessage message = chatMessageList.get(0);
-        String senderId = message.getSenderId() == userId ? message.getRecipientId() : message.getSenderId();
+        String senderId = message.getSenderId().equals(userId) ? message.getRecipientId() : message.getSenderId();
         messagingTemplate.convertAndSendToUser(
                 senderId,
                 "/queue/read-messages",

@@ -8,7 +8,6 @@ public class EmailUtils {
     }
 
     public static String getVerificationUrl(String host, String token) {
-        System.out.println("Verification URL: " + host + " Token :" + token);
-        return host + "/api/v1/mail?token=" + token;
+        return host + "/verify?token=" + token;
     }
 }

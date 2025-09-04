@@ -14,7 +14,6 @@ import java.time.Instant;
 public class UserChatSettingsDTO {
     private String id;
     private String userId;
-    private String chatUserId;
     private String chatRoomId;
     private int unreadMessageCount;
     private boolean isArchived;

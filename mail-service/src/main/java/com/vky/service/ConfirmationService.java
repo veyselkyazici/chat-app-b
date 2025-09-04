@@ -1,6 +1,8 @@
 package com.vky.service;
 
 import com.vky.dto.request.CreateConfirmationRequestDTO;
+import com.vky.exception.ErrorType;
+import com.vky.exception.MailServiceException;
 import com.vky.manager.IAuthManager;
 import com.vky.repository.ConfirmationRepository;
 import com.vky.repository.entity.Confirmation;
@@ -24,7 +26,9 @@ public class ConfirmationService {
     public void createConfirmation(CreateConfirmationRequestDTO createConfirmationRequestDTO) {
         Confirmation confirmation = Confirmation.builder()
                 .verificationToken(UUID.randomUUID().toString())
-                .authId(createConfirmationRequestDTO.getId())
+                .authId(createConfirmationRequestDTO.getId() != null ? createConfirmationRequestDTO.getId() : null)
+                .email(createConfirmationRequestDTO.getEmail())
+                .isUsed(false)
                 .build();
         this.confirmationRepository.save(confirmation);
         this.sendEMailVerification(createConfirmationRequestDTO, confirmation);
@@ -33,12 +37,18 @@ public class ConfirmationService {
     public void sendEMailVerification(CreateConfirmationRequestDTO createConfirmationRequestDTO, Confirmation confirmation) {
         this.mailService.sendHtmlEmailWithEmbeddedFiles(createConfirmationRequestDTO.getEmail(), confirmation.getVerificationToken());
     }
-    public Boolean verifyToken(String verificationToken) {
+    public void verifyToken(String verificationToken) {
         Confirmation confirmation = confirmationRepository.findByVerificationToken(verificationToken);
-        authManager.saveVerifiedAccount(confirmation.getAuthId());
-        return Boolean.TRUE;
+        if (confirmation == null) {
+            throw new MailServiceException(ErrorType.TOKEN_NOT_FOUND);
+        }
+
+        if (confirmation.isUsed()) {
+            throw new MailServiceException(ErrorType.TOKEN_ALREADY_USER);
+        }
+        confirmation.setUsed(true);
+        confirmationRepository.save(confirmation);
+        authManager.saveVerifiedAccountId(confirmation.getAuthId());
     }
-
-
 
 }

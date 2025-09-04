@@ -1,7 +1,6 @@
 package com.vky.repository.entity;
 
 import jakarta.persistence.*;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
@@ -16,9 +15,8 @@ import java.util.UUID;
 public class BaseEntityEmail {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private Long id;
-    private String verificationToken;
-    private UUID authId;
+    private UUID id;
+
 
     @Temporal(TemporalType.TIMESTAMP)
     @CreatedDate
