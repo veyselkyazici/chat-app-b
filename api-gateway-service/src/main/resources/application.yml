@@ -25,13 +25,13 @@ eureka:
   instance:
     instance-id: ${spring.application.name}:${server.port}
 
-logging:
-  level:
+#logging:
+  #level:
     #reactor.netty: DEBUG
     #io.netty: DEBUG
-    org.springframework.web: DEBUG
-    org.springframework.web.reactive.socket: DEBUG
-    org.springframework.cloud.gateway: DEBUG
+    #org.springframework.web: DEBUG
+    #org.springframework.web.reactive.socket: DEBUG
+    #org.springframework.cloud.gateway: DEBUG
 
 server:
   port: 8080

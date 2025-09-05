@@ -34,7 +34,7 @@ public class UnreadMessageCountService {
         return currentCount;
     }
 
-    public int resetUnreadCount(String chatRoomId, String recipientId, String senderId) {
+    public int resetUnreadCount(String chatRoomId, String recipientId) {
         String redisKey = generateUnreadKey(chatRoomId, recipientId);
 
         Integer currentCount = (Integer) redisTemplate.opsForValue().get(redisKey);
