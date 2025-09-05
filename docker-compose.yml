@@ -1,0 +1,161 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: my_postgres1
+    environment:
+      POSTGRES_USER: ${POSTGRES_SQL_USERNAME}
+      POSTGRES_PASSWORD: ${POSTGRES_SQL_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_SQL_DB}
+    ports:
+      - "5432:5432"
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: my_pgadmin1
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+
+  mongodb:
+    image: mongo
+    container_name: mongodb1
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+    ports:
+      - "27017:27017"
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: my_rabbitmq1
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+
+  redis:
+    image: redis:7
+    container_name: my_redis1
+    ports:
+      - "6379:6379"
+
+  eureka-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE: eureka-server
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    depends_on:
+      - postgres
+      - mongodb
+      - rabbitmq
+      - redis
+
+  config-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE: config-server
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    depends_on:
+      - eureka-server
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE: auth-service
+    container_name: auth-service
+    environment:
+      - SPRING_PROFILES_ACTIVE
+      - SPRING_CLOUD_CONFIG_URI
+    depends_on:
+      - postgres
+      - rabbitmq
+      - config-server
+      - eureka-server
+
+  user-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE: user-service
+    container_name: user-service
+    environment:
+      - SPRING_PROFILES_ACTIVE
+      - SPRING_CLOUD_CONFIG_URI
+    depends_on:
+      - postgres
+      - rabbitmq
+      - config-server
+      - eureka-server
+
+  contacts-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE: contacts-service
+    container_name: contacts-service
+    environment:
+      - SPRING_PROFILES_ACTIVE
+      - SPRING_CLOUD_CONFIG_URI
+    depends_on:
+      - mongodb
+      - rabbitmq
+      - config-server
+      - eureka-server
+
+  chat-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE: chat-service
+    container_name: chat-service
+    environment:
+      - SPRING_PROFILES_ACTIVE
+      - SPRING_CLOUD_CONFIG_URI
+    depends_on:
+      - mongodb
+      - redis
+      - rabbitmq
+      - config-server
+      - eureka-server
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE: api-gateway
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - auth-service
+      - user-service
+      - contacts-service
+      - chat-service
+      - config-server
+      - eureka-server
+
+networks:
+  default:
+    name: chatapp-network

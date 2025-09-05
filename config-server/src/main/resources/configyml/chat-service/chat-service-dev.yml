@@ -1,28 +1,86 @@
-#Database
-MONGODB_USERNAME: veysel
-MONGODB_PASSWORD: veysel
-MONGODB_HOST: localhost
-MONGODB_PORT: 27017
-MONGODB_DB: chat_app_dev
-RABBITMQ_HOST: localhost
-RABBITMQ_PORT: 5672
-RABBITMQ_USERNAME: veysel
-RABBITMQ_PASSWORD: 123
-#Server
-SERVER_PORT: 9040
-ACTIVE_PROFILE: dev
+# config-server/src/main/resources/config/chat-service-dev.yml
+server:
+  port: ${SERVER_PORT:9040}
 
-REDIS_HOST: localhost
-REDIS_PORT: 6379
+spring:
+  # MongoDB Development Configuration
+  data:
+    mongodb:
+      username: ${MONGODB_USERNAME:veysel}  # Dev'de authentication yok genelde
+      password: ${MONGODB_PASSWORD:veysel}
+      host: ${MONGODB_HOST:localhost}
+      port: ${MONGODB_PORT:27017}
+      database: ${MONGODB_DB:chat_app_dev}
+      authentication-database: ${MONGODB_AUTH_DB:admin}
 
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:veysel}
+    password: ${RABBITMQ_PASSWORD:123}
 
-AUTH_PORT: 9000
-MAIL_PORT: 9020
-USER_PORT: 9010
-CONTACTS_PORT: 9030
-CHAT_PORT: 9040
+  cloud:
+    openfeign:
+      clients:
+        auth-service:
+          url: ${AUTH_SERVICE_URL:http://localhost:9000}
+        user-service:
+          url: ${USER_SERVICE_URL:http://localhost:9010}
+        contacts-service:
+          url: ${CONTACTS_SERVICE_URL:http://localhost:9030}
 
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+#    password: ${REDIS_PASSWORD:}
+#    timeout: ${REDIS_TIMEOUT:2000ms}
 
-SECRET_KEY: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
-EXPIRATION: 60000
-REFRESH_TOKEN_EXPIRATION: 604800000
+# Development URLs
+raceapplication:
+  url:
+    auth: ${AUTH_SERVICE_URL:http://localhost:9000}/
+    mail: ${MAIL_SERVICE_URL:http://localhost:9020}/
+    user: ${USER_SERVICE_URL:http://localhost:9010}/
+    contacts: ${CONTACTS_SERVICE_URL:http://localhost:9030}/
+    chat: ${CHAT_SERVICE_URL:http://localhost:9040}/
+
+# JWT Security Configuration
+application:
+  security:
+    jwt:
+      secret-key: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+      expiration: ${JWT_EXPIRATION:3600000}      # 1 saat
+      refresh-token:
+        expiration: ${JWT_REFRESH_EXPIRATION:86400000} # 1 gün
+
+# Development logging
+logging:
+  level:
+    root: INFO
+    com.vky.chat: DEBUG
+    com.vky.chat.controller: TRACE
+    com.vky.chat.service: DEBUG
+    com.vky.chat.websocket: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.web.socket: DEBUG
+    org.springframework.data.mongodb: DEBUG
+    org.springframework.cloud.openfeign: DEBUG
+  pattern:
+    console: "%clr(%d{HH:mm:ss.SSS}){faint} %clr(%-5level) %clr([%thread]){magenta} %clr(%logger{36}){cyan} - %msg%n"
+
+# WebSocket development configuration
+#websocket:
+#  allowed-origins: "*"  # Development'ta tüm origin'lere izin
+#  heartbeat:
+#    interval: 10000
+#    timeout: 60000
+
+# Development actuator endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always

@@ -1,26 +1,72 @@
-#Database
-POSTGRES_SQL_USERNAME: postgres
-POSTGRES_SQL_PASSWORD: 12345
-POSTGRES_SQL_HOST: localhost
-POSTGRES_SQL_PORT: 5432
-POSTGRES_SQL_DB: chat_app_prod
+# config-server/src/main/resources/config/mail-service-prod.yml
 
-#Server
-SERVER_PORT: 9021
-ACTIVE_PROFILE: prod
+server:
+  port: ${SERVER_PORT:9020}
 
-#Email Config
-EMAIL_HOST: smtp.gmail.com
-EMAIL_PORT: 587
-EMAIL_ID: vkychatapp@gmail.com
-EMAIL_PASSWORD: amwzzalzhphcoiqc
-VERIFY_EMAIL_HOST: http://localhost:${SERVER_PORT}
+spring:
+  cloud:
+    openfeign:
+      clients:
+        auth-service:
+          url: ${AUTH_SERVICE_URL:http://localhost:9000}
 
-REDIS_HOST: localhost
-REDIS_PORT: 6379
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:postgres-service}:${DB_PORT:5432}/${DB_NAME:chat_app_prod}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
 
-AUTH_PORT: 9001
-MAIL_PORT: 9021
-USER_PORT: 9011
-CONTACTS_PORT: 9031
-CHAT_PORT: 9041
+  data:
+    redis:
+      host: ${REDIS_HOST:redis-service}
+      port: ${REDIS_PORT:6379}
+#      password: ${REDIS_PASSWORD}
+
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+  mail:
+    host: ${EMAIL_HOST:smtp.gmail.com}
+    port: ${EMAIL_PORT:587}
+    username: ${EMAIL_ID}
+    password: ${EMAIL_PASSWORD}
+    verify:
+      host: ${MAIL_VERIFY_HOST}
+    default-encoding: UTF-8
+    properties:
+      mail:
+        mime:
+          charset: UTF-8
+        smtp:
+          writetimeout: 10000
+          connectiontimeout: 10000
+          timeout: 10000
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
+raceapplication:
+  security:
+    jwt:
+      secret-key: ${JWT_SECRET} # Mutlaka environment'tan al
+      expiration: ${JWT_EXPIRATION:900000} # 15 dakika production'da
+      refresh-token:
+        expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+
+# Production logging
+#logging:
+#  level:
+#    com.vky: INFO
+#    org.springframework.security: WARN
+#
+#management:
+#  endpoints:
+#    web:
+#      exposure:
+#        include: "*"
+#  endpoint:
+#    health:
+#      show-details: always

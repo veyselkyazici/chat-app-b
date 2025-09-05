@@ -1,39 +1,51 @@
-server:
-  port: ${SERVER_PORT:9010}
-
 spring:
   application:
     name: user-service
-  rabbitmq:
-    host: ${RABBITMQ_HOST}
-    port: ${RABBITMQ_PORT}
-    username: ${RABBITMQ_USERNAME}
-    password: ${RABBITMQ_PASSWORD}
-  datasource:
-    url: jdbc:postgresql://${POSTGRES_SQL_HOST}:${POSTGRES_SQL_PORT}/${POSTGRES_SQL_DB}
-    username: ${POSTGRES_SQL_USERNAME}
-    password: ${POSTGRES_SQL_PASSWORD}
+
   jpa:
     generate-ddl: true
-    show-sql: true
+    show-sql: ${SHOW_SQL:false}
     hibernate:
-      ddl-auto: update
+      ddl-auto: ${DDL_AUTO:update}
     properties:
       hibernate:
+        jdbc:
+          time_zone: UTC
+        globally_quoted_identifiers: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
+        format_sql: ${FORMAT_SQL:false}
 
 eureka:
   client:
     serviceUrl:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
   instance:
     instance-id: ${spring.application.name}:${server.port}
 
-raceapplication:
-  url:
-    auth: http://localhost:${AUTH_PORT}/
-    mail: http://localhost:${MAIL_PORT}/
-    user: http://localhost:${USER_PORT}/
-    contacts: http://localhost:${CONTACTS_PORT}/
-    chat: http://localhost:${CHAT_PORT}/
+# Base logging configuration
+logging:
+  level:
+    com.vky: ${LOG_LEVEL:INFO}
+
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+## Circuit breaker configuration (Resilience4j)
+#resilience4j:
+#  circuitbreaker:
+#    instances:
+#      auth-service:
+#        slidingWindowSize: 10
+#        failureRateThreshold: 50
+#        waitDurationInOpenState: 30s
+#      mail-service:
+#        slidingWindowSize: 10
+#        failureRateThreshold: 50
+#        waitDurationInOpenState: 30s

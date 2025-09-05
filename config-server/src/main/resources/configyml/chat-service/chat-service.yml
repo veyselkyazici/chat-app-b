@@ -1,58 +1,53 @@
-server:
-  port: ${SERVER_PORT:9040}
-
+# config-server/src/main/resources/config/chat-service.yml
 spring:
   application:
     name: chat-service
-  rabbitmq:
-    host: ${RABBITMQ_HOST}
-    port: ${RABBITMQ_PORT}
-    username: ${RABBITMQ_USERNAME}
-    password: ${RABBITMQ_PASSWORD}
+
+  # MongoDB Configuration (Chat için önerilen)
   data:
     mongodb:
-      username: ${MONGODB_USERNAME}
-      password: ${MONGODB_PASSWORD}
-      host: ${MONGODB_HOST}
-      port: ${MONGODB_PORT}
-      database: ${MONGODB_DB}
-      authentication-database: admin
-  jpa:
-    generate-ddl: true
-    show-sql: true
-    hibernate:
-      ddl-auto: update
-    properties:
-      hibernate:
-        jdbc:
-          time_zone: UTC
-        globally_quoted_identifiers: true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
-  redis:
-    host: ${REDIS_HOST}
-    port: ${REDIS_PORT}
-
+      username: ${MONGODB_USERNAME:veysel}
+      password: ${MONGODB_PASSWORD:veysel}
+      host: ${MONGODB_HOST:localhost}
+      port: ${MONGODB_PORT:27017}
+      database: ${MONGODB_DB:chat_app_dev}
+      authentication-database: ${MONGODB_AUTH_DB:admin}
+      # Connection pooling
+#      options:
+#        min-connections-per-host: ${MONGODB_MIN_CONNECTIONS:10}
+#        connections-per-host: ${MONGODB_MAX_CONNECTIONS:100}
+#        server-selection-timeout: ${MONGODB_SERVER_SELECTION_TIMEOUT:30000}
+#        connect-timeout: ${MONGODB_CONNECT_TIMEOUT:10000}
+#        socket-timeout: ${MONGODB_SOCKET_TIMEOUT:0}
 
 eureka:
   client:
     serviceUrl:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
   instance:
     instance-id: ${spring.application.name}:${server.port}
 
-raceapplication:
-  url:
-    auth: http://localhost:${AUTH_PORT}/
-    mail: http://localhost:${MAIL_PORT}/
-    user: http://localhost:${USER_PORT}/
-    contacts: http://localhost:${CONTACTS_PORT}/
-    chat: http://localhost:${CHAT_PORT}/
+# Base logging configuration
+logging:
+  level:
+    com.vky: ${LOG_LEVEL:INFO}
+    org.springframework.web: ${WEB_LOG_LEVEL:INFO}
+    org.springframework.data.mongodb: ${MONGODB_LOG_LEVEL:INFO}
+    org.springframework.cloud: ${CLOUD_LOG_LEVEL:INFO}
 
-application:
-  security:
-    jwt:
-      secret-key: ${SECRET_KEY}
-      expiration: ${EXPIRATION}
-      refresh-token:
-        expiration: ${REFRESH_TOKEN_EXPIRATION}
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+## WebSocket configuration (Chat için gerekli)
+#websocket:
+#  allowed-origins: ${WEBSOCKET_ALLOWED_ORIGINS:*}
+#  heartbeat:
+#    interval: ${WEBSOCKET_HEARTBEAT_INTERVAL:10000}
+#    timeout: ${WEBSOCKET_HEARTBEAT_TIMEOUT:60000}

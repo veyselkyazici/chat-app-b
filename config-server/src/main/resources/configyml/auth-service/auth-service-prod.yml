@@ -1,26 +1,77 @@
-#Database
-POSTGRES_SQL_USERNAME: postgres
-POSTGRES_SQL_PASSWORD: 12345
-POSTGRES_SQL_HOST: localhost
-POSTGRES_SQL_PORT: 5432
-POSTGRES_SQL_DB: chat_app_prod
-RABBITMQ_HOST: localhost
-RABBITMQ_PORT: 5672
-RABBITMQ_USERNAME: veysel
-RABBITMQ_PASSWORD: 123
-#Server
-SERVER_PORT: 9001
-ACTIVE_PROFILE: prod
+# config-server/src/main/resources/config/auth-service-prod.yml
+server:
+  port: ${SERVER_PORT:9000}
 
-REDIS_HOST: localhost
-REDIS_PORT: 6379
+spring:
+  rabbitmq:
+    host: ${RABBITMQ_HOST:rabbitmq-service}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
 
-AUTH_PORT: 9001
-MAIL_PORT: 9021
-USER_PORT: 9011
-CONTACTS_PORT: 9031
-CHAT_PORT: 9041
+  cloud:
+    openfeign:
+      clients:
+        mail-service:
+          url: ${MAIL_SERVICE_URL:http://mail-service:9020}
+        user-service:
+          url: ${USER_SERVICE_URL:http://user-service:9010}
 
-SECRET_KEY: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
-EXPIRATION: 60000
-REFRESH_TOKEN_EXPIRATION: 604800000
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:postgres-service}:${DB_PORT:5432}/${DB_NAME:chat_app_prod}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+#    hikari:
+#      maximum-pool-size: ${DB_POOL_SIZE:20}
+#      connection-timeout: ${DB_CONNECTION_TIMEOUT:30000}
+#      idle-timeout: ${DB_IDLE_TIMEOUT:600000}
+#      max-lifetime: ${DB_MAX_LIFETIME:1800000}
+
+  data:
+    redis:
+      host: ${REDIS_HOST:redis-service}
+      port: ${REDIS_PORT:6379}
+#      password: ${REDIS_PASSWORD}
+#      timeout: ${REDIS_TIMEOUT:2000ms}
+
+  # Production specific settings
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: validate # Production'da validate kullan
+    properties:
+      hibernate:
+        format_sql: false
+
+raceapplication:
+  security:
+    jwt:
+      secret-key: ${JWT_SECRET} # Mutlaka environment'tan al
+      expiration: ${JWT_EXPIRATION:900000} # 15 dakika production'da
+      refresh-token:
+        expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+
+# Production logging
+#logging:
+#  level:
+#    com.vky: INFO
+#    org.springframework.web: WARN
+#  pattern:
+#    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+#    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+#  file:
+#    name: /var/log/auth-service.log
+#
+#
+#management:
+#  endpoints:
+#    web:
+#      exposure:
+#        include: health,info,metrics,prometheus
+#  endpoint:
+#    health:
+#      show-details: never
+#  metrics:
+#    export:
+#      prometheus:
+#        enabled: true

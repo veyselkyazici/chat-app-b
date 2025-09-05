@@ -55,8 +55,7 @@ public class RabbitMQConsumer {
 
             int count = unreadMessageCountService.resetUnreadCount(
                     readMessageDTO.getChatRoomId(),
-                    readMessageDTO.getRecipientId(),
-                    readMessageDTO.getSenderId()
+                    readMessageDTO.getRecipientId()
             );
 
 //            chatMessageService.setIsSeenUpdateForUnreadMessageCount(
@@ -73,7 +72,7 @@ public class RabbitMQConsumer {
 
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Failed to process read event from RabbitMQ", e);
+            throw new RuntimeException("Failed to process read event", e);
         }
     }
 

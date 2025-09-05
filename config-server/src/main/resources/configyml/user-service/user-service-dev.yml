@@ -1,20 +1,69 @@
-#Database
-POSTGRES_SQL_USERNAME: postgres
-POSTGRES_SQL_PASSWORD: 12345
-POSTGRES_SQL_HOST: localhost
-POSTGRES_SQL_PORT: 5432
-POSTGRES_SQL_DB: chat_app_dev
-RABBITMQ_HOST: localhost
-RABBITMQ_PORT: 5672
-RABBITMQ_USERNAME: veysel
-RABBITMQ_PASSWORD: 123
+# config-server/src/main/resources/config/user-service-dev.yml
+server:
+  port: ${SERVER_PORT:9010}
 
-#Server
-SERVER_PORT: 9010
-ACTIVE_PROFILE: dev
+spring:
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:veysel}
+    password: ${RABBITMQ_PASSWORD:123}
 
-AUTH_PORT: 9000
-MAIL_PORT: 9020
-USER_PORT: 9010
-CONTACTS_PORT: 9030
-CHAT_PORT: 9040
+  cloud:
+    openfeign:
+      clients:
+        auth-service:
+          url: ${AUTH_SERVICE_URL:http://localhost:9000}
+        mail-service:
+          url: ${MAIL_SERVICE_URL:http://localhost:9020}
+        contacts-service:
+          url: ${CONTACTS_SERVICE_URL:http://localhost:9030}
+        chat-service:
+          url: ${CHAT_SERVICE_URL:http://localhost:9040}
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:chat_app_dev}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:12345}
+#    hikari:
+#      maximum-pool-size: ${DB_POOL_SIZE:10}
+#      connection-timeout: ${DB_CONNECTION_TIMEOUT:20000}
+#      idle-timeout: ${DB_IDLE_TIMEOUT:300000}
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+#      password: ${REDIS_PASSWORD:}
+#      timeout: ${REDIS_TIMEOUT:2000ms}
+
+  # Development specific settings
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+# Development URLs
+raceapplication:
+  url:
+    auth: ${AUTH_SERVICE_URL:http://localhost:9000}/
+    mail: ${MAIL_SERVICE_URL:http://localhost:9020}/
+    user: ${USER_SERVICE_URL:http://localhost:9010}/
+    contacts: ${CONTACTS_SERVICE_URL:http://localhost:9030}/
+    chat: ${CHAT_SERVICE_URL:http://localhost:9040}/
+
+# Development logging
+logging:
+  level:
+    com.vky: DEBUG
+
+# Development actuator endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always

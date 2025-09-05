@@ -13,3 +13,5 @@
 /user-service/build/
 /user-service/build/classes/java/main/
 .env
+Dockerfile
+docker-compose.yml
