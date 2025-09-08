@@ -1,0 +1,15 @@
+spring:
+  cloud:
+    config:
+      uri: ${CONFIG_SERVER_URI:http://localhost:8888}
+  config:
+    import: "configserver:"
+  application:
+    name: mail-service
+  profiles:
+    active: ${ACTIVE_PROFILE:dev}
+
+
+
+
+
