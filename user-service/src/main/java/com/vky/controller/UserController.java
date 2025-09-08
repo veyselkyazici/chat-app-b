@@ -90,6 +90,7 @@ public class UserController {
         this.userProfileService.resetUserKey(resetUserKeyDTO);
     }
 
+
     @DeleteMapping("/remove-profile-picture")
     public ResponseEntity<ApiResponse<Void>> removeProfilePicture(@RequestHeader("X-Id") String tokenUserId) {
         userProfileService.removeProfilePicture(tokenUserId);

@@ -17,12 +17,12 @@ import java.util.function.Function;
 
 @Service
 public class JwtTokenManager {
-    @Value("${raceapplication.security.jwt.secret-key}")
+    @Value("${services.security.jwt.secret-key}")
     private String secretKey;
-    @Value("${raceapplication.security.jwt.expiration}")
+    @Value("${services.security.jwt.expiration}")
     private long jwtExpiration;
     @Getter
-    @Value("${raceapplication.security.jwt.refresh-token.expiration}")
+    @Value("${services.security.jwt.refresh-token.expiration}")
     private long refreshExpiration;
 
     private final RedisTemplate<String, Object> redisTemplate;

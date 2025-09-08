@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @NoArgsConstructor
@@ -18,6 +19,7 @@ public class Confirmation extends BaseEntityEmail{
     private UUID authId;
     private boolean isUsed;
     private String email;
+    private Instant expiresAt;
     @Override
     public String toString() {
         return "Confirmation{" +

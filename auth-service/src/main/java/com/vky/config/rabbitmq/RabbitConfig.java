@@ -18,34 +18,11 @@ public class RabbitConfig {
      * Topic > Routing keyler belirli bir desenle eşleşen tüm kuyruklara mesajı yönlendirir.
      * */
     private String exchangeNameAuth = "exchange-auth";
-    private String exchangeNameUser = "exchange-user";
-    private String bindingKeyAuth = "key-auth";
-    private String bindingKeyUser = "key-user";
-    private String queueAuthToUserCreate = "queue-user-create";
-    private String queueContactCheckUser = "queue-contact-check-user";
+
+
     @Bean
-    DirectExchange exchangeAuth(){
-        return new DirectExchange(exchangeNameAuth);
-    }
-    @Bean
-    DirectExchange exchangeUser(){
-        return new DirectExchange(exchangeNameUser);
-    }
-    @Bean
-    Queue queueAuthToUserCreate(){
-        return new Queue(queueAuthToUserCreate);
-    }
-    @Bean
-    Queue queueContactCheckUser(){
-        return new Queue(queueContactCheckUser);
-    }
-    @Bean
-    public Binding bindingAuthToUserCreate(final Queue queueAuthToUserCreate, final DirectExchange exchangeAuth){
-        return BindingBuilder.bind(queueAuthToUserCreate).to(exchangeAuth).with(bindingKeyAuth);
-    }
-    @Bean
-    public Binding bindingContactCheckUser(final Queue queueContactCheckUser, final DirectExchange exchangeUser){
-        return BindingBuilder.bind(queueContactCheckUser).to(exchangeUser).with(bindingKeyUser);
+    DirectExchange exchangeAuth() {
+        return new DirectExchange(exchangeNameAuth,true,false);
     }
 
 }

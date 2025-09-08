@@ -11,7 +11,8 @@ import org.springframework.http.HttpStatus;
 @NoArgsConstructor
 public enum ErrorType {
     TOKEN_NOT_FOUND(5001, "Token Not Found", HttpStatus.NOT_FOUND),
-    TOKEN_ALREADY_USER(5002, "Token Not Found", HttpStatus.CONFLICT);
+    TOKEN_ALREADY_USER(5002, "Token Not Found", HttpStatus.CONFLICT),
+    TOKEN_EXPIRED(5003, "Token Expired", HttpStatus.BAD_REQUEST);
     private int code;
     private String message;
     HttpStatus httpStatus;

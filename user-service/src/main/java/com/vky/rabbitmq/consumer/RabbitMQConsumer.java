@@ -21,12 +21,12 @@ public class RabbitMQConsumer {
 
     @RabbitListener(queues = "queue-user-create")
     public void createUserMessageConsumer(String user){
-        log.info("User received: {}", user.toString());
         try {
             CreateUser userObject = objectMapper.readValue(user, CreateUser.class);
             userProfileService.createUserProfile(userObject);
-        } catch (JsonProcessingException e) {
-
+        } catch (Exception e) {
+            log.error("Error creating user profile or sending message: {}", user, e);
+            // opsiyonel: DLQ'ye veya tekrar kuyruğa gönder
         }
 
     }

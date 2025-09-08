@@ -2,6 +2,7 @@ package com.vky.rabbitmq.producer;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vky.dto.request.CheckContactDTO;
 import com.vky.rabbitmq.model.CreateUser;
 import com.vky.repository.entity.UserProfile;
 import lombok.RequiredArgsConstructor;
@@ -14,13 +15,13 @@ public class RabbitMQProducer {
     private final RabbitTemplate rabbitTemplate;
     private final ObjectMapper objectMapper;
 
-    public void checkContactUser(UserProfile user){
+    public void checkContactUser(CheckContactDTO checkContactDTO){
         try {
-            String jsonUser = objectMapper.writeValueAsString(user);
+            String jsonUser = objectMapper.writeValueAsString(checkContactDTO);
             rabbitTemplate.convertAndSend("exchange-user",
                     "key-user", jsonUser);
         }catch (JsonProcessingException e) {
-
+            throw new RuntimeException("Could not send CheckContactUser message", e);
         }
 
     }

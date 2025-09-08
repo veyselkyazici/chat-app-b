@@ -2,6 +2,7 @@ package com.vky.service;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
+import com.vky.dto.request.CheckContactDTO;
 import com.vky.dto.request.PrivacySettingsRequestDTO;
 import com.vky.dto.request.UpdateUserDTO;
 import com.vky.dto.response.*;
@@ -41,6 +42,7 @@ public class UserProfileService {
                 .authId(createUser.getAuthId())
                 .email(createUser.getEmail())
                 .privacySettings(new PrivacySettings())
+                .about("Welcome to vkychatapp")
                 .id(createUser.getAuthId())
                 .build();
 
@@ -53,7 +55,10 @@ public class UserProfileService {
         savedUserProfile.setUserKey(userKey);
 
         userProfileRepository.save(savedUserProfile);
-        rabbitMQProducer.checkContactUser(savedUserProfile);
+        rabbitMQProducer.checkContactUser(CheckContactDTO.builder()
+                        .email(savedUserProfile.getEmail())
+                        .id(savedUserProfile.getId())
+                .build());
     }
 
 
@@ -70,7 +75,7 @@ public class UserProfileService {
         UUID userId = UUID.fromString(tokenUserId);
         UserProfile userProfile = userProfileRepository.findById(userId)
                 .orElseThrow(() -> new UserServiceException(ErrorType.USER_NOT_FOUND));
-        if(!userProfile.getFirstName().equals(dto.getValue())){
+        if(userProfile.getFirstName() == null || !userProfile.getFirstName().equals(dto.getValue())){
             userProfile.setFirstName(dto.getValue());
             userProfile.setUpdatedAt(Instant.now());
             userProfileRepository.save(userProfile);
@@ -82,7 +87,7 @@ public class UserProfileService {
         UUID userId = UUID.fromString(tokenUserId);
         UserProfile userProfile = userProfileRepository.findById(userId)
                 .orElseThrow(() -> new UserServiceException(ErrorType.USER_NOT_FOUND));
-        if(!userProfile.getAbout().equals(dto.getValue())){
+        if(userProfile.getAbout() == null || !userProfile.getAbout().equals(dto.getValue())){
             userProfile.setAbout(dto.getValue());
             userProfile.setUpdatedAt(Instant.now());
             userProfileRepository.save(userProfile);

@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 
-@FeignClient(url = "${raceapplication.url.contacts}api/v1/contacts",name = "contacts-service",dismiss404 = true)
+@FeignClient(name = "contacts-service", path = "/api/v1/contacts",dismiss404 = true)
 public interface IContactsManager {
     @PostMapping("/get-contact-information-of-existing-chats")
     List<FeignClientUserProfileResponseDTO> getContactInformationOfExistingChats(@RequestBody ContactInformationOfExistingChatsRequestDTO contactInformationOfExistingChatsRequestDTO);

@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.util.UUID;
 
 
-@FeignClient(url = "${raceapplication.url.user}api/v1/user",name = "user-service-userprofile",dismiss404 = true)
+@FeignClient(name = "user-service", path = "/api/v1/user",dismiss404 = true)
 public interface IUserManager {
     @GetMapping("/get-user-last-seen")
     UserLastSeenResponseDTO getUserLastSeen(@RequestParam("userId") UUID userId);

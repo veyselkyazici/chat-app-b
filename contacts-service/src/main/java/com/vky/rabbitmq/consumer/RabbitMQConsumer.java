@@ -12,7 +12,6 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
 
 @Service
-@Slf4j
 @RequiredArgsConstructor
 public class RabbitMQConsumer {
     private  final ContactsService contactsService;
@@ -21,7 +20,6 @@ public class RabbitMQConsumer {
 
     @RabbitListener(queues = "queue-contact-check-user")
     public void checkContactUser(String user){
-        log.info("User received: {}", user.toString());
         try {
             CheckContactDTO userObject = objectMapper.readValue(user, CheckContactDTO.class);
             Invitation invitation = invitationService.findByInvitedUserEmailAndIsDeletedFalse(userObject.getEmail());
@@ -33,7 +31,7 @@ public class RabbitMQConsumer {
                 }
             }
         } catch (JsonProcessingException e) {
-
+            throw new RuntimeException("Could not send CreateUser message", e);
         }
 
     }

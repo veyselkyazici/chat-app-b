@@ -22,4 +22,7 @@ public interface IMailManager {
 
     @PostMapping("/create-confirmation")
     ResponseEntity<Void> createConfirmation(CreateConfirmationRequestDTO createConfirmationRequestDTO);
+
+    @PostMapping("/resend-confirmation")
+    ResponseEntity<Void> resendConfirmation(CreateConfirmationRequestDTO createConfirmationRequestDTO);
 }

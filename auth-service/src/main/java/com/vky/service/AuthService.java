@@ -118,17 +118,23 @@ public class AuthService {
             throw new AuthManagerException(ErrorType.INVALID_TOKEN);
         }
     }
-    @Transactional(rollbackFor=Exception.class)
     public void register(RegisterRequestDTO registerRequestDTO) {
-        captcha(registerRequestDTO.getRecaptchaToken(),"register");
+        captcha(registerRequestDTO.getRecaptchaToken(), "register");
+
         Optional<Auth> optionalAuth = authRepository.findAuthByAndEmailIgnoreCase(registerRequestDTO.getEmail());
 
         if (optionalAuth.isPresent()) {
-            if (optionalAuth.get().isApproved()) {
+            Auth existingAuth = optionalAuth.get();
+            if (existingAuth.isApproved()) {
                 throw new AuthManagerException(ErrorType.EMAIL_ALREADY_EXISTS);
             } else {
-                CreateConfirmationRequestDTO createConfirmationRequestDTO = IAuthMapper.INSTANCE.toAuthDTOO(optionalAuth.get());
-                mailManager.createConfirmation(createConfirmationRequestDTO);
+                existingAuth.setPassword(passwordEncoder.encode(registerRequestDTO.getPassword()));
+                authRepository.save(existingAuth);
+                authRepository.flush();
+                iUserManager.resetUserKey(ResetUserKeyDTO.builder().publicKey(registerRequestDTO.getPublicKey()).salt(registerRequestDTO.getSalt()).encryptedPrivateKey(registerRequestDTO.getEncryptedPrivateKey())
+                        .iv(registerRequestDTO.getIv()).userId(existingAuth.getId()).build());
+                CreateConfirmationRequestDTO confirmationDTO = IAuthMapper.INSTANCE.toAuthDTOO(existingAuth);
+                mailManager.resendConfirmation(confirmationDTO);
                 throw new AuthManagerException(ErrorType.EMAIL_NEEDS_VERIFICATION);
             }
         }
@@ -159,6 +165,7 @@ public class AuthService {
                 .email(registerRequestDTO.getEmail())
                 .password(passwordEncoder.encode(registerRequestDTO.getPassword()))
                 .role(Role.USER)
+                .isApproved(false)
                 .build();
         return authRepository.save(auth);
     }
@@ -166,34 +173,19 @@ public class AuthService {
     private void sendConfirmationAndUserCreationMessages(Auth auth, RegisterRequestDTO registerRequestDTO) {
         CreateConfirmationRequestDTO confirmationDTO = IAuthMapper.INSTANCE.toAuthDTOO(auth);
         mailManager.createConfirmation(confirmationDTO);
-
         rabbitMQProducer.sendCreateUserMessage(CreateUser.builder()
-                .authId(auth.getId())
-                .email(auth.getEmail())
-                .encryptedPrivateKey(registerRequestDTO.getEncryptedPrivateKey())
-                .iv(registerRequestDTO.getIv())
-                .salt(registerRequestDTO.getSalt())
-                .publicKey(registerRequestDTO.getPublicKey())
-                .build());
-    }
+                    .authId(auth.getId())
+                    .email(auth.getEmail())
+                    .encryptedPrivateKey(registerRequestDTO.getEncryptedPrivateKey())
+                    .iv(registerRequestDTO.getIv())
+                    .salt(registerRequestDTO.getSalt())
+                    .publicKey(registerRequestDTO.getPublicKey())
+                    .build());
 
-    public Optional<Auth> loadUserByUsername(String email) {
-        return this.authRepository.findAuthByAndEmailIgnoreCase(email);
     }
 
     public boolean saveVerifiedAccountId(UUID id) {
         Auth existingAuth = authRepository.findById(id).orElse(null);
-        if (existingAuth != null) {
-            existingAuth.setApproved(true);
-            this.authRepository.save(existingAuth);
-            return true;
-        } else {
-            return false;
-        }
-
-    }
-    public boolean saveVerifiedAccountEmail(String email) {
-        Auth existingAuth = authRepository.findByEmailIgnoreCase(email).orElse(null);
         if (existingAuth != null) {
             existingAuth.setApproved(true);
             this.authRepository.save(existingAuth);
@@ -309,18 +301,6 @@ public class AuthService {
         this.authRepository.save(auth);
 
         try {
-//
-//            byte[] decryptedPrivateKeyBytes = decryptWithMasterKey(userKeyDTO.getEncryptedPrivateKeyWithMasterKey());
-//            byte[] newSalt = generateRandomBytes(16);
-//            byte[] newIv = generateRandomBytes(12);
-//            SecretKey newAesKey = deriveAESKeyFromPassword(forgotPasswordResetPasswordRequestDTO.getNewPassword(), newSalt);
-//
-//            byte[] encryptedPrivateKey = encryptPrivateKey(decryptedPrivateKeyBytes, newAesKey, newIv);
-//
-//            userKeyDTO.setEncryptedPrivateKey(Base64.getEncoder().encodeToString(encryptedPrivateKey));
-//            userKeyDTO.setIv(Base64.getEncoder().encodeToString(newIv));
-//            userKeyDTO.setSalt(Base64.getEncoder().encodeToString(newSalt));
-//            userKeyDTO.setEncryptedPrivateKeyWithMasterKey(null);
 
             iUserManager.resetUserKey(ResetUserKeyDTO.builder()
                     .userId(auth.getId())
@@ -335,94 +315,10 @@ public class AuthService {
 
     }
 
-//    public String encryptWithMasterKey(String privateKey) {
-//        try {
-//            String masterKey = System.getenv("MASTER_KEY");
-//            byte[] salt = generateRandomBytes(16);
-//            byte[] iv = generateRandomBytes(12);
-//
-//            SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
-//            KeySpec spec = new PBEKeySpec(masterKey.toCharArray(), salt, 100, 256);
-//            SecretKey tmp = factory.generateSecret(spec);
-//            SecretKeySpec secretKey = new SecretKeySpec(tmp.getEncoded(), "AES");
-//
-//            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-//            cipher.init(Cipher.ENCRYPT_MODE, secretKey, new GCMParameterSpec(128, iv));
-//            byte[] encryptedText = cipher.doFinal(privateKey.getBytes(StandardCharsets.UTF_8));
-//
-//            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-//            outputStream.write(salt);
-//            outputStream.write(iv);
-//            outputStream.write(encryptedText);
-//
-//            return Base64.getEncoder().encodeToString(outputStream.toByteArray());
-//        } catch (Exception e) {
-//            throw new RuntimeException("Private key encryption failed", e);
-//        }
-//    }
-//
-//    public SecretKey deriveAESKeyFromPassword(String password, byte[] salt) {
-//        try {
-//            SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
-//            KeySpec spec = new PBEKeySpec(password.toCharArray(), salt, 100, 256);
-//            SecretKey tmp = factory.generateSecret(spec);
-//            return new SecretKeySpec(tmp.getEncoded(), "AES");
-//        } catch (Exception e) {
-//            throw new RuntimeException("AES key derivation failed", e);
-//        }
-//    }
-//
-//    public byte[] encryptPrivateKey(byte[] privateKeyBytes, SecretKey aesKey, byte[] iv) {
-//        try {
-//            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-//            if (iv.length != 12) {
-//                throw new IllegalArgumentException("IV length for GCM must be 12 bytes");
-//            }
-//            cipher.init(Cipher.ENCRYPT_MODE, aesKey, new GCMParameterSpec(128, iv));
-//            return cipher.doFinal(privateKeyBytes);
-//        } catch (Exception e) {
-//            throw new RuntimeException("Private key encryption failed", e);
-//        }
-//    }
-//
-//    public byte[] decryptWithMasterKey(String base64EncryptedData) {
-//        try {
-//            byte[] encryptedData = Base64.getDecoder().decode(base64EncryptedData);
-//            String masterKey = System.getenv("MASTER_KEY");
-//
-//            byte[] salt = Arrays.copyOfRange(encryptedData, 0, 16);
-//            byte[] iv = Arrays.copyOfRange(encryptedData, 16, 28);
-//            byte[] encryptedPrivateKey = Arrays.copyOfRange(encryptedData, 28, encryptedData.length);
-//
-//            SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
-//            KeySpec spec = new PBEKeySpec(masterKey.toCharArray(), salt, 100, 256);
-//            SecretKey tmp = factory.generateSecret(spec);
-//            SecretKeySpec secretKey = new SecretKeySpec(tmp.getEncoded(), "AES");
-//
-//            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-//            cipher.init(Cipher.DECRYPT_MODE, secretKey, new GCMParameterSpec(128, iv));
-//
-//            return cipher.doFinal(encryptedPrivateKey);
-//        } catch (Exception e) {
-//            throw new RuntimeException("Private key decryption failed: " + e.getMessage(), e);
-//        }
-//    }
-//
-//
-//    public static byte[] generateRandomBytes(int length) {
-//        byte[] bytes = new byte[length];
-//        SecureRandom secureRandom = new SecureRandom();
-//        secureRandom.nextBytes(bytes);
-//        return bytes;
-//    }
-//
     private String generateSecureToken() {
         SecureRandom random = new SecureRandom();
         byte[] bytes = new byte[32];
         random.nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
-
-
-
 }

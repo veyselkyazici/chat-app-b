@@ -2,9 +2,6 @@ package com.vky.service;
 
 import com.vky.dto.request.SendInvitationEmailDTO;
 import com.vky.exception.InvitationException;
-import jakarta.activation.DataHandler;
-import jakarta.activation.DataSource;
-import jakarta.activation.FileDataSource;
 import jakarta.mail.BodyPart;
 import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
@@ -20,7 +17,7 @@ import org.thymeleaf.context.Context;
 
 import java.util.Map;
 
-import static com.vky.utils.EmailUtils.getVerificationUrl;
+import static com.vky.utils.MailUtils.getVerificationUrl;
 
 @Service
 @RequiredArgsConstructor

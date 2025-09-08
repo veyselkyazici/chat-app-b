@@ -6,7 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 
 
-@FeignClient(url = "${raceapplication.url.mail}api/v1/mail",name = "mail-service",dismiss404 = true)
+@FeignClient(name = "mail-service", path = "/api/v1/mail",dismiss404 = true)
 public interface IMailManager {
     @PostMapping("/send-invitation-email")
     ResponseEntity<String> sendInvitation(SendInvitationEmailDTO sendInvitationEmailDTO);

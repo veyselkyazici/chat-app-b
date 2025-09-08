@@ -19,8 +19,6 @@ import java.util.function.Function;
 public class JwtTokenManager {
     @Value("${application.security.jwt.secret-key}")
     private String secretKey;
-    @Value("${application.security.jwt.expiration}")
-    private long jwtExpiration;
     @Getter
     @Value("${application.security.jwt.refresh-token.expiration}")
     private long refreshExpiration;
@@ -29,9 +27,6 @@ public class JwtTokenManager {
     public <T> T extractClaim(String token, Function<DecodedJWT, T> claimsResolver) {
         DecodedJWT decodedJWT = JWT.decode(token);
         return claimsResolver.apply(decodedJWT);
-    }
-    private Date extractExpiration(String token) {
-        return extractClaim(token, DecodedJWT::getExpiresAt);
     }
     public boolean isValidToken(String token) {
         try {
@@ -45,11 +40,5 @@ public class JwtTokenManager {
     }
     public UUID extractAuthId(String token) {
         return UUID.fromString(extractClaim(token, decodedJWT -> decodedJWT.getClaim("id").asString()));
-    }
-    public long getRemainingTTL(String token) {
-        Date expirationDate = extractExpiration(token);
-        long nowMillis = System.currentTimeMillis();
-        long diffMillis = expirationDate.getTime() - nowMillis;
-        return Math.max(diffMillis / 1000, 0);
     }
 }

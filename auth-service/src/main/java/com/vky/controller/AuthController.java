@@ -53,7 +53,7 @@ public class AuthController {
         boolean isSuccess = authService.saveVerifiedAccountId(id);
 
         if (isSuccess) {
-            return ResponseEntity.ok().build();  // redirect yerine 200 OK
+            return ResponseEntity.ok().build();
         } else {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }

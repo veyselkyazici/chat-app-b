@@ -23,6 +23,9 @@ java {
         languageVersion = JavaLanguageVersion.of(24)
     }
 }
+tasks.bootJar {
+    enabled = false
+}
 allprojects{
     repositories {
         mavenCentral()

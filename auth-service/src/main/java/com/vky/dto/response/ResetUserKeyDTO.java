@@ -31,8 +31,4 @@ public class ResetUserKeyDTO {
     @NotNull(message = "IV (Initialization Vector) is required")
     @Size(min = 12, message = "IV value is too short")
     private byte[] iv;
-
-    @NotNull(message = "Private key is required")
-    @Size(min = 64, message = "Private key appears invalid")
-    private String privateKey;
 }

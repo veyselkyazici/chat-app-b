@@ -16,23 +16,12 @@ public class ForgotPasswordService {
     private final MailService mailService;
     private final OtpUtil otpUtil;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final RedisService redisService;
 
 
     public void createForgotPassword(ForgotPasswordRequestDTO forgotPasswordRequestDTO) {
         String otp = otpUtil.generateOtp();
-        String redisKey = "reset_password:" + forgotPasswordRequestDTO.getAuthId();
-
-        Map<String, String> resetData = Map.of(
-                "otp",            otp,
-                "email",          forgotPasswordRequestDTO.getEmail(),
-                "attempts",       "0",
-                "attempts_limit", "3",
-                "created_at",     Instant.now().toString()
-        );
-
-        redisTemplate.opsForHash().putAll(redisKey, resetData);
-        redisTemplate.expire(redisKey, Duration.ofMinutes(3));
-
+        redisService.saveForgotPassword(forgotPasswordRequestDTO, otp);
         this.mailService.sendHtmlEmailWithEmbeddedFilesForgotPassword(forgotPasswordRequestDTO.getEmail(),  otp);
     }
 

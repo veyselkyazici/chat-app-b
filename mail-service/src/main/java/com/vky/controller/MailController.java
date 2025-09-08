@@ -31,6 +31,11 @@ public class MailController {
         confirmationService.createConfirmation(createConfirmationRequestDTO);
         return ResponseEntity.ok().build();
     }
+    @PostMapping("/resend-confirmation")
+    public ResponseEntity<Void> resendConfirmationMail(@RequestBody ResendConfirmationRequestDTO resendConfirmationRequestDTO) {
+        confirmationService.resendConfirmation(resendConfirmationRequestDTO.getEmail());
+        return ResponseEntity.ok().build();
+    }
     @GetMapping()
     public ResponseEntity<Void> confirmUserAccount(@RequestParam("token") String verificationToken) {
         confirmationService.verifyToken(verificationToken);

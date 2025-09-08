@@ -14,15 +14,6 @@ import java.util.function.Function;
 public class JwtTokenProvider {
     @Value("${application.security.jwt.secret-key}")
     private String secretKey;
-    @Value("${application.security.jwt.expiration}")
-    private long jwtExpiration;
-    @Value("${application.security.jwt.refresh-token.expiration}")
-    private long refreshExpiration;
-
-
-    public String extractUsername(String token) {
-        return extractClaim(token, DecodedJWT::getSubject);
-    }
 
     public <T> T extractClaim(String token, Function<DecodedJWT, T> claimsResolver) {
         DecodedJWT decodedJWT = JWT.decode(token);
@@ -41,13 +32,7 @@ public class JwtTokenProvider {
         }
     }
 
-    public boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(new Date());
-    }
     public UUID extractAuthId(String token) {
         return UUID.fromString(extractClaim(token, decodedJWT -> decodedJWT.getClaim("id").asString()));
-    }
-    private Date extractExpiration(String token) {
-        return extractClaim(token, DecodedJWT::getExpiresAt);
     }
 }
