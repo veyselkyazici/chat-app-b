@@ -1,0 +1,82 @@
+# config-server/src/main/resources/config/auth-service-dev.yml
+server:
+  port: ${SERVER_PORT:9000}
+
+spring:
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:veysel}
+    password: ${RABBITMQ_PASSWORD:123}
+
+  cloud:
+    openfeign:
+      clients:
+        mail-service:
+          url: ${MAIL_SERVICE_URL:http://localhost:9020}
+        user-service:
+          url: ${USER_SERVICE_URL:http://localhost:9010}
+
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_NAME:chat_app_dev}
+    username: ${POSTGRES_USERNAME:postgres}
+    password: ${POSTGRES_PASSWORD:12345}
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+#      password: ${REDIS_PASSWORD:}
+
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka/}
+    registryFetchIntervalSeconds: 30
+    connectTimeoutSeconds: 5
+    retryable: true
+  instance:
+    instance-id: ${spring.application.name}:${server.port}
+    leaseRenewalIntervalInSeconds: 10
+    leaseExpirationDurationInSeconds: 30
+
+google:
+  recaptcha:
+    secret: ${RECAPTCHA_SECRET_KEY}
+
+services:
+  url:
+    auth: ${AUTH_SERVICE_URL:http://auth-service:9000/api/v1/auth}
+    mail: ${MAIL_SERVICE_URL:http://mail-service:9020/api/v1/mail}
+    user: ${USER_SERVICE_URL:http://user-service:9010/api/v1/user}
+    contacts: ${CONTACTS_SERVICE_URL:http://contacts-service:9030/api/v1/contacts}
+    chat: ${CHAT_SERVICE_URL:http://chat-service:9040/api/v1/chat}
+  security:
+    jwt:
+      secret-key: ${JWT_SECRET_KEY:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+      expiration: ${JWT_EXPIRATION:3600000} # 1 hour for dev
+      refresh-token:
+        expiration: ${JWT_REFRESH_EXPIRATION:604800000} # 7 days
+
+# Development logging
+logging:
+  level:
+    com.vky: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always

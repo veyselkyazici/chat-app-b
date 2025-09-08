@@ -1,0 +1,134 @@
+# config-server/src/main/resources/config/chat-service-prod.yml
+server:
+  port: ${SERVER_PORT:9040}
+  shutdown: graceful
+
+spring:
+  # MongoDB Production Configuration
+  data:
+    mongodb:
+      username: ${MONGODB_USERNAME}
+      password: ${MONGODB_PASSWORD}
+      host: ${MONGODB_HOST:mongodb-service}
+      port: ${MONGODB_PORT:27017}
+      database: ${MONGODB_DB:chat_app_prod}
+      authentication-database: ${MONGODB_AUTH_DB:admin}
+      # Production connection pooling
+#      options:
+#        min-connections-per-host: ${MONGODB_MIN_CONNECTIONS:20}
+#        connections-per-host: ${MONGODB_MAX_CONNECTIONS:200}
+#        server-selection-timeout: ${MONGODB_SERVER_SELECTION_TIMEOUT:30000}
+#        connect-timeout: ${MONGODB_CONNECT_TIMEOUT:10000}
+#        socket-timeout: ${MONGODB_SOCKET_TIMEOUT:0}
+#        max-wait-time: ${MONGODB_MAX_WAIT_TIME:120000}
+#        # Replica Set (eğer kullanıyorsanız)
+#        replica-set-name: ${MONGODB_REPLICA_SET:}
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:rabbitmq-service}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+#    connection-timeout: ${RABBITMQ_CONNECTION_TIMEOUT:30000}
+#    requested-heartbeat: ${RABBITMQ_HEARTBEAT:30}
+
+  cloud:
+    openfeign:
+      clients:
+        auth-service:
+          url: ${AUTH_SERVICE_URL:http://auth-service:9000}
+        user-service:
+          url: ${USER_SERVICE_URL:http://user-service:9010}
+        contacts-service:
+          url: ${CONTACTS_SERVICE_URL:http://contacts-service:9030}
+      httpclient:
+        connection-timeout: ${FEIGN_CONNECTION_TIMEOUT:5000}
+        connection-timer-repeat: ${FEIGN_CONNECTION_TIMER_REPEAT:3000}
+
+
+  redis:
+    host: ${REDIS_HOST:redis-service}
+    port: ${REDIS_PORT:6379}
+#      password: ${REDIS_PASSWORD}
+#      timeout: ${REDIS_TIMEOUT:3000ms}
+#      jedis:
+#        pool:
+#          max-active: ${REDIS_POOL_MAX_ACTIVE:20} # Chat için daha yüksek
+#          max-idle: ${REDIS_POOL_MAX_IDLE:20}
+#          min-idle: ${REDIS_POOL_MIN_IDLE:5}
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka/}
+    registryFetchIntervalSeconds: 30
+    connectTimeoutSeconds: 5
+    retryable: true
+  instance:
+    instance-id: ${spring.application.name}:${server.port}
+    leaseRenewalIntervalInSeconds: 10
+    leaseExpirationDurationInSeconds: 30
+
+# Production URLs - Service discovery
+services:
+  url:
+    auth: ${AUTH_SERVICE_URL:http://auth-service:9000/api/v1/auth}
+    mail: ${MAIL_SERVICE_URL:http://mail-service:9020/api/v1/mail}
+    user: ${USER_SERVICE_URL:http://user-service:9010/api/v1/user}
+    contacts: ${CONTACTS_SERVICE_URL:http://contacts-service:9030/api/v1/contacts}
+    chat: ${CHAT_SERVICE_URL:http://chat-service:9040/api/v1/chat}
+
+# JWT Security Configuration - Production
+application:
+  security:
+    jwt:
+      secret-key: ${JWT_SECRET} # MUTLAKA environment variable'dan
+      expiration: ${JWT_EXPIRATION:900000}      # 30 dakika
+      refresh-token:
+        expiration: ${JWT_REFRESH_EXPIRATION:604800000} # 7 gün
+
+# Production logging
+logging:
+  level:
+    com.vky.chat: INFO
+    com.vky.chat.controller: INFO
+    com.vky.chat.service: INFO
+    com.vky.chat.websocket: INFO
+    org.springframework.web: WARN
+    org.springframework.data.mongodb: WARN
+    org.springframework.cloud.openfeign: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: /var/log/chat-service.log
+    max-size: 100MB
+    max-history: 30
+
+# WebSocket production configuration
+#websocket:
+#  allowed-origins: ${WEBSOCKET_ALLOWED_ORIGINS:https://yourdomain.com,https://www.yourdomain.com}
+#  heartbeat:
+#    interval: ${WEBSOCKET_HEARTBEAT_INTERVAL:30000}
+#    timeout: ${WEBSOCKET_HEARTBEAT_TIMEOUT:120000}
+
+# Production health checks
+#management:
+#  endpoints:
+#    web:
+#      exposure:
+#        include: health,info,metrics,prometheus
+#  endpoint:
+#    health:
+#      show-details: never
+#      group:
+#        readiness:
+#          include: readinessState,mongo,redis,rabbit
+#        liveness:
+#          include: livenessState,diskSpace,ping
+#  metrics:
+#    export:
+#      prometheus:
+#        enabled: true
+#  server:
+#    port: 9041 # Management port ayrı

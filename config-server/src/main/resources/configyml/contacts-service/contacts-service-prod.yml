@@ -1,0 +1,124 @@
+# config-server/src/main/resources/config/contacts-service-prod.yml
+server:
+  port: ${SERVER_PORT:9030}
+  shutdown: graceful
+
+spring:
+  rabbitmq:
+    host: ${RABBITMQ_HOST:rabbitmq-service}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+    connection-timeout: ${RABBITMQ_CONNECTION_TIMEOUT:30000}
+    requested-heartbeat: ${RABBITMQ_HEARTBEAT:30}
+
+  cloud:
+    openfeign:
+      clients:
+        auth-service:
+          url: ${AUTH_SERVICE_URL:http://auth-service:9000}
+        user-service:
+          url: ${USER_SERVICE_URL:http://user-service:9010}
+        mail-service:
+          url: ${MAIL_SERVICE_URL:http://mail-service:9020}
+        chat-service:
+          url: ${CHAT_SERVICE_URL:http://chat-service:9040}
+      httpclient:
+        connection-timeout: ${FEIGN_CONNECTION_TIMEOUT:5000}
+        connection-timer-repeat: ${FEIGN_CONNECTION_TIMER_REPEAT:3000}
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:postgres-service}:${DB_PORT:5432}/${DB_NAME:chat_app_prod}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:20}
+      minimum-idle: ${DB_MIN_IDLE:5}
+      connection-timeout: ${DB_CONNECTION_TIMEOUT:30000}
+      idle-timeout: ${DB_IDLE_TIMEOUT:600000}
+      max-lifetime: ${DB_MAX_LIFETIME:1800000}
+      leak-detection-threshold: ${DB_LEAK_DETECTION:60000}
+
+  data:
+    redis:
+      host: ${REDIS_HOST:redis-service}
+      port: ${REDIS_PORT:6379}
+#      password: ${REDIS_PASSWORD}
+#      timeout: ${REDIS_TIMEOUT:3000ms}
+#      jedis:
+#        pool:
+#          max-active: ${REDIS_POOL_MAX_ACTIVE:8}
+#          max-idle: ${REDIS_POOL_MAX_IDLE:8}
+#          min-idle: ${REDIS_POOL_MIN_IDLE:0}
+
+  # Production specific settings
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc:
+          batch_size: ${HIBERNATE_BATCH_SIZE:20}
+        order_inserts: true
+        order_updates: true
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka/}
+    registryFetchIntervalSeconds: 30
+    connectTimeoutSeconds: 5
+    retryable: true
+  instance:
+    instance-id: ${spring.application.name}:${server.port}
+    leaseRenewalIntervalInSeconds: 10
+    leaseExpirationDurationInSeconds: 30
+
+# Production URLs - Service discovery kullanarak
+services:
+  url:
+    auth: ${AUTH_SERVICE_URL:http://auth-service:9000/api/v1/auth}
+    mail: ${MAIL_SERVICE_URL:http://mail-service:9020/api/v1/mail}
+    user: ${USER_SERVICE_URL:http://user-service:9010/api/v1/user}
+    contacts: ${CONTACTS_SERVICE_URL:http://contacts-service:9030/api/v1/contacts}
+    chat: ${CHAT_SERVICE_URL:http://chat-service:9040/api/v1/chat}
+
+# Production logging
+#logging:
+#  level:
+#    com.vky.contacts: INFO
+#    com.vky.contacts.controller: INFO
+#    com.vky.contacts.service: INFO
+#    org.springframework.web: WARN
+#    org.hibernate: WARN
+#    org.springframework.cloud.openfeign: INFO
+#  pattern:
+#    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+#    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+#  file:
+#    name: /var/log/contacts-service.log
+#    max-size: 100MB
+#    max-history: 30
+#
+## Production health checks
+#management:
+#  endpoints:
+#    web:
+#      exposure:
+#        include: health,info,metrics,prometheus
+#  endpoint:
+#    health:
+#      show-details: never
+#      group:
+#        readiness:
+#          include: readinessState,db,redis,rabbit
+#        liveness:
+#          include: livenessState,diskSpace,ping
+#  metrics:
+#    export:
+#      prometheus:
+#        enabled: true
+#  server:
+#    port: 9031 # Management port ayrı

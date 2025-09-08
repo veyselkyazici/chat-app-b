@@ -1,0 +1,96 @@
+# config-server/src/main/resources/config/chat-service-dev.yml
+server:
+  port: ${SERVER_PORT:9040}
+
+spring:
+  # MongoDB Development Configuration
+  data:
+    mongodb:
+      username: ${MONGODB_USERNAME:veysel}  # Dev'de authentication yok genelde
+      password: ${MONGODB_PASSWORD:veysel}
+      host: ${MONGODB_HOST:localhost}
+      port: ${MONGODB_PORT:27017}
+      database: ${MONGODB_DB:chat_app_dev}
+      authentication-database: ${MONGODB_AUTH_DB:admin}
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+    #    password: ${REDIS_PASSWORD:}
+    #    timeout: ${REDIS_TIMEOUT:2000ms}
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:veysel}
+    password: ${RABBITMQ_PASSWORD:123}
+
+  cloud:
+    openfeign:
+      clients:
+        auth-service:
+          url: ${AUTH_SERVICE_URL:http://localhost:9000}
+        user-service:
+          url: ${USER_SERVICE_URL:http://localhost:9010}
+        contacts-service:
+          url: ${CONTACTS_SERVICE_URL:http://localhost:9030}
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka/}
+    registryFetchIntervalSeconds: 30
+    connectTimeoutSeconds: 5
+    retryable: true
+  instance:
+    instance-id: ${spring.application.name}:${server.port}
+    leaseRenewalIntervalInSeconds: 10
+    leaseExpirationDurationInSeconds: 30
+
+# Development URLs
+services:
+  url:
+    auth: ${AUTH_SERVICE_URL:http://auth-service:9000/api/v1/auth}
+    mail: ${MAIL_SERVICE_URL:http://mail-service:9020/api/v1/mail}
+    user: ${USER_SERVICE_URL:http://user-service:9010/api/v1/user}
+    contacts: ${CONTACTS_SERVICE_URL:http://contacts-service:9030/api/v1/contacts}
+    chat: ${CHAT_SERVICE_URL:http://chat-service:9040/api/v1/chat}
+
+# JWT Security Configuration
+application:
+  security:
+    jwt:
+      secret-key: ${JWT_SECRET_KEY:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+      expiration: ${JWT_EXPIRATION:3600000}      # 1 saat
+      refresh-token:
+        expiration: ${JWT_REFRESH_EXPIRATION:86400000} # 1 gün
+
+# Development logging
+logging:
+  level:
+    root: INFO
+    com.vky.chat: DEBUG
+    com.vky.chat.controller: TRACE
+    com.vky.chat.service: DEBUG
+    com.vky.chat.websocket: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.web.socket: DEBUG
+    org.springframework.data.mongodb: DEBUG
+    org.springframework.cloud.openfeign: DEBUG
+  pattern:
+    console: "%clr(%d{HH:mm:ss.SSS}){faint} %clr(%-5level) %clr([%thread]){magenta} %clr(%logger{36}){cyan} - %msg%n"
+
+# WebSocket development configuration
+#websocket:
+#  allowed-origins: "*"  # Development'ta tüm origin'lere izin
+#  heartbeat:
+#    interval: 10000
+#    timeout: 60000
+
+# Development actuator endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
