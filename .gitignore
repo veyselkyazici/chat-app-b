@@ -1,0 +1,19 @@
+.gradle/
+
+**/build/
+**/libs/*.jar
+
+# IDE
+.idea/
+*.iml
+*.class
+
+.env
+.env.dev
+.env.prod
+
+docker-compose-services.yml
+docker-compose-db.yml
+docker-compose-service-ci-cd.yml
+
+
