@@ -18,7 +18,8 @@ public enum ErrorType {
     CONTACT_NOT_FOUND(3003, "Contact not found", HttpStatus.NOT_FOUND),
     UNAUTHORIZED_ACCESS(3004, "Unauthorized operation", HttpStatus.FORBIDDEN),
     INVALID_USER_ID_FORMAT(3005, "Invalid user ID format", HttpStatus.BAD_REQUEST),
-    USER_NOT_FOUD(3006, "Unauthorized operation", HttpStatus.NOT_FOUND);
+    USER_NOT_FOUD(3006, "Unauthorized operation", HttpStatus.NOT_FOUND),
+    ALREADY_INVITED(3007, "Already invited", HttpStatus.BAD_REQUEST);
 
     private int code;
     private String message;

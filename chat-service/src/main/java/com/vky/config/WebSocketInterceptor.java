@@ -1,8 +1,10 @@
 package com.vky.config;
 
+import com.vky.controller.UserStatusMessage;
 import com.vky.expcetion.ChatServiceException;
 import com.vky.expcetion.ErrorMessage;
 import com.vky.expcetion.ErrorType;
+import com.vky.service.UserStatusService;
 import com.vky.util.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -85,7 +87,12 @@ public class WebSocketInterceptor implements ChannelInterceptor {
         redisTemplate.opsForHash().put(redisKey, "sessionId", sessionId);
         redisTemplate.opsForHash().put(redisKey, "status", "online");
         redisTemplate.opsForHash().put(redisKey, "lastSeen", Instant.now().toString());
-
+        UserStatusMessage message = UserStatusMessage.builder()
+                .userId(userId)
+                .status("online")
+                .lastSeen(Instant.now())
+                .build();
+        messagingTemplate.convertAndSendToUser(userId, "/queue/online-status", message);
         // TTL ayarla (örn. 30 saniye, düzenli heartbeat ile yenilenebilir)
         redisTemplate.expire(redisKey, 30, TimeUnit.SECONDS);
 
@@ -133,6 +140,7 @@ public class WebSocketInterceptor implements ChannelInterceptor {
             redisTemplate.opsForHash().put("chat-user:" + userId, "status", "offline");
             redisTemplate.opsForHash().put("chat-user:" + userId, "lastSeen", Instant.now().toString());
             redisTemplate.opsForHash().delete("chat-user:" + userId, "sessionId");
+            redisTemplate.opsForHash().delete("typing:" + userId);
         }
     }
 

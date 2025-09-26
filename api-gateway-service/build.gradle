@@ -8,6 +8,8 @@ dependencies {
     implementation libs.springCloudStarterGateway
     implementation libs.springCloudStarterCircuitBreaker
     implementation libs.springCloudStarterCircuitBreakerReactor
+    implementation libs.springCloudConfigClient
     implementation libs.eurekaClient
     implementation libs.redisReactive
+    implementation libs.springBootWeb
 }

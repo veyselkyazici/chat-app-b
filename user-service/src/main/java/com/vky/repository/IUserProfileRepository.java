@@ -12,15 +12,14 @@ import java.util.UUID;
 
 @Repository
 public interface IUserProfileRepository extends JpaRepository<UserProfile, UUID> {
-    Optional<UserProfile> findByAuthId(UUID authId);
 
-    Optional<UserProfile> findUserProfileByEmailIgnoreCase(String email);
+    Optional<UserProfile> findUserProfileByEmailIgnoreCaseAndIsDeletedFalse(String email);
     // JPQL entity adı ve field adları ile çalışır
     // LAZY alanlar için ya servis katmanında @Transactional(hibernate session açık tutar) veya burada @EntityGraph(ilişkileri EAGER yükler(@Lob alanlarda çalışmaz (Lob alanlar varsayılan LAZY)))kullanılmalı
-    @Query("SELECT u FROM UserProfile u WHERE u.id IN :ids")
+    @Query("SELECT u FROM UserProfile u WHERE u.id IN :ids AND u.isDeleted = false")
     List<UserProfile> findUsersByIdList(@Param("ids") List<UUID> userIdList);
 
-    Optional<UserProfile> findWithUserKeyByAuthId(UUID authId);
+    Optional<UserProfile> findWithUserKeyByAuthIdAndIsDeletedFalse(UUID authId);
 
     // Native Query tablo ve kolon adlarını kullanır @EntityGraph(Eager loading için kullanılır) çalışmaz
     @Query(value = "SELECT * FROM users WHERE id IN :ids", nativeQuery = true)

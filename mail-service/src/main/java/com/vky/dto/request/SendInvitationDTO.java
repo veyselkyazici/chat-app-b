@@ -11,7 +11,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @Data
 @Builder
-public class SendInvitationEmailDTO {
+public class SendInvitationDTO {
     private UUID invitationId;
     private String inviteeEmail;
     private String contactName;

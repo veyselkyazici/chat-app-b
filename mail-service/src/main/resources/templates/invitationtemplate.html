@@ -1,54 +1,57 @@
 <table class="body-wrap" bgcolor="#f6f6f6"
-       style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px; width: 100%; background-color: #f6f6f6; margin: 0;">
+       style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:14px; width:100%; background-color:#f6f6f6; margin:0; padding:0;">
     <tbody>
     <tr>
         <td></td>
-        <td class="container" width="600" style="display: block; max-width: 600px; margin: 0 auto;">
-            <div class="content" style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                <table class="main" width="100%" cellpadding="0" cellspacing="0" bgcolor="#fff"
-                       style="border-radius: 3px; background-color: #fff; border: 1px solid #e9e9e9;">
+        <td class="container" width="600" style="display:block; max-width:600px; margin:0 auto;">
+            <div class="content" style="max-width:600px; margin:0 auto; padding:20px;">
+
+                <table class="main" width="100%" cellpadding="0" cellspacing="0" bgcolor="#ffffff"
+                       style="border-radius:3px; border:1px solid #e9e9e9;">
                     <tbody>
                     <tr>
                         <td align="center" bgcolor="#38414a"
-                            style="font-size: 20px; font-weight: 600; color: #fff; padding: 20px; border-radius: 3px 3px 0 0;">
-                            <a href="https://www.chatapp.com" style="font-size: 28px; color: #fff; text-decoration: none;">vkychatapp</a> <br>
-                            <span style="margin-top: 10px; display: block;">You're Invited!</span>
+                            style="font-size:20px; font-weight:600; color:#ffffff; padding:20px; border-radius:3px 3px 0 0;">
+                            <a href="https://www.chatapp.com"
+                               style="font-size:28px; color:#ffffff; text-decoration:none;">vkychatapp</a><br>
+                            <span style="margin-top:10px; display:block; font-size:16px;">You're Invited!</span>
                         </td>
                     </tr>
+
                     <tr>
-                        <td class="content-wrap" style="padding: 20px;">
+                        <td class="content-wrap" style="padding:20px;">
                             <table width="100%">
                                 <tbody>
                                 <tr>
-                                    <td class="content-block" style="padding: 0 0 20px;">
+                                    <td class="content-block" style="padding:0 0 20px; color:#333;">
                                         Hello <strong th:text="${name}">[inviteeEmail]</strong>,
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td class="content-block" style="padding: 0 0 20px;">
+                                    <td class="content-block" style="padding:0 0 20px; color:#333; line-height:1.5;">
                                         <p><strong th:text="${inviterEmail}">[inviterEmail]</strong> has invited you to join <b>vkychatapp</b>,
                                             a real-time messaging platform where you can chat, connect, and share instantly with friends and colleagues.</p>
                                         <p>Click the button below to create your account and start chatting:</p>
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td class="content-block" align="center" style="padding: 20px 0;">
-                                        <a href="https://www.chatapp.com/register"
-                                           style="font-family: Helvetica, Arial, sans-serif; font-size: 16px; font-weight: bold; text-decoration: none;
-                                    background-color: #f1556c; color: #fff; padding: 12px 24px; border-radius: 5px; display: inline-block;">
+                                    <td class="content-block" align="center" style="padding:20px 0;">
+                                        <a th:href="@{${url}+'/register'}"
+                                           style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; font-weight:bold; text-decoration:none;
+                                           background-color:#f1556c; color:#ffffff; padding:12px 24px; border-radius:5px; display:inline-block;">
                                             Join vkychatapp Now
                                         </a>
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td class="content-block" style="padding: 0 0 20px;">
+                                    <td class="content-block" style="padding:0 0 20px; color:#333; line-height:1.5;">
                                         We’re excited to have you on board. See you in the chat! 🚀
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td class="content-block">
-                                        Best regards,
-                                        <br><b>The vkychatapp Team</b>
+                                    <td class="content-block" style="padding:0 0 20px; color:#333; line-height:1.5;">
+                                        Best regards,<br>
+                                        <b>The vkychatapp Team</b>
                                     </td>
                                 </tr>
                                 </tbody>
@@ -57,8 +60,9 @@
                     </tr>
                     </tbody>
                 </table>
-                <div class="footer" style="width: 100%; clear: both; color: #999; padding: 20px; font-size: 12px; text-align: center;">
-                    This invitation was sent by vkychatapp.
+
+                <div class="footer" style="width:100%; clear:both; color:#999; padding:20px; font-size:12px; text-align:center;">
+                    This invitation was sent by vkychatapp (noreply@vkychatapp.com)
                 </div>
             </div>
         </td>

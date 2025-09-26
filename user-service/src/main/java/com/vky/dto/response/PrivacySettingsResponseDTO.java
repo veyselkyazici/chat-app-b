@@ -15,7 +15,7 @@ import java.util.UUID;
 public class PrivacySettingsResponseDTO {
     private UUID id;
     private VisibilityOption profilePhotoVisibility;
-    private VisibilityOption lastSeenVisibility ;
+    private VisibilityOption lastSeenVisibility;
     private VisibilityOption onlineStatusVisibility;
     private VisibilityOption aboutVisibility;
     private boolean readReceipts = true;

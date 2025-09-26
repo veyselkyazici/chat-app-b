@@ -1,25 +1,30 @@
 # config-server/src/main/resources/config/mail-service-prod.yml
 
 server:
-  port: ${SERVER_PORT:9020}
+  port: ${SERVER_PORT}
+  shutdown: graceful
 
 spring:
-  cloud:
-    openfeign:
-      clients:
-        auth-service:
-          url: ${AUTH_SERVICE_URL:http://localhost:9000}
+  mvc:
+    log-request-details: true
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+#  cloud:
+#    openfeign:
+#      clients:
+#        auth-service:
+#          url: ${AUTH_SERVICE_URL}
 
   datasource:
-    url: jdbc:postgresql://${DB_HOST:postgres-service}:${DB_PORT:5432}/${DB_NAME:chat_app_prod}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_NAME}
+    username: ${POSTGRES_USERNAME}
+    password: ${POSTGRES_PASSWORD}
 
   data:
     redis:
-      host: ${REDIS_HOST:redis-service}
-      port: ${REDIS_PORT:6379}
-#      password: ${REDIS_PASSWORD}
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
 
   jpa:
     hibernate:
@@ -30,41 +35,41 @@ spring:
         format_sql: false
 
   mail:
-    host: ${MAIL_HOST:smtp.gmail.com}
-    port: ${MAIL_PORT:587}
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
     username: ${MAIL_ID}
     password: ${MAIL_PASSWORD}
     verify:
       host: ${MAIL_VERIFY_HOST}
-    default-encoding: UTF-8
+    protocol: smtp
     properties:
       mail:
-        mime:
-          charset: UTF-8
+        transport.protocol: smtps
         smtp:
-          writetimeout: 10000
-          connectiontimeout: 10000
-          timeout: 10000
           auth: true
-          starttls:
+          ssl:
             enable: true
-            required: true
+          starttls:
+            enable: false
+        connectiontimeout: 10000
+        timeout: 10000
+        writetimeout: 10000
 
 
 services:
   url:
-    auth: ${AUTH_SERVICE_URL:http://auth-service:9000/api/v1/auth}
-    mail: ${MAIL_SERVICE_URL:http://mail-service:9020/api/v1/mail}
-    user: ${USER_SERVICE_URL:http://user-service:9010/api/v1/user}
-    contacts: ${CONTACTS_SERVICE_URL:http://contacts-service:9030/api/v1/contacts}
-    chat: ${CHAT_SERVICE_URL:http://chat-service:9040/api/v1/chat}
+    auth: ${AUTH_SERVICE_URL}
+    mail: ${MAIL_SERVICE_URL}
+    user: ${USER_SERVICE_URL}
+    contacts: ${CONTACTS_SERVICE_URL}
+    chat: ${CHAT_SERVICE_URL}
 
 
 
 eureka:
   client:
     serviceUrl:
-      defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka/}
+      defaultZone: ${EUREKA_SERVER}
     registryFetchIntervalSeconds: 30
     connectTimeoutSeconds: 5
     retryable: true
@@ -72,17 +77,22 @@ eureka:
     instance-id: ${spring.application.name}:${server.port}
     leaseRenewalIntervalInSeconds: 10
     leaseExpirationDurationInSeconds: 30
-# Production logging
-#logging:
-#  level:
-#    com.vky: INFO
-#    org.springframework.security: WARN
-#
-#management:
-#  endpoints:
-#    web:
-#      exposure:
-#        include: "*"
-#  endpoint:
-#    health:
-#      show-details: always
+
+logging:
+  level:
+    root: INFO
+    com.vky: INFO
+    org.springframework.web: INFO
+    org.hibernate.SQL: WARN
+    org.springframework.data.redis: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} %-5level - %msg%n"
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+    prometheus:
+      enabled: true

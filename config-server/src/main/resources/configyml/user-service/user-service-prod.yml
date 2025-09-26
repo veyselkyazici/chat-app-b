@@ -1,36 +1,38 @@
 # config-server/src/main/resources/config/user-service-prod.yml
 server:
-  port: ${SERVER_PORT:9010}
+  port: ${SERVER_PORT}
   shutdown: graceful
 
 spring:
+  mvc:
+    log-request-details: true
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
   rabbitmq:
-    host: ${RABBITMQ_HOST:rabbitmq-service}
-    port: ${RABBITMQ_PORT:5672}
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
     username: ${RABBITMQ_USERNAME}
     password: ${RABBITMQ_PASSWORD}
-    connection-timeout: ${RABBITMQ_CONNECTION_TIMEOUT:30000}
-    requested-heartbeat: ${RABBITMQ_HEARTBEAT:30}
 
-  cloud:
-    openfeign:
-      clients:
-        auth-service:
-          url: ${AUTH_SERVICE_URL:http://auth-service:9000}
-        mail-service:
-          url: ${MAIL_SERVICE_URL:http://mail-service:9020}
-        contacts-service:
-          url: ${CONTACTS_SERVICE_URL:http://contacts-service:9030}
-        chat-service:
-          url: ${CHAT_SERVICE_URL:http://chat-service:9040}
-      httpclient:
-        connection-timeout: ${FEIGN_CONNECTION_TIMEOUT:5000}
-        connection-timer-repeat: ${FEIGN_CONNECTION_TIMER_REPEAT:3000}
+#  cloud:
+#    openfeign:
+#      clients:
+#        auth-service:
+#          url: ${AUTH_SERVICE_URL:http://auth-service:9000}
+#        mail-service:
+#          url: ${MAIL_SERVICE_URL:http://mail-service:9020}
+#        contacts-service:
+#          url: ${CONTACTS_SERVICE_URL:http://contacts-service:9030}
+#        chat-service:
+#          url: ${CHAT_SERVICE_URL:http://chat-service:9040}
+#      httpclient:
+#        connection-timeout: ${FEIGN_CONNECTION_TIMEOUT:5000}
+#        connection-timer-repeat: ${FEIGN_CONNECTION_TIMER_REPEAT:3000}
 
   datasource:
-    url: jdbc:postgresql://${DB_HOST:postgres-service}:${DB_PORT:5432}/${DB_NAME:chat_app_prod}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_NAME}
+    username: ${POSTGRES_USERNAME}
+    password: ${POSTGRES_PASSWORD}
 #    hikari:
 #      maximum-pool-size: ${DB_POOL_SIZE:25}
 #      minimum-idle: ${DB_MIN_IDLE:5}
@@ -41,8 +43,8 @@ spring:
 
   data:
     redis:
-      host: ${REDIS_HOST:redis-service}
-      port: ${REDIS_PORT:6379}
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
 #      password: ${REDIS_PASSWORD}
 #      timeout: ${REDIS_TIMEOUT:3000ms}
 #      jedis:
@@ -67,7 +69,7 @@ spring:
 eureka:
   client:
     serviceUrl:
-      defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka/}
+      defaultZone: ${EUREKA_SERVER}
     registryFetchIntervalSeconds: 30
     connectTimeoutSeconds: 5
     retryable: true
@@ -78,23 +80,21 @@ eureka:
 # Production URLs - Service discovery kullanarak
 services:
   url:
-    auth: ${AUTH_SERVICE_URL:http://auth-service:9000/api/v1/auth}
-    mail: ${MAIL_SERVICE_URL:http://mail-service:9020/api/v1/mail}
-    user: ${USER_SERVICE_URL:http://user-service:9010/api/v1/user}
-    contacts: ${CONTACTS_SERVICE_URL:http://contacts-service:9030/api/v1/contacts}
-    chat: ${CHAT_SERVICE_URL:http://chat-service:9040/api/v1/chat}
+    auth: ${AUTH_SERVICE_URL}
+    mail: ${MAIL_SERVICE_URL}
+    user: ${USER_SERVICE_URL}
+    contacts: ${CONTACTS_SERVICE_URL}
+    chat: ${CHAT_SERVICE_URL}
 
 # Production logging
-#logging:
-#  level:
-#    com.vky.user: INFO
-#    com.vky.user.controller: INFO
-#    com.vky.user.service: INFO
-#    org.springframework.web: WARN
-#    org.hibernate: WARN
-#    org.springframework.cloud.openfeign: INFO
-#  pattern:
-#    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+logging:
+  level:
+    root: INFO
+    com.vky: INFO
+    org.springframework.web: INFO
+    org.hibernate.SQL: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} %-5level - %msg%n"
 #    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 #  file:
 #    name: /var/log/user-service.log
@@ -106,22 +106,17 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
-  endpoint:
-    health:
-      show-details: never
-      group:
-        readiness:
-          include: readinessState,db,redis,rabbit
-        liveness:
-          include: livenessState,diskSpace,ping
-  metrics:
-    export:
-      prometheus:
-        enabled: true
-  server:
-    port: 9011 # Management port ayrı
+        include: health,info,prometheus
+    prometheus:
+      enabled: true
 
+
+cloudinary:
+  cloud:
+    name: ${CLOUDINARY_CLOUD_NAME}
+  api:
+    key: ${CLOUDINARY_API_KEY}
+    secret: ${CLOUDINARY_API_SECRET}
 # Production circuit breaker
 #resilience4j:
 #  circuitbreaker:

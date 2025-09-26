@@ -18,7 +18,6 @@ import java.util.UUID;
 @ToString(exclude = {"privacySettings","userKey"},callSuper = true)
 @Table(name = "users")
 @Entity
-@Where(clause = "is_deleted = false")
 @EqualsAndHashCode(exclude = {"privacySettings", "userKey"},callSuper = true)
 public class UserProfile extends BaseEntityManualId{
     private UUID authId;
@@ -41,7 +40,8 @@ public class UserProfile extends BaseEntityManualId{
     @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private PrivacySettings privacySettings;
 
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_key_id", unique = true)
     private UserKey userKey;
 
 }

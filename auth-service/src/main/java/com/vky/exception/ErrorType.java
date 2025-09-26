@@ -28,7 +28,8 @@ public enum ErrorType {
     OTP_NOT_VERIFIED(1015, "Otp not verified", HttpStatus.BAD_REQUEST),
     USER_KEY_RESET_FAILED(1016, "Reset failed", HttpStatus.BAD_REQUEST),
     INVALID_TOKEN(1017, "Invalid token", HttpStatus.UNAUTHORIZED),
-    TOKEN_EXPIRED(1018, "Token expired", HttpStatus.UNAUTHORIZED),
+    MAIL_SEND_FAILED(1018, "Invalid token", HttpStatus.UNAUTHORIZED),
+    TOKEN_EXPIRED(1019, "Token expired", HttpStatus.UNAUTHORIZED),
 
     // Server Errors (2000+)
     INTERNAL_SERVER_ERROR(2000, "Internal server error", HttpStatus.INTERNAL_SERVER_ERROR),

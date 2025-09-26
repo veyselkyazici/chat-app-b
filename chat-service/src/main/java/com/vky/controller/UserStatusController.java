@@ -42,8 +42,15 @@ public class UserStatusController {
     @MessageMapping("/typing")
     public void typing(@Payload TypingMessage message, Principal principal) {
         message.setUserId(principal.getName());
-        userStatusService.isTyping(message);
+        userStatusService.setTyping(message);
     }
+
+    @GetMapping("/is-typing/{contactId}")
+    public ResponseEntity<TypingMessage> isTyping(@PathVariable String contactId, @RequestHeader("X-Id")  String userId) {
+        TypingMessage message = userStatusService.isTyping(contactId, userId);
+        return ResponseEntity.ok(message);
+    }
+
 
     @GetMapping("/is-online/{contactId}")
     public ResponseEntity<UserStatusMessage> isUserOnline(@PathVariable String contactId, @RequestHeader("X-Id")  String userId) {

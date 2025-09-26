@@ -45,24 +45,13 @@ public class UserServiceApplication {
 //            KeyPair keyPair = generator.generateKeyPair();
 //
 //            // Anahtarları ekrana yazdır (kaydetmek için)
-//            System.out.println("=== KEY PAIR DETAILS ===");
-//            System.out.println("Public Key Algorithm: " + keyPair.getPublic().getAlgorithm());
-//            System.out.println("Private Key Algorithm: " + keyPair.getPrivate().getAlgorithm());
-//            System.out.println("Public Key Format: " + keyPair.getPublic().getFormat());
-//            System.out.println("Private Key Format: " + keyPair.getPrivate().getFormat());
 //
-//            System.out.println("=== PUBLIC KEY (Base64) ===");
-//            System.out.println(Base64.getEncoder().encodeToString(keyPair.getPublic().getEncoded()));
-//
-//            System.out.println("=== PRIVATE KEY (Base64) ===");
-//            System.out.println(Base64.getEncoder().encodeToString(keyPair.getPrivate().getEncoded()));
 //            SecureRandom secureRandom = new SecureRandom();
-//            String masterKey = System.getenv("MASTER_KEY");
 //            byte[] salt = new byte[16];
 //            byte[] iv = new byte[12]; // GCM için 12 byte
 //            secureRandom.nextBytes(salt);
 //            secureRandom.nextBytes(iv);
-//            saveVeysel(salt,iv,keyPair,masterKey,userProfileRepository,privacySettingsRepository,userKeyRepository);
+//            //saveVeysel(salt,iv,keyPair,userProfileRepository,privacySettingsRepository,userKeyRepository);
 //            for (int i = 0; i <= 200; i++) {
 //
 //
@@ -78,24 +67,6 @@ public class UserServiceApplication {
 //                byte[] encryptedPrivateKey = cipher.doFinal(keyPair.getPrivate().getEncoded());
 //
 //
-//
-//                KeySpec specMaster = new PBEKeySpec(masterKey.toCharArray(), salt, 100, 256);
-//                SecretKey tmp = factory.generateSecret(specMaster);
-//                SecretKeySpec secretKey = new SecretKeySpec(tmp.getEncoded(), "AES");
-//
-//                cipher.init(Cipher.ENCRYPT_MODE, secretKey, new GCMParameterSpec(128, iv));
-//                byte[] encryptedText = cipher.doFinal(keyPair.getPrivate().getEncoded());
-//
-//                ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-//                outputStream.write(salt);
-//                outputStream.write(iv);
-//                outputStream.write(encryptedText);
-//
-//
-//
-//
-//
-//
 //                String username = "User" + i;
 //                String email = username.toLowerCase() + "@gmailgmail.com";
 //                UUID authId = UUID.nameUUIDFromBytes(String.format("User%04d", i).getBytes());
@@ -107,7 +78,6 @@ public class UserServiceApplication {
 //                        .publicKey(keyPair.getPublic().getEncoded())
 //                        .encryptedPrivateKey(encryptedPrivateKey)
 //                        .salt(salt)
-//                        .encryptedPrivateKeyWithMasterKey(outputStream.toByteArray())
 //                        .iv(iv)
 //                        .build();
 //
@@ -130,10 +100,22 @@ public class UserServiceApplication {
 //                userKeyRepository.save(userKey);
 //                System.out.println("Kullanıcı eklendi: " + username);
 //            }
+//            System.out.println("=== KEY PAIR DETAILS ===");
+//            System.out.println("Public Key Algorithm: " + keyPair.getPublic().getAlgorithm());
+//            System.out.println("Private Key Algorithm: " + keyPair.getPrivate().getAlgorithm());
+//            System.out.println("Public Key Format: " + keyPair.getPublic().getFormat());
+//            System.out.println("Private Key Format: " + keyPair.getPrivate().getFormat());
+//
+//            System.out.println("=== PUBLIC KEY (Base64) ===");
+//            System.out.println(Base64.getEncoder().encodeToString(keyPair.getPublic().getEncoded()));
+//
+//            System.out.println("=== PRIVATE KEY (Base64) ===");
+//            System.out.println(Base64.getEncoder().encodeToString(keyPair.getPrivate().getEncoded()));
 //        };
+//
 //    }
 //
-//    private void saveVeysel(byte[] salt, byte[] iv, KeyPair keyPair, String masterKey, IUserProfileRepository userProfileRepository, IPrivacySettingsRepository privacySettingsRepository, IUserKeyRepository userKeyRepository) throws Exception {
+//    private void saveVeysel(byte[] salt, byte[] iv, KeyPair keyPair, IUserProfileRepository userProfileRepository, IPrivacySettingsRepository privacySettingsRepository, IUserKeyRepository userKeyRepository) throws Exception {
 //        System.out.println("=== PUBLIC KEY (Base64) ===");
 //        System.out.println(Base64.getEncoder().encodeToString(keyPair.getPublic().getEncoded()));
 //
@@ -149,24 +131,6 @@ public class UserServiceApplication {
 //        byte[] encryptedPrivateKey = cipher.doFinal(keyPair.getPrivate().getEncoded());
 //
 //
-//
-//        KeySpec specMaster = new PBEKeySpec(masterKey.toCharArray(), salt, 100, 256);
-//        SecretKey tmp = factory.generateSecret(specMaster);
-//        SecretKeySpec secretKey = new SecretKeySpec(tmp.getEncoded(), "AES");
-//
-//        cipher.init(Cipher.ENCRYPT_MODE, secretKey, new GCMParameterSpec(128, iv));
-//        byte[] encryptedText = cipher.doFinal(keyPair.getPrivate().getEncoded());
-//
-//        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-//        outputStream.write(salt);
-//        outputStream.write(iv);
-//        outputStream.write(encryptedText);
-//
-//
-//
-//
-//
-//
 //        String username = "Veysel";
 //        String email = "veysel.06.fb@hotmail.com";
 //        UUID authId = UUID.nameUUIDFromBytes(String.format("User%04d", 500).getBytes());
@@ -178,7 +142,6 @@ public class UserServiceApplication {
 //                .publicKey(keyPair.getPublic().getEncoded())
 //                .encryptedPrivateKey(encryptedPrivateKey)
 //                .salt(salt)
-//                .encryptedPrivateKeyWithMasterKey(outputStream.toByteArray())
 //                .iv(iv)
 //                .build();
 //

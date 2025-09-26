@@ -2,19 +2,16 @@ package com.vky.service;
 
 import com.vky.dto.request.ContactRequestDTO;
 import com.vky.dto.request.SendInvitationDTO;
-import com.vky.dto.request.SendInvitationEmailDTO;
 import com.vky.dto.response.DeleteContactResponseDTO;
 import com.vky.exception.ContactsServiceException;
 import com.vky.exception.ErrorType;
 import com.vky.manager.IMailManager;
-import com.vky.manager.IUserManager;
 import com.vky.repository.IInvitationRepository;
 import com.vky.repository.entity.Invitation;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -25,23 +22,22 @@ public class InvitationService {
     private final IInvitationRepository invitationRepository;
     private final IMailManager mailManager;
     private final SimpMessagingTemplate messagingTemplate;
-    private final IUserManager userManager;
 
     public boolean isExistsInvitation(UUID uuid, String email) {
-        return invitationRepository.existsByInviterUserIdAndInviteeEmailIgnoreCase(uuid, email);
+        return invitationRepository.existsByInviterUserIdAndInviteeEmailIgnoreCaseAndIsDeletedFalse(uuid, email);
     }
 
-    public Invitation findByInvitedUserEmailAndIsDeletedFalse(String email) {
-        return invitationRepository.findByInviteeEmail(email).orElse(null);
+    public List<Invitation> getInvitations(String email) {
+        return invitationRepository.findAllByInviteeEmailIgnoreCaseAndIsDeletedFalse(email);
     }
 
     public List<Invitation> findInvitationByInviterUserIdOrderByContactName(UUID userId) {
-        return invitationRepository.findInvitationByInviterUserIdOrderByContactName(userId);
+        return invitationRepository.findByInviterUserIdAndIsDeletedFalseOrderByContactName(userId);
     }
 
     // ToDo where tokenUserId == inviterId
-    public DeleteContactResponseDTO deleteInvitation(UUID id, String tokenUserId) {
-        Invitation invitation = invitationRepository.findById(id)
+    public void deleteInvitation(UUID id, String tokenUserId) {
+        Invitation invitation = invitationRepository.findByIdAndInviterUserIdAndIsDeletedFalse(id, UUID.fromString(tokenUserId))
                 .orElseThrow(() -> new ContactsServiceException(ErrorType.USER_NOT_FOUD));
 
         invitation.setDeleted(true);
@@ -52,7 +48,7 @@ public class InvitationService {
                 invitation.getInviteeEmail(),
                 invitation.getContactName(),
                 invitation.getInviterUserId(),
-                null,false
+                null,invitation.isInvited()
         );
 
         messagingTemplate.convertAndSendToUser(
@@ -60,21 +56,19 @@ public class InvitationService {
                 "queue/delete/contact",
                 dto
         );
-
-        return dto;
     }
-
-    public String sendInvitation(SendInvitationDTO sendInvitationDTO, String tokenUserId) {
-        UUID userId = UUID.fromString(tokenUserId);
-        String inviterEmail = userManager.getUserByEmailByIdd(userId);
-        SendInvitationEmailDTO sendInvitationEmailDTO = new SendInvitationEmailDTO(sendInvitationDTO.getInvitationId() ,sendInvitationDTO.getInviteeEmail()
-        , sendInvitationDTO.getContactName(), userId, sendInvitationDTO.isInvited(), inviterEmail);
-        ResponseEntity<String> response = mailManager.sendInvitation(sendInvitationEmailDTO);
-        if (response.getStatusCode() == HttpStatus.OK) {
-            Invitation invitation = invitationRepository.findById(sendInvitationDTO.getInvitationId()).orElseThrow(() -> new ContactsServiceException(ErrorType.USER_NOT_FOUD));
-            invitation.setInvited(true);
+    @Transactional
+    public void sendInvitation(SendInvitationDTO sendInvitationDTO, String tokenUserId) {
+        if(sendInvitationDTO.getInviteeEmail() == null || !tokenUserId.equals(sendInvitationDTO.getInviterUserId().toString())) {
+            throw new ContactsServiceException(ErrorType.USER_NOT_FOUD);
         }
-        return response.getBody();
+        Invitation invitation = invitationRepository.findById(sendInvitationDTO.getInvitationId()).orElseThrow(() -> new ContactsServiceException(ErrorType.USER_NOT_FOUD));
+        mailManager.sendInvitation(sendInvitationDTO);
+        if(invitation.isInvited()) {
+            throw new ContactsServiceException(ErrorType.ALREADY_INVITED);
+        }
+        invitation.setInvited(true);
+        invitationRepository.save(invitation);
     }
 
 
@@ -83,7 +77,12 @@ public class InvitationService {
                 .inviterUserId(UUID.fromString(userId))
                 .inviteeEmail(contactRequestDTO.getUserContactEmail())
                 .contactName(contactRequestDTO.getUserContactName())
+                .inviterEmail(contactRequestDTO.getAddedByEmail())
                 .build());
 
+    }
+
+    public void saveInvitation(Invitation invitation) {
+        invitationRepository.save(invitation);
     }
 }

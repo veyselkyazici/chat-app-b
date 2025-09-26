@@ -27,13 +27,14 @@ public class ContactsServiceApplication {
 //    @Bean
 //    CommandLineRunner loadData(IInvitationRepository invitationRepository) {
 //        return args -> {
-//            UUID fixedUUID = UUID.fromString("19039fbc-3adc-3722-b6ad-ca4063cf3618");
+//            UUID fixedUUID = UUID.fromString("01e8ce0f-dab8-3994-8703-8f7f02a8d5c9");
 //            // 80 adet Invitation nesnesi oluşturulması ve kaydedilmesi
 //            IntStream.range(0, 50).forEach(i -> {
 //                Invitation invitation = Invitation.builder()
 //                        .inviteeEmail("userInvitation" + i + "@example.com")
 //                        .contactName("userInvitation " + i)
 //                        .inviterUserId(fixedUUID)
+//                        .inviterEmail("user119@gmailgmail.com")
 //                        .build();
 //                invitationRepository.save(invitation);
 //            });
@@ -43,15 +44,18 @@ public class ContactsServiceApplication {
 //    public CommandLineRunner commandLineRunner(IContactsRepository contactsRepository, IUserRelationshipRepository userRelationshipRepository) {
 //        return args -> {
 //            for (int i = 0; i <= 200; i++) {
+//                if(i == 119) {
+//                    continue;
+//                }
 //                String username = "User" + i;
 //                String email = username.toLowerCase() + "@gmailgmail.com";
-//                UUID userId = UUID.fromString("19039fbc-3adc-3722-b6ad-ca4063cf3618");
+//                UUID userId = UUID.fromString("01e8ce0f-dab8-3994-8703-8f7f02a8d5c9");
 //                UUID userContactIdId = UUID.nameUUIDFromBytes(String.format("User%04d", i).getBytes());
 //                Contacts contacts = Contacts.builder()
 //                        .userContactName(username)
 //                        .userId(userId)
 //                        .userContactId(userContactIdId)
-//                        .userEmail("veysel.06.fb@hotmail.com")
+//                        .userEmail("user119@gmailgmail.com")
 //                        .userContactEmail(email)
 //                        .build();
 //                UserRelationship userRelationship = new UserRelationship();

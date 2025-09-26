@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Data
 @Builder
-public class FeignClientUserProfileResponseDTO {
+public class ContactResponseDTO {
     private ContactsDTO contactsDTO;
     private UserProfileResponseDTO userProfileResponseDTO;
     private InvitationResponseDTO invitationResponseDTO;

@@ -9,13 +9,13 @@ spring:
     username: ${RABBITMQ_USERNAME:veysel}
     password: ${RABBITMQ_PASSWORD:123}
 
-  cloud:
-    openfeign:
-      clients:
-        mail-service:
-          url: ${MAIL_SERVICE_URL:http://localhost:9020}
-        user-service:
-          url: ${USER_SERVICE_URL:http://localhost:9010}
+#  cloud:
+#    openfeign:
+#      clients:
+#        mail-service:
+#          url: ${MAIL_SERVICE_URL:http://localhost:9020}
+#        user-service:
+#          url: ${USER_SERVICE_URL:http://localhost:9010}
 
   datasource:
     url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_NAME:chat_app_dev}

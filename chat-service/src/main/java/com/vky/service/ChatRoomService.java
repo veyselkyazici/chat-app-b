@@ -103,8 +103,8 @@ public class ChatRoomService {
             ContactInformationOfExistingChatsRequestDTO dto = new ContactInformationOfExistingChatsRequestDTO();
             dto.setUserId(UUID.fromString(userId));
             dto.setUserContactIds(participantIds);
-            List<FeignClientUserProfileResponseDTO> profilesList = contactsManager.getContactInformationOfExistingChats(dto);
-            Map<UUID, FeignClientUserProfileResponseDTO> profiles = profilesList.stream()
+            List<ContactResponseDTO> profilesList = contactsManager.getContactInformationOfExistingChats(dto);
+            Map<UUID, ContactResponseDTO> profiles = profilesList.stream()
                     .collect(Collectors.toMap(
                             profile -> profile.getUserProfileResponseDTO().getId(),
                             Function.identity()
@@ -138,7 +138,7 @@ public class ChatRoomService {
         UserChatSettings userChatSettings = userChatSettingsService.findUserChatSettingsByUserIdAndChatRoomId(userId, chatRoom.getId());
         ChatMessage chatMessage = chatMessageService.getLastMessageForChatRooms(chatRoomId);
 
-        FeignClientUserProfileResponseDTO profileResponse = contactsManager.getContactInformationOfExistingChat(ContactInformationOfExistingChatRequestDTO.builder()
+        ContactResponseDTO profileResponse = contactsManager.getContactInformationOfExistingChat(ContactInformationOfExistingChatRequestDTO.builder()
                 .userId(UUID.fromString(userId))
                 .userContactId(UUID.fromString(userContactId))
                 .build());
@@ -170,14 +170,14 @@ public class ChatRoomService {
         return CompletableFuture.completedFuture(chatSummaryDTO);
     }
 
-    private ChatSummaryDTO buildChatSummary(ChatRoom chatRoom, LastMessageInfo lastMessageInfo, UserChatSettings userChatSettings, String userId, Map<UUID, FeignClientUserProfileResponseDTO> profileMap) {
+    private ChatSummaryDTO buildChatSummary(ChatRoom chatRoom, LastMessageInfo lastMessageInfo, UserChatSettings userChatSettings, String userId, Map<UUID, ContactResponseDTO> profileMap) {
         if (lastMessageInfo == null) {
             return null;
         }
         UUID senderOrRecipientId = UUID.fromString(
                 lastMessageInfo.getSenderId().equals(userId) ? lastMessageInfo.getRecipientId() : lastMessageInfo.getSenderId()
         );
-        FeignClientUserProfileResponseDTO profile = profileMap.get(senderOrRecipientId);
+        ContactResponseDTO profile = profileMap.get(senderOrRecipientId);
         if (profile == null) {
             return null;
         }

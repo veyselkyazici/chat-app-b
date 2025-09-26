@@ -1,18 +1,24 @@
 # config-server/src/main/resources/config/chat-service-prod.yml
 server:
-  port: ${SERVER_PORT:9040}
+  port: ${SERVER_PORT}
   shutdown: graceful
 
 spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
   # MongoDB Production Configuration
   data:
     mongodb:
       username: ${MONGODB_USERNAME}
       password: ${MONGODB_PASSWORD}
-      host: ${MONGODB_HOST:mongodb-service}
-      port: ${MONGODB_PORT:27017}
-      database: ${MONGODB_DB:chat_app_prod}
-      authentication-database: ${MONGODB_AUTH_DB:admin}
+      host: ${MONGODB_HOST}
+      port: ${MONGODB_PORT}
+      database: ${MONGODB_DB}
+      authentication-database: ${MONGODB_AUTH_DB}
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
       # Production connection pooling
 #      options:
 #        min-connections-per-host: ${MONGODB_MIN_CONNECTIONS:20}
@@ -25,31 +31,24 @@ spring:
 #        replica-set-name: ${MONGODB_REPLICA_SET:}
 
   rabbitmq:
-    host: ${RABBITMQ_HOST:rabbitmq-service}
-    port: ${RABBITMQ_PORT:5672}
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
     username: ${RABBITMQ_USERNAME}
     password: ${RABBITMQ_PASSWORD}
 #    connection-timeout: ${RABBITMQ_CONNECTION_TIMEOUT:30000}
 #    requested-heartbeat: ${RABBITMQ_HEARTBEAT:30}
 
-  cloud:
-    openfeign:
-      clients:
-        auth-service:
-          url: ${AUTH_SERVICE_URL:http://auth-service:9000}
-        user-service:
-          url: ${USER_SERVICE_URL:http://user-service:9010}
-        contacts-service:
-          url: ${CONTACTS_SERVICE_URL:http://contacts-service:9030}
-      httpclient:
-        connection-timeout: ${FEIGN_CONNECTION_TIMEOUT:5000}
-        connection-timer-repeat: ${FEIGN_CONNECTION_TIMER_REPEAT:3000}
+#  cloud:
+#    openfeign:
+#      clients:
+#        auth-service:
+#          url: ${AUTH_SERVICE_URL}
+#        user-service:
+#          url: ${USER_SERVICE_URL}
+#        contacts-service:
+#          url: ${CONTACTS_SERVICE_URL}
 
 
-  redis:
-    host: ${REDIS_HOST:redis-service}
-    port: ${REDIS_PORT:6379}
-#      password: ${REDIS_PASSWORD}
 #      timeout: ${REDIS_TIMEOUT:3000ms}
 #      jedis:
 #        pool:
@@ -60,7 +59,7 @@ spring:
 eureka:
   client:
     serviceUrl:
-      defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka/}
+      defaultZone: ${EUREKA_SERVER}
     registryFetchIntervalSeconds: 30
     connectTimeoutSeconds: 5
     retryable: true
@@ -72,38 +71,33 @@ eureka:
 # Production URLs - Service discovery
 services:
   url:
-    auth: ${AUTH_SERVICE_URL:http://auth-service:9000/api/v1/auth}
-    mail: ${MAIL_SERVICE_URL:http://mail-service:9020/api/v1/mail}
-    user: ${USER_SERVICE_URL:http://user-service:9010/api/v1/user}
-    contacts: ${CONTACTS_SERVICE_URL:http://contacts-service:9030/api/v1/contacts}
-    chat: ${CHAT_SERVICE_URL:http://chat-service:9040/api/v1/chat}
+    auth: ${AUTH_SERVICE_URL}
+    mail: ${MAIL_SERVICE_URL}
+    user: ${USER_SERVICE_URL}
+    contacts: ${CONTACTS_SERVICE_URL}
+    chat: ${CHAT_SERVICE_URL}
 
 # JWT Security Configuration - Production
 application:
   security:
     jwt:
-      secret-key: ${JWT_SECRET} # MUTLAKA environment variable'dan
-      expiration: ${JWT_EXPIRATION:900000}      # 30 dakika
+      secret-key: ${JWT_SECRET_KEY}
+      expiration: ${JWT_EXPIRATION}
       refresh-token:
-        expiration: ${JWT_REFRESH_EXPIRATION:604800000} # 7 gün
+        expiration: ${JWT_REFRESH_EXPIRATION}
 
 # Production logging
 logging:
   level:
-    com.vky.chat: INFO
-    com.vky.chat.controller: INFO
-    com.vky.chat.service: INFO
-    com.vky.chat.websocket: INFO
-    org.springframework.web: WARN
+    root: INFO
+    com.vky: INFO
+    org.springframework.web: INFO
+    org.hibernate.SQL: WARN
+    org.springframework.data.redis: WARN
     org.springframework.data.mongodb: WARN
-    org.springframework.cloud.openfeign: INFO
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-  file:
-    name: /var/log/chat-service.log
-    max-size: 100MB
-    max-history: 30
+    console: "%d{yyyy-MM-dd HH:mm:ss} %-5level - %msg%n"
+
 
 # WebSocket production configuration
 #websocket:
@@ -112,23 +106,11 @@ logging:
 #    interval: ${WEBSOCKET_HEARTBEAT_INTERVAL:30000}
 #    timeout: ${WEBSOCKET_HEARTBEAT_TIMEOUT:120000}
 
-# Production health checks
-#management:
-#  endpoints:
-#    web:
-#      exposure:
-#        include: health,info,metrics,prometheus
-#  endpoint:
-#    health:
-#      show-details: never
-#      group:
-#        readiness:
-#          include: readinessState,mongo,redis,rabbit
-#        liveness:
-#          include: livenessState,diskSpace,ping
-#  metrics:
-#    export:
-#      prometheus:
-#        enabled: true
-#  server:
-#    port: 9041 # Management port ayrı
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+    prometheus:
+      enabled: true

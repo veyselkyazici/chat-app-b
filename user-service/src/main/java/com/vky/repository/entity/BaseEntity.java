@@ -18,7 +18,7 @@ import java.util.UUID;
 @EntityListeners(AuditingEntityListener.class)
 public class BaseEntity {
     @Id
-    @GeneratedValue(generator = "guid")
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
     @CreatedDate

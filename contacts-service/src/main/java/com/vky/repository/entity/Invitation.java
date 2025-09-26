@@ -16,7 +16,6 @@ import java.util.UUID;
 @Data
 @SuperBuilder
 @Table(name = "invitations")
-@Where(clause = "is_deleted = false")
 @Entity
 @EqualsAndHashCode(callSuper = true)
 public class Invitation extends BaseEntity{
@@ -24,4 +23,5 @@ public class Invitation extends BaseEntity{
     private String contactName;
     private UUID inviterUserId;
     private boolean isInvited;
+    private String inviterEmail;
 }

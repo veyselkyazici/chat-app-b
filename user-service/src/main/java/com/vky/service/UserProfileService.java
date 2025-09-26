@@ -38,12 +38,13 @@ public class UserProfileService {
 
     @Transactional
     public void createUserProfile(CreateUser createUser) {
-        UserProfile savedUserProfile = UserProfile.builder()
+        UserProfile userProfile = UserProfile.builder()
                 .authId(createUser.getAuthId())
                 .email(createUser.getEmail())
                 .privacySettings(new PrivacySettings())
                 .about("Welcome to vkychatapp")
                 .id(createUser.getAuthId())
+                .lastSeen(Instant.now())
                 .build();
 
         UserKey userKey = new UserKey();
@@ -51,13 +52,30 @@ public class UserProfileService {
         userKey.setIv(createUser.getIv());
         userKey.setSalt(createUser.getSalt());
         userKey.setEncryptedPrivateKey(createUser.getEncryptedPrivateKey());
-        userKey.setUser(savedUserProfile);
-        savedUserProfile.setUserKey(userKey);
+        userKey.setUser(userProfile);
+        userProfile.setUserKey(userKey);
 
-        userProfileRepository.save(savedUserProfile);
-        rabbitMQProducer.checkContactUser(CheckContactDTO.builder()
+        UserProfile savedUserProfile = userProfileRepository.save(userProfile);
+        rabbitMQProducer.checkContactUser(UserProfileResponseDTO.builder()
+                        .about(savedUserProfile.getAbout())
                         .email(savedUserProfile.getEmail())
+                        .firstName(savedUserProfile.getFirstName())
                         .id(savedUserProfile.getId())
+                        .imagee(savedUserProfile.getImage())
+                        .userKey(UserKeyResponseDTO.builder()
+                                .publicKey(Base64.getEncoder().encodeToString(savedUserProfile.getUserKey().getPublicKey()))
+                                .salt(Base64.getEncoder().encodeToString(savedUserProfile.getUserKey().getSalt()))
+                                .encryptedPrivateKey(Base64.getEncoder().encodeToString(savedUserProfile.getUserKey().getEncryptedPrivateKey()))
+                                .iv(Base64.getEncoder().encodeToString(savedUserProfile.getUserKey().getIv()))
+                                .build())
+                        .privacySettings(PrivacySettingsResponseDTO.builder()
+                                .aboutVisibility(savedUserProfile.getPrivacySettings().getAboutVisibility())
+                                .profilePhotoVisibility(savedUserProfile.getPrivacySettings().getProfilePhotoVisibility())
+                                .readReceipts(savedUserProfile.getPrivacySettings().isReadReceipts())
+                                .id(savedUserProfile.getPrivacySettings().getId())
+                                .lastSeenVisibility(savedUserProfile.getPrivacySettings().getLastSeenVisibility())
+                                .onlineStatusVisibility(savedUserProfile.getPrivacySettings().getOnlineStatusVisibility())
+                                .build())
                 .build());
     }
 
@@ -66,7 +84,7 @@ public class UserProfileService {
     @Transactional(readOnly = true)
     public UserProfileResponseDTO findWithUserKeyByAuthId(String tokenUserId) {
         UUID userId = UUID.fromString(tokenUserId);
-        return userProfileRepository.findWithUserKeyByAuthId(userId)
+        return userProfileRepository.findWithUserKeyByAuthIdAndIsDeletedFalse(userId)
                 .map(IUserProfileMapper.INSTANCE::toUserProfileDTO)
                 .orElseThrow(() -> new UserServiceException(ErrorType.USER_NOT_FOUND));
     }
@@ -97,7 +115,7 @@ public class UserProfileService {
 
     @Transactional(readOnly = true)
     // LAZY alanlar için ya servis katmanında Transactional(Hibernate session açık tutar) veya repositoryde EntityGraph kullanılmalı (UserKey de @Lob alanlar bulunduğu için varsayılan olarak LAZY davranırlar ve EntityGraph burada çalışamaz)
-    public List<FeignClientUserProfileResponseDTO> getUsers(List<UUID> ids) {
+    public List<ContactResponseDTO> getUsers(List<UUID> ids) {
 
 
         List<UserProfile> userProfiles = this.userProfileRepository.findUsersByIdList(ids);
@@ -130,7 +148,7 @@ public class UserProfileService {
                                     .build())
                             .build();
                     System.out.println(userProfileResponseDTO);
-                    return FeignClientUserProfileResponseDTO.builder()
+                    return ContactResponseDTO.builder()
                             .userProfileResponseDTO(userProfileResponseDTO)
                             .build();
                 })
@@ -143,7 +161,7 @@ public class UserProfileService {
     }
     @Transactional(readOnly = true)
     public UserProfileResponseDTO getUserByEmail(String contactEmail) {
-        return userProfileRepository.findUserProfileByEmailIgnoreCase(contactEmail).map(IUserProfileMapper.INSTANCE::toUserProfileDTO).orElse(null);
+        return userProfileRepository.findUserProfileByEmailIgnoreCaseAndIsDeletedFalse(contactEmail).map(IUserProfileMapper.INSTANCE::toUserProfileDTO).orElse(null);
     }
 
     public void updateUserLastSeen(String tokenUserId) {
@@ -216,7 +234,7 @@ public class UserProfileService {
         String publicIdWithExtension = parts[parts.length - 1];
         return publicIdWithExtension.split("\\.")[0];
     }
-
+    @Transactional
     public void resetUserKey(ResetUserKeyDTO resetUserKeyDTO) {
         UserProfile userProfile = userProfileRepository.findById(resetUserKeyDTO.getUserId())
                 .orElseThrow(() -> new UserServiceException(ErrorType.USER_NOT_FOUND));

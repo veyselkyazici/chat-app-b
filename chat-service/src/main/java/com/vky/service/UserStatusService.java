@@ -36,21 +36,17 @@ public class UserStatusService {
         messagingTemplate.convertAndSendToUser(userId, "/queue/online-status", message);
     }
     public UserStatusMessage isOnline(String contactId) {
-
-        UserStatusMessage message = new UserStatusMessage();
+        UserStatusMessage message;
         // Redis üzerinden user:{id} hash’ini oku
         Map<Object, Object> userHash = redisTemplate.opsForHash().entries("chat-user:" + contactId);
 
-        if (userHash != null && "online".equals(userHash.get("status"))) {
-            // Kullanıcı online
-            message.setUserId(contactId);
-            message.setStatus("online");
-            message.setLastSeen(null);
+        if ("online".equals(userHash.get("status"))) {
+            message = buildUserStatusMessage(contactId,"online",null);
         } else {
             // Kullanıcı offline, lastSeen’i al
             Instant lastSeen = null;
 
-            if (userHash != null && userHash.get("lastSeen") != null) {
+            if (userHash.get("lastSeen") != null) {
                 lastSeen = Instant.parse(userHash.get("lastSeen").toString());
             } else {
                 // Redis’te yoksa DB’den çek
@@ -58,10 +54,7 @@ public class UserStatusService {
                 UserLastSeenResponseDTO userLastSeenResponseDTO = userManager.getUserLastSeen(userIdUUID);
                 lastSeen = userLastSeenResponseDTO.getLastSeen();
             }
-
-            message.setUserId(contactId);
-            message.setStatus("offline");
-            message.setLastSeen(lastSeen);
+            message = buildUserStatusMessage(contactId,"offline",lastSeen);
         }
         return message;
     }
@@ -72,9 +65,54 @@ public class UserStatusService {
         redisTemplate.expire(key, ttlSeconds, TimeUnit.SECONDS);
     }
 
-    public void isTyping(TypingMessage message) {
+    public void setTyping(TypingMessage message) {
+        String key = "typing:" + message.getUserId();
+        redisTemplate.opsForHash().put(key, "isTyping", message.isTyping());
+        redisTemplate.opsForHash().put(key, "chatRoomId", message.getChatRoomId());
+        redisTemplate.opsForHash().put(key, "contactId", message.getFriendId());
+        redisTemplate.expire(key, 10, TimeUnit.SECONDS);
 
         messagingTemplate.convertAndSendToUser(message.getFriendId(), "/queue/typing", message);
         messagingTemplate.convertAndSendToUser(message.getFriendId(), "/queue/message-box-typing", message);
+    }
+    private UserStatusMessage buildUserStatusMessage(String contactId, String status, Instant lastSeen) {
+        return UserStatusMessage.builder()
+                .userId(contactId)
+                .status(status)
+                .lastSeen(lastSeen)
+                .build();
+    }
+
+    public TypingMessage isTyping(String contactId, String userId) {
+        String key = "typing:" + contactId;
+        Map<Object, Object> typingHash = redisTemplate.opsForHash().entries(key);
+
+        if (typingHash.isEmpty()) {
+            return buildTypingMessage(userId, contactId, null, false);
+        }
+
+        String storedContactId = (String) typingHash.get("contactId");
+        if (storedContactId == null || !storedContactId.equals(userId)) {
+            return buildTypingMessage(userId, contactId, null, false);
+        }
+
+        boolean isTyping = Boolean.parseBoolean(
+                String.valueOf(typingHash.getOrDefault("isTyping", "false"))
+        );
+
+        String chatRoomId = typingHash.get("chatRoomId") != null
+                ? typingHash.get("chatRoomId").toString()
+                : null;
+
+        return buildTypingMessage(userId, storedContactId, chatRoomId, isTyping);
+    }
+
+    private TypingMessage buildTypingMessage(String userId, String friendId, String chatRoomId, boolean isTyping) {
+        return TypingMessage.builder()
+                .userId(userId)
+                .friendId(friendId)
+                .chatRoomId(chatRoomId)
+                .isTyping(isTyping)
+                .build();
     }
 }

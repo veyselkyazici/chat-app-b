@@ -42,7 +42,7 @@ public class UnreadMessageCountService {
 
             currentCount = setUnreadCountFromMongo(chatRoomId, recipientId);
         }
-        chatMessageService.setIsSeenUpdateForUnreadMessageCount(chatRoomId,recipientId,currentCount);
+        userChatSettingsService.resetUnreadCount(chatRoomId, recipientId,0);
         redisTemplate.opsForValue().set(redisKey, 0, REDIS_TTL);
 
         return currentCount;

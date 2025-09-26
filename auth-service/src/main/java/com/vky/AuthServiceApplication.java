@@ -25,18 +25,6 @@ public class AuthServiceApplication {
     public static void main(String[] args) {
         SpringApplication.run(AuthServiceApplication.class, args);
     }
-//    @Bean
-//    public CommandLineRunner commandLineRunner(
-//            AuthService service
-//    ) {
-//        return args -> {
-//            var admin = AdminGenerateRequestDTO.builder()
-//                    .email("admin@mail.com")
-//                    .password("password")
-//                    .role(ADMIN)
-//                    .build();
-//        };
-//    }
 //@Bean
 //public CommandLineRunner commandLineRunner(AuthService authService, PasswordEncoder passwordEncoder, IAuthRepository authRepository) {
 //    return args -> {
@@ -45,15 +33,15 @@ public class AuthServiceApplication {
 //        String encodedPasswordd = passwordEncoder.encode("Asdasd.123");
 //        UUID authIdd = UUID.nameUUIDFromBytes(String.format("User%04d", 500).getBytes());
 //
-//        Auth auth = Auth.builder()
-//                .email(emaill)
-//                .id(authIdd)
-//                .password(encodedPasswordd)
-//                .isFirstEntry(true)
-//                .isApproved(true)
-//                .role(Role.USER) // Role olarak USER tanımlayın
-//                .build();
-//        auths.add(auth);
+////        Auth auth = Auth.builder()
+////                .email(emaill)
+////                .id(authIdd)
+////                .password(encodedPasswordd)
+////                .isFirstEntry(true)
+////                .isApproved(true)
+////                .role(Role.USER) // Role olarak USER tanımlayın
+////                .build();
+////        auths.add(auth);
 //        for (int i = 0; i <= 200; i++) {
 //            String username = "User" + i;
 //            String email = username.toLowerCase() + "@gmailgmail.com";

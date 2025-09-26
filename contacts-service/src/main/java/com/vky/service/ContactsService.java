@@ -3,12 +3,12 @@ package com.vky.service;
 import com.vky.dto.request.*;
 import com.vky.dto.response.*;
 import com.vky.exception.ContactsServiceException;
+import com.vky.exception.ErrorMessage;
 import com.vky.exception.ErrorType;
 import com.vky.manager.IUserManager;
 import com.vky.mapper.IInvitationMapper;
 import com.vky.repository.ContactWithRelationshipDTO;
 import com.vky.repository.IContactsRepository;
-import com.vky.repository.IUserRelationshipRepository;
 import com.vky.repository.entity.Contacts;
 import com.vky.repository.entity.Invitation;
 import com.vky.repository.entity.UserRelationship;
@@ -31,97 +31,67 @@ public class ContactsService {
     private final IUserManager userManager;
     private final InvitationService invitationService;
     private final SimpMessagingTemplate messagingTemplate;
-    private final IUserRelationshipRepository userRelationshipRepository;
+    private final UserRelationshipService userRelationshipService;
 
-    public boolean isExists(String invitedUserEmail, UUID invitedByUserId) {
-        Optional<Contacts> contactOptional = contactsRepository.findContactsByUserContactEmailAndUserId(invitedUserEmail, invitedByUserId);
-
-        if (contactOptional.isPresent()) {
-            Contacts contact = contactOptional.get();
-            if (contact.isDeleted()) {
-                contact.setDeleted(false);
-                contactsRepository.save(contact);
-                return false;
-            } else {
-                throw new IllegalStateException("Contact already exists and is active.");
-            }
-        }
-        return false;
-    }
-
-    public void saveRegisterUserContact(Invitation invitation, UUID contactId) {
-        Contacts contact = contactsRepository.save(Contacts.builder()
-                .userId(invitation.getInviterUserId())
-                .userContactName(invitation.getContactName())
-                .userContactId(contactId)
-                .userContactEmail(invitation.getInviteeEmail()).build());
-        messagingTemplate.convertAndSendToUser(contact.getUserId().toString(), "/topic/invitation", contact);
-    }
     @Transactional
-    public DeleteContactResponseDTO deleteContact(UUID id, String userId) {
+    public void deleteContact(UUID id, String userId) {
         Contacts contact = contactsRepository.findById(id)
-                .orElseThrow(() -> new ContactsServiceException(ErrorType.CONTACT_NOT_FOUND,id.toString()));
+                .orElseThrow(() -> new ContactsServiceException(ErrorType.CONTACT_NOT_FOUND));
 
         contact.setDeleted(true);
         contact.setUserContactName(null);
         contactsRepository.save(contact);
-
-        UserRelationship userRelationship = userRelationshipRepository.findRelationshipBetweenUsers(UUID.fromString(userId), contact.getUserContactId())
-                .orElseThrow(() -> new ContactsServiceException(ErrorType.CONTACT_NOT_FOUND,id.toString()));
-        if(userRelationship.getUserId().equals(contact.getUserId())) {
-            userRelationship.setUserHasAddedRelatedUser(false);
-        } else {
-            userRelationship.setRelatedUserHasAddedUser(false);
-        }
-        userRelationshipRepository.save(userRelationship);
-        return new DeleteContactResponseDTO();
+        userRelationshipService.updateUserRelationship(UUID.fromString(userId), contact.getUserContactId(),contact);
     }
+
     public void sendUpdatedPrivacySettings(UpdatePrivacySettingsRequestDTO updatePrivacySettingsRequestDTO) {
-        List<UserRelationship> userRelationships = userRelationshipRepository.findByUserIdOrRelatedUserId(updatePrivacySettingsRequestDTO.getId());
-        userRelationships.forEach(userRelationship -> {
-            if (userRelationship.getUserId().equals(updatePrivacySettingsRequestDTO.getId())) {
-                    messagingTemplate.convertAndSendToUser(userRelationship.getRelatedUserId().toString(), "/queue/updated-privacy-response", updatePrivacySettingsRequestDTO);
-            } else {
-                    messagingTemplate.convertAndSendToUser(userRelationship.getUserId().toString(), "/queue/updated-privacy-response", updatePrivacySettingsRequestDTO);
-
-            }
-        });
+        userRelationshipService.sendUpdatedPrivacySettings(updatePrivacySettingsRequestDTO);
     }
+
     public void sendUpdatedProfilePhoto(UpdatedProfilePhotoRequestDTO dto) {
-        List<UserRelationship> userRelationships = userRelationshipRepository.findByUserIdOrRelatedUserId(dto.getUserId());
-        userRelationships.forEach(userRelationship -> {
-            if (userRelationship.getUserId().equals(dto.getUserId())) {
-                    messagingTemplate.convertAndSendToUser(userRelationship.getRelatedUserId().toString(), "/queue/updated-profile-photo-message", dto);
-            } else {
-                    messagingTemplate.convertAndSendToUser(userRelationship.getUserId().toString(), "/queue/updated-profile-photo-message", dto);
-            }
-        });
+        userRelationshipService.sendUpdatedProfilePhoto(dto);
     }
 
     @Async("taskExecutor")
+    public CompletableFuture<ApiResponse<Void>> addContactAsync(ContactRequestDTO dto, String userId) {
+        try {
+            addContact(dto, userId); // senkron iş mantığı
+            return CompletableFuture.completedFuture(new ApiResponse<>(true, "Contact added successfully", null));
+        } catch (ContactsServiceException e) {
+            ErrorMessage error = ErrorMessage.builder()
+                    .code(e.getErrorType() != null ? e.getErrorType().getCode() : 500)
+                    .message(e.getErrorType().getMessage())
+                    .fields(List.of("email"))
+                    .build();
+            return CompletableFuture.completedFuture(new ApiResponse<>(false, "Failed to add contact", List.of(error)));
+        }
+    }
+
+
     public void addContact(ContactRequestDTO contactRequestDTO, String userId) {
         UserProfileResponseDTO userProfileResponseDTO = userManager.getUserByEmail(contactRequestDTO.getUserContactEmail());
         if (userProfileResponseDTO == null) {
-            handleInvitationProcess(contactRequestDTO,userId);
+            handleInvitationProcess(contactRequestDTO, userId);
         } else {
             handleExistingContactProcess(contactRequestDTO, userProfileResponseDTO, userId);
         }
     }
 
+
     private void handleInvitationProcess(ContactRequestDTO contactRequestDTO, String userId) {
         if (invitationService.isExistsInvitation(UUID.fromString(userId), contactRequestDTO.getUserContactEmail())) {
-            throw new ContactsServiceException(ErrorType.INVITATION_ALREADY,contactRequestDTO.getUserContactEmail());
+            throw new ContactsServiceException(ErrorType.INVITATION_ALREADY);
         } else {
             Invitation invitation = invitationService.addInvitation(contactRequestDTO, userId);
-            FeignClientUserProfileResponseDTO dto = new FeignClientUserProfileResponseDTO();
-            dto.setInvitationResponseDTO(new InvitationResponseDTO(invitation.getId(),invitation.isInvited(),invitation.getContactName(),invitation.getInviterUserId()));
+            ContactResponseDTO dto = new ContactResponseDTO();
+            dto.setInvitationResponseDTO(new InvitationResponseDTO(invitation.getId(),invitation.isInvited(),invitation.getContactName(),invitation.getInviterUserId(), invitation.getInviteeEmail()));
             messagingTemplate.convertAndSendToUser(invitation.getInviterUserId().toString(), "/queue/add-invitation", dto);
         }
     }
 
     private void handleExistingContactProcess(ContactRequestDTO contactRequestDTO, UserProfileResponseDTO userProfileResponseDTO, String userId) {
         UUID UUIDuserId = UUID.fromString(userId);
-        Optional<Contacts> existingContactOpt = contactsRepository.findContactsByUserContactEmailAndUserId(
+        Optional<Contacts> existingContactOpt = contactsRepository.findContactsByUserContactEmailAndUserIdAndIsDeletedFalse(
                 userProfileResponseDTO.getEmail(),
                 UUIDuserId
         );
@@ -129,7 +99,7 @@ public class ContactsService {
         Contacts contact = existingContactOpt.map(existingContact -> {
             if (!existingContact.isDeleted()) {
                 throw new ContactsServiceException(
-                        ErrorType.CONTACT_ALREADY,contactRequestDTO.getUserContactEmail()
+                        ErrorType.CONTACT_ALREADY
                 );
             }
             existingContact.setDeleted(false);
@@ -157,37 +127,12 @@ public class ContactsService {
     }
 
     private UserRelationship handleUserRelationship(UserProfileResponseDTO userProfileResponseDTO, UUID UUIDuserId) {
-        Optional<UserRelationship> relationshipOpt = userRelationshipRepository.findByUserIdAndRelatedUserId(
-                UUIDuserId,
-                userProfileResponseDTO.getId()
-        );
+        return userRelationshipService.handleUserRelationship(userProfileResponseDTO,UUIDuserId);
 
-        if (relationshipOpt.isPresent()) {
-            UserRelationship relationship = relationshipOpt.get();
-            relationship.setUserHasAddedRelatedUser(true);
-            return userRelationshipRepository.save(relationship);
-        } else {
-            UserRelationship newRelationship = new UserRelationship();
-            newRelationship.setUserId(UUIDuserId);
-            newRelationship.setRelatedUserId(userProfileResponseDTO.getId());
-            newRelationship.setUserHasAddedRelatedUser(true);
-            newRelationship.setRelatedUserHasAddedUser(false);
-            return userRelationshipRepository.save(newRelationship);
-        }
     }
 
     private UserRelationship handleReverseUserRelationship(UserProfileResponseDTO userProfileResponseDTO, UUID UUIDuserId) {
-        Optional<UserRelationship> reverseRelationshipOpt = userRelationshipRepository.findByUserIdAndRelatedUserId(
-                userProfileResponseDTO.getId(),
-                UUIDuserId
-        );
-
-        if (reverseRelationshipOpt.isPresent()) {
-            UserRelationship reverseRelationship = reverseRelationshipOpt.get();
-            reverseRelationship.setRelatedUserHasAddedUser(true);
-            return userRelationshipRepository.save(reverseRelationship);
-        }
-        return null;
+        return userRelationshipService.handleReverseUserRelationship(userProfileResponseDTO,UUIDuserId);
     }
 
     private ContactResponseDTO createContactResponseDTO(Contacts contact, UserRelationship relationship, UserRelationship reverseRelationship, UserProfileResponseDTO userProfileResponseDTO) {
@@ -216,7 +161,7 @@ public class ContactsService {
 
     @Transactional(readOnly = true)
     @Async("taskExecutor")
-    public CompletableFuture<List<FeignClientUserProfileResponseDTO>> getContactList(String tokenUserId) {
+    public CompletableFuture<List<ContactResponseDTO>> getContactList(String tokenUserId) {
         UUID userId = UUID.fromString(tokenUserId);
         List<Invitation> invitations = this.invitationService.findInvitationByInviterUserIdOrderByContactName(userId);
         List<ContactWithRelationshipDTO> dto1 = contactsRepository.findContactsAndRelationshipsByUserId(userId);
@@ -231,18 +176,18 @@ public class ContactsService {
 
         List<UUID> orderedIds = new ArrayList<>(contactMap.keySet());
 
-        List<FeignClientUserProfileResponseDTO> userResponseDTOS = userManager.getUsers(orderedIds);
+        List<ContactResponseDTO> userResponseDTOS = userManager.getUsers(orderedIds);
 
-        Map<UUID, FeignClientUserProfileResponseDTO> responseMap = userResponseDTOS.stream()
+        Map<UUID, ContactResponseDTO> responseMap = userResponseDTOS.stream()
                 .collect(Collectors.toMap(
                         response -> response.getUserProfileResponseDTO().getId(),
                         Function.identity()
                 ));
 
-        List<FeignClientUserProfileResponseDTO> orderedResults = new ArrayList<>();
+        List<ContactResponseDTO> orderedResults = new ArrayList<>();
 
         for (UUID orderedId : orderedIds) {
-            FeignClientUserProfileResponseDTO userResponse = responseMap.get(orderedId);
+            ContactResponseDTO userResponse = responseMap.get(orderedId);
             if (userResponse != null) {
                 ContactWithRelationshipDTO correspondingContact = contactMap.get(orderedId);
 
@@ -271,7 +216,7 @@ public class ContactsService {
             }
         }
 
-        List<FeignClientUserProfileResponseDTO> invitationResponseDTOS = invitations.stream()
+        List<ContactResponseDTO> invitationResponseDTOS = invitations.stream()
                 .map(this::convertInvitationToContact)
                 .toList();
 
@@ -281,11 +226,11 @@ public class ContactsService {
     }
 
     @Async("taskExecutor")
-    public CompletableFuture<List<FeignClientUserProfileResponseDTO>>  getContactInformationOfExistingChats(
+    public CompletableFuture<List<ContactResponseDTO>>  getContactInformationOfExistingChats(
            ContactInformationOfExistingChatsRequestDTO contactInformationOfExistingChatsRequestDTO) {
 
-        List<UserRelationship> relationships = userRelationshipRepository.findRelationshipsForUser(
-                contactInformationOfExistingChatsRequestDTO.getUserId(), contactInformationOfExistingChatsRequestDTO.getUserContactIds());
+        List<UserRelationship> relationships = userRelationshipService.getContactInformationOfExistingChats(contactInformationOfExistingChatsRequestDTO);
+
         List<Contacts> contacts = contactsRepository.findContactsForUser(
                 contactInformationOfExistingChatsRequestDTO.getUserId(), contactInformationOfExistingChatsRequestDTO.getUserContactIds());
 
@@ -321,13 +266,13 @@ public class ContactsService {
             contactDTOMap.put(relatedUserId, dto);
         }
 
-        List<FeignClientUserProfileResponseDTO> userResponseDTOS = userManager.getUsers(new ArrayList<>(contactDTOMap.keySet()));
+        List<ContactResponseDTO> userResponseDTOS = userManager.getUsers(new ArrayList<>(contactDTOMap.keySet()));
 
-        List<FeignClientUserProfileResponseDTO> dto = userResponseDTOS.stream()
+        List<ContactResponseDTO> dto = userResponseDTOS.stream()
                 .map(user -> {
                     ContactWithRelationshipDTO contact = contactDTOMap.get(user.getUserProfileResponseDTO().getId());
                     String image = getImage(user, contact);
-                    return FeignClientUserProfileResponseDTO.builder()
+                    return ContactResponseDTO.builder()
                             .userProfileResponseDTO(UserProfileResponseDTO.builder()
                                     .id(user.getUserProfileResponseDTO().getId())
                                     .email(user.getUserProfileResponseDTO().getEmail())
@@ -366,7 +311,7 @@ public class ContactsService {
 
 
 
-    private static String getImage(FeignClientUserProfileResponseDTO user, ContactWithRelationshipDTO contact) {
+    private static String getImage(ContactResponseDTO user, ContactWithRelationshipDTO contact) {
 
         String image = null;
         if(user.getUserProfileResponseDTO().getImagee() != null) {
@@ -380,7 +325,7 @@ public class ContactsService {
         return image;
     }
     @Async("taskExecutor")
-    public CompletableFuture<FeignClientUserProfileResponseDTO>  getContactInformationOfSingleChat(ContactInformationOfExistingChatRequestDTO contactInformationOfExistingChatRequestDTO) {
+    public CompletableFuture<ContactResponseDTO>  getContactInformationOfSingleChat(ContactInformationOfExistingChatRequestDTO contactInformationOfExistingChatRequestDTO) {
         System.out.println("contactInformationOfExistingChatRequestDTO > " + contactInformationOfExistingChatRequestDTO.toString());
         Optional<ContactWithRelationshipDTO> optionalContact = contactsRepository.findContactWithRelationship(contactInformationOfExistingChatRequestDTO.getUserId(), contactInformationOfExistingChatRequestDTO.getUserContactId());
         ContactWithRelationshipDTO contact;
@@ -390,7 +335,7 @@ public class ContactsService {
             contact = optionalContact.get();
             System.out.println("CONTACT > " + contact);
             if (contact.getUserId().equals(contactInformationOfExistingChatRequestDTO.getUserId())) {
-                return CompletableFuture.completedFuture(FeignClientUserProfileResponseDTO.builder()
+                return CompletableFuture.completedFuture(ContactResponseDTO.builder()
                         .userProfileResponseDTO(userProfileResponseDTO)
                         .contactsDTO(ContactsDTO.builder()
                                 .userContactName(contact.getUserContactName())
@@ -403,7 +348,7 @@ public class ContactsService {
                         .build());
             } else {
 
-                return CompletableFuture.completedFuture(FeignClientUserProfileResponseDTO.builder()
+                return CompletableFuture.completedFuture(ContactResponseDTO.builder()
                         .userProfileResponseDTO(userProfileResponseDTO)
                         .contactsDTO(ContactsDTO.builder()
                                 .userContactName(null)
@@ -416,7 +361,7 @@ public class ContactsService {
                         .build());
             }
         } else {
-            return CompletableFuture.completedFuture(FeignClientUserProfileResponseDTO.builder()
+            return CompletableFuture.completedFuture(ContactResponseDTO.builder()
                     .userProfileResponseDTO(userProfileResponseDTO)
                     .contactsDTO(ContactsDTO.builder()
                             .userContactName(null)
@@ -431,11 +376,49 @@ public class ContactsService {
     }
 
 
-    private FeignClientUserProfileResponseDTO convertInvitationToContact(Invitation invitation) {
+    private ContactResponseDTO convertInvitationToContact(Invitation invitation) {
         InvitationResponseDTO invitationResponseDTO = IInvitationMapper.INSTANCE.toInvitationResponseDTO(invitation);
-        return FeignClientUserProfileResponseDTO.builder()
+        return ContactResponseDTO.builder()
                 .invitationResponseDTO(invitationResponseDTO)
                 .build();
     }
+    @Transactional
+    public void checkUsersWhoInvited(UserProfileResponseDTO userProfile) {
+        List<Invitation> invitations = invitationService.getInvitations(userProfile.getEmail());
 
+        invitations.forEach(invitation ->  {
+            UserRelationship userRelationship = userRelationshipService.saveUserRelationship(invitation.getInviterUserId(), userProfile, true);
+            ContactResponseDTO contactResponseDTO = new ContactResponseDTO();
+            Contacts contact = saveContacts(invitation, userProfile.getId());
+            ContactsDTO contactsDTO = getContactsDTO(contact, userRelationship);
+
+            contactResponseDTO.setContactsDTO(contactsDTO);
+            contactResponseDTO.setUserProfileResponseDTO(userProfile);
+            contactResponseDTO.setInvitationResponseDTO(null);
+            messagingTemplate.convertAndSendToUser(contact.getUserId().toString(), "/queue/invited-user-joined", contactResponseDTO);
+            invitation.setDeleted(true);
+            invitationService.saveInvitation(invitation);
+        });
+    }
+
+    private ContactsDTO getContactsDTO(Contacts contact, UserRelationship userRelationship) {
+        ContactsDTO contactsDTO = new ContactsDTO();
+        contactsDTO.setId(contact.getId());
+        contactsDTO.setUserId(contact.getUserId());
+        contactsDTO.setUserContactId(contact.getUserContactId());
+        contactsDTO.setUserContactName(contact.getUserContactName());
+        contactsDTO.setUserHasAddedRelatedUser(userRelationship.isUserHasAddedRelatedUser());
+        contactsDTO.setRelatedUserHasAddedUser(userRelationship.isRelatedUserHasAddedUser());
+        return contactsDTO;
+    }
+
+    private Contacts saveContacts(Invitation invitation, UUID invitedUserId) {
+        Contacts contacts = new Contacts();
+        contacts.setUserId(invitation.getInviterUserId());
+        contacts.setUserContactEmail(invitation.getInviteeEmail());
+        contacts.setUserContactId(invitedUserId);
+        contacts.setUserContactName(invitation.getContactName());
+        contacts.setUserEmail(invitation.getInviterEmail());
+        return contactsRepository.save(contacts);
+    }
 }

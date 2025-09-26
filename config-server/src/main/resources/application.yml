@@ -10,4 +10,4 @@ spring:
     config:
       server:
         native:
-          search-locations: classpath:/configyml/auth-service, classpath:/configyml/user-service, classpath:/configyml/mail-service, classpath:/configyml/contacts-service, classpath:/configyml/chat-service
+          search-locations: classpath:/configyml/api-gateway-service, classpath:/configyml/auth-service, classpath:/configyml/user-service, classpath:/configyml/mail-service, classpath:/configyml/contacts-service, classpath:/configyml/chat-service

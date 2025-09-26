@@ -15,4 +15,5 @@ public class InvitationResponseDTO {
     private UUID id;
     private boolean isInvited;
     private UUID inviterUserId;
+    private String inviteeEmail;
 }

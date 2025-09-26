@@ -1,6 +1,5 @@
 package com.vky.mapper;
 
-import com.vky.dto.request.EditProfileRequestDTO;
 import com.vky.dto.response.*;
 import com.vky.repository.entity.PrivacySettings;
 import com.vky.repository.entity.UserKey;
@@ -29,7 +28,7 @@ public interface IUserProfileMapper {
     UserKeyResponseDTO toUserKeyResponseDTO(UserKey userKey);
 
     @Mapping(target = "userProfileResponseDTO", source = "userProfile")
-    FeignClientUserProfileResponseDTO toFeignClientResponse(UserProfile userProfile);
+    ContactResponseDTO toFeignClientResponse(UserProfile userProfile);
 
     default UserProfileResponseDTO toUserProfileDTO(UserProfile userProfile) {
         if (userProfile == null) {
@@ -49,7 +48,7 @@ public interface IUserProfileMapper {
                 .build();
     }
 
-    default List<FeignClientUserProfileResponseDTO> toFeignClientResponseList(List<UserProfile> userProfiles) {
+    default List<ContactResponseDTO> toFeignClientResponseList(List<UserProfile> userProfiles) {
         if (userProfiles == null) {
             return Collections.emptyList();
         }

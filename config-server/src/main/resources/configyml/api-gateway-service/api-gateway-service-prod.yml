@@ -1,0 +1,59 @@
+spring:
+  mvc:
+    log-request-details: true
+  main:
+    web-application-type: REACTIVE
+    allow-bean-definition-overriding: true
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
+  cloud:
+    gateway:
+      server:
+        webflux:
+          httpclient:
+            pool:
+              max-connections: 100
+              max-idle-time: 30s
+            connect-timeout: 5000
+            response-timeout: 30s
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: ${EUREKA_SERVER}
+  instance:
+    instance-id: ${spring.application.name}:${server.port}
+
+server:
+  port: ${SERVER_PORT}
+
+
+application:
+  security:
+    jwt:
+      secret-key: ${JWT_SECRET_KEY}
+      expiration: ${JWT_EXPIRATION}
+      refresh-token:
+        expiration: ${JWT_REFRESH_EXPIRATION}
+
+logging:
+  level:
+    root: INFO
+    com.vky: INFO
+    org.springframework.web: INFO
+    org.hibernate.SQL: WARN
+    org.springframework.data.redis: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} %-5level - %msg%n"
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+    prometheus:
+      enabled: true
+

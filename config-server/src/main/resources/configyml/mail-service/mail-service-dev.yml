@@ -3,12 +3,6 @@ server:
   port: ${SERVER_PORT:9020}
 
 spring:
-  rabbitmq:
-    host: ${RABBITMQ_HOST:localhost}
-    port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USERNAME:veysel}
-    password: ${RABBITMQ_PASSWORD:123}
-
   cloud:
     openfeign:
       clients:
@@ -41,7 +35,7 @@ spring:
     username: ${MAIL_ID}
     password: ${MAIL_PASSWORD}
     verify:
-      host: ${MAIL_VERIFY_HOST:http://localhost:3000}
+      host: ${MAIL_VERIFY_HOST}
     default-encoding: UTF-8
     properties:
       mail:

@@ -1,26 +1,31 @@
 # config-server/src/main/resources/config/auth-service-prod.yml
 server:
-  port: ${SERVER_PORT:9000}
+  port: ${SERVER_PORT}
+  shutdown: graceful
 
 spring:
+  mvc:
+    log-request-details: true
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
   rabbitmq:
-    host: ${RABBITMQ_HOST:rabbitmq-service}
-    port: ${RABBITMQ_PORT:5672}
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
     username: ${RABBITMQ_USERNAME}
     password: ${RABBITMQ_PASSWORD}
 
-  cloud:
-    openfeign:
-      clients:
-        mail-service:
-          url: ${MAIL_SERVICE_URL:http://mail-service:9020}
-        user-service:
-          url: ${USER_SERVICE_URL:http://user-service:9010}
+#  cloud:
+#    openfeign:
+#      clients:
+#        mail-service:
+#          url: ${MAIL_SERVICE_URL:http://mail-service:9020}
+#        user-service:
+#          url: ${USER_SERVICE_URL:http://user-service:9010}
 
   datasource:
-    url: jdbc:postgresql://${DB_HOST:postgres-service}:${DB_PORT:5432}/${DB_NAME:chat_app_prod}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_NAME}
+    username: ${POSTGRES_USERNAME}
+    password: ${POSTGRES_PASSWORD}
 #    hikari:
 #      maximum-pool-size: ${DB_POOL_SIZE:20}
 #      connection-timeout: ${DB_CONNECTION_TIMEOUT:30000}
@@ -29,9 +34,9 @@ spring:
 
   data:
     redis:
-      host: ${REDIS_HOST:redis-service}
-      port: ${REDIS_PORT:6379}
-#      password: ${REDIS_PASSWORD}
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
 #      timeout: ${REDIS_TIMEOUT:2000ms}
 
   # Production specific settings
@@ -46,7 +51,7 @@ spring:
 eureka:
   client:
     serviceUrl:
-      defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka/}
+      defaultZone: ${EUREKA_SERVER}
     registryFetchIntervalSeconds: 30
     connectTimeoutSeconds: 5
     retryable: true
@@ -61,39 +66,38 @@ google:
 
 services:
   url:
-    auth: ${AUTH_SERVICE_URL:http://auth-service:9000/api/v1/auth}
-    mail: ${MAIL_SERVICE_URL:http://mail-service:9020/api/v1/mail}
-    user: ${USER_SERVICE_URL:http://user-service:9010/api/v1/user}
-    contacts: ${CONTACTS_SERVICE_URL:http://contacts-service:9030/api/v1/contacts}
-    chat: ${CHAT_SERVICE_URL:http://chat-service:9040/api/v1/chat}
+    auth: ${AUTH_SERVICE_URL}
+    mail: ${MAIL_SERVICE_URL}
+    user: ${USER_SERVICE_URL}
+    contacts: ${CONTACTS_SERVICE_URL}
+    chat: ${CHAT_SERVICE_URL}
   security:
     jwt:
       secret-key: ${JWT_SECRET_KEY}
-      expiration: ${JWT_EXPIRATION:900000}
+      expiration: ${JWT_EXPIRATION}
       refresh-token:
-        expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+        expiration: ${JWT_REFRESH_EXPIRATION}
 
 # Production logging
-#logging:
-#  level:
-#    com.vky: INFO
-#    org.springframework.web: WARN
-#  pattern:
-#    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+logging:
+  level:
+    root: INFO
+    com.vky: INFO
+    org.springframework.web: INFO
+    org.hibernate.SQL: WARN
+    org.springframework.data.redis: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} %-5level - %msg%n"
+
 #    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-#  file:
-#    name: /var/log/auth-service.log
-#
-#
-#management:
-#  endpoints:
-#    web:
-#      exposure:
-#        include: health,info,metrics,prometheus
-#  endpoint:
-#    health:
-#      show-details: never
-#  metrics:
-#    export:
-#      prometheus:
-#        enabled: true
+##  file:
+##    name: /var/log/auth-service.log
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+    prometheus:
+      enabled: true

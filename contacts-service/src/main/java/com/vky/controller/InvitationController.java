@@ -18,14 +18,14 @@ public class InvitationController {
     private final InvitationService invitationService;
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<DeleteContactResponseDTO> deleteContact(@PathVariable("id") UUID id, @RequestHeader("X-Id") String tokenUserId) {
-        DeleteContactResponseDTO responseDTO = invitationService.deleteInvitation(id, tokenUserId);
-        return ResponseEntity.ok(responseDTO);
+    public ResponseEntity<Void> deleteContact(@PathVariable("id") UUID id, @RequestHeader("X-Id") String tokenUserId) {
+        invitationService.deleteInvitation(id, tokenUserId);
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/send-invitation")
-    public ResponseEntity<String> sendInvitation(@RequestBody SendInvitationDTO sendInvitation, @RequestHeader("X-Id") String tokenUserId) {
-        String response = invitationService.sendInvitation(sendInvitation, tokenUserId);
-        return new ResponseEntity<>(response, HttpStatus.OK);
+    public ResponseEntity<Void> sendInvitation(@RequestBody SendInvitationDTO sendInvitation, @RequestHeader("X-Id") String tokenUserId) {
+        invitationService.sendInvitation(sendInvitation, tokenUserId);
+        return ResponseEntity.ok().build();
     }
 }

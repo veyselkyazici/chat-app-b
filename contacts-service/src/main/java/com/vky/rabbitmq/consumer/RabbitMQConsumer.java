@@ -2,12 +2,12 @@ package com.vky.rabbitmq.consumer;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.vky.rabbitmq.model.CheckContactDTO;
+import com.vky.dto.response.UserProfileResponseDTO;
+import com.vky.repository.entity.Contacts;
 import com.vky.repository.entity.Invitation;
 import com.vky.service.ContactsService;
 import com.vky.service.InvitationService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
 
@@ -21,15 +21,8 @@ public class RabbitMQConsumer {
     @RabbitListener(queues = "queue-contact-check-user")
     public void checkContactUser(String user){
         try {
-            CheckContactDTO userObject = objectMapper.readValue(user, CheckContactDTO.class);
-            Invitation invitation = invitationService.findByInvitedUserEmailAndIsDeletedFalse(userObject.getEmail());
-
-            if (invitation != null) {
-                boolean isExists = contactsService.isExists(invitation.getInviteeEmail(), invitation.getInviterUserId());
-                if (!isExists) {
-                    contactsService.saveRegisterUserContact(invitation, userObject.getId());
-                }
-            }
+            UserProfileResponseDTO userProfile = objectMapper.readValue(user, UserProfileResponseDTO.class);
+            contactsService.checkUsersWhoInvited(userProfile);
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Could not send CreateUser message", e);
         }

@@ -118,8 +118,9 @@ public class AuthService {
             throw new AuthManagerException(ErrorType.INVALID_TOKEN);
         }
     }
+    @Transactional
     public void register(RegisterRequestDTO registerRequestDTO) {
-        captcha(registerRequestDTO.getRecaptchaToken(), "register");
+        captcha(registerRequestDTO.getRecaptchaToken(), "signup");
 
         Optional<Auth> optionalAuth = authRepository.findAuthByAndEmailIgnoreCase(registerRequestDTO.getEmail());
 
@@ -135,12 +136,11 @@ public class AuthService {
                         .iv(registerRequestDTO.getIv()).userId(existingAuth.getId()).build());
                 CreateConfirmationRequestDTO confirmationDTO = IAuthMapper.INSTANCE.toAuthDTOO(existingAuth);
                 mailManager.resendConfirmation(confirmationDTO);
-                throw new AuthManagerException(ErrorType.EMAIL_NEEDS_VERIFICATION);
             }
+        } else {
+            Auth registerAuth = createNewAuth(registerRequestDTO);
+            sendConfirmationAndUserCreationMessages(registerAuth, registerRequestDTO);
         }
-
-        Auth registerAuth = createNewAuth(registerRequestDTO);
-        sendConfirmationAndUserCreationMessages(registerAuth, registerRequestDTO);
     }
 
     private void captcha(String recaptchaToken,String action) {
@@ -218,7 +218,7 @@ public class AuthService {
     }
 
     public CheckOtpResponseDTO checkOtp(CheckOtpRequestDTO checkOtpRequestDTO) {
-        captcha(checkOtpRequestDTO.getRecaptchaToken(),"checkOtp");
+
         Auth auth = this.authRepository.findByEmailIgnoreCase(checkOtpRequestDTO.getEmail())
                 .orElseThrow(() -> new AuthManagerException(ErrorType.EMAIL_NOT_FOUND));
 
@@ -243,7 +243,6 @@ public class AuthService {
             throw new AuthManagerException(ErrorType.TOO_MANY_ATTEMPTS);
         }
 
-        // OTP doğrulama
         if (storedOtp != null && storedOtp.equals(checkOtpRequestDTO.getOtp())) {
             String passwordResetToken = generateSecureToken();
 
@@ -252,7 +251,7 @@ public class AuthService {
             resetData.put("verified_at", Instant.now().toString());
 
             redisTemplate.opsForHash().putAll(redisKey, resetData);
-            redisTemplate.expire(redisKey, Duration.ofMinutes(5)); // 5 dakika daha
+            redisTemplate.expire(redisKey, Duration.ofMinutes(5));
             Long expirySeconds = redisTemplate.getExpire("reset_password:" + auth.getId(), TimeUnit.SECONDS);
             Instant expiryTime = Instant.now().plusSeconds(expirySeconds);
 
@@ -269,7 +268,7 @@ public class AuthService {
     }
     @Transactional
     public void resetPassword(ForgotPasswordResetPasswordRequestDTO forgotPasswordResetPasswordRequestDTO) {
-        captcha(forgotPasswordResetPasswordRequestDTO.getRecaptchaToken(),"resetPassword");
+        captcha(forgotPasswordResetPasswordRequestDTO.getRecaptchaToken(),"password_reset");
         Auth auth = this.authRepository.findAuthByAndEmailIgnoreCase(forgotPasswordResetPasswordRequestDTO.getEmail())
                 .orElseThrow(() -> new AuthManagerException(ErrorType.EMAIL_NOT_FOUND));
 

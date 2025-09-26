@@ -10,7 +10,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface IContactsRepository extends JpaRepository<Contacts, UUID> {
-    Optional<Contacts> findContactsByUserContactEmailAndUserId(String contactEmail, UUID userId);
+    Optional<Contacts> findContactsByUserContactEmailAndUserIdAndIsDeletedFalse(String contactEmail, UUID userId);
     @Query("""
         SELECT new com.vky.repository.ContactWithRelationshipDTO(
             c.id,
@@ -40,7 +40,7 @@ public interface IContactsRepository extends JpaRepository<Contacts, UUID> {
             "LEFT JOIN UserRelationship ur " +
             "ON ( (c.userId = ur.userId AND c.userContactId = ur.relatedUserId) " +
             "   OR (c.userId = ur.relatedUserId AND c.userContactId = ur.userId) ) " +
-            "WHERE (c.userId = :userId AND c.userContactId = :userContactId) ")
+            "WHERE (c.userId = :userId AND c.isDeleted = false AND c.userContactId = :userContactId) ")
     Optional<ContactWithRelationshipDTO> findContactWithRelationship(
             @Param("userId") UUID userId,
             @Param("userContactId") UUID userContactId
@@ -49,7 +49,7 @@ public interface IContactsRepository extends JpaRepository<Contacts, UUID> {
     @Query("""
         SELECT c 
         FROM Contacts c 
-        WHERE c.userId = :userId AND c.userContactId IN :userContactIds
+        WHERE c.userId = :userId AND c.isDeleted = false AND c.userContactId IN :userContactIds
     """)
     List<Contacts> findContactsForUser(
             @Param("userId") UUID userId,

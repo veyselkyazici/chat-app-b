@@ -17,6 +17,4 @@ public class CheckOtpRequestDTO {
     private String email;
     @NotBlank(message = "OTP code cannot be empty")
     private String otp;
-    @NotBlank()
-    private String recaptchaToken;
 }

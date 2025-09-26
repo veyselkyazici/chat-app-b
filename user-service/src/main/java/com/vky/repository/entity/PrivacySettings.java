@@ -17,7 +17,6 @@ import java.util.UUID;
 @SuperBuilder
 @Table(name = "privacy_settings")
 @Entity
-@Where(clause = "is_deleted = false")
 @EqualsAndHashCode(callSuper = true)
 public class PrivacySettings extends BaseEntity {
     @Enumerated(EnumType.STRING)
@@ -36,6 +35,8 @@ public class PrivacySettings extends BaseEntity {
     @Column(name = "about_visibility")
     private VisibilityOption aboutVisibility = VisibilityOption.EVERYONE;
 
+    @OneToOne(mappedBy = "privacySettings")
+    private UserProfile userProfile;
 
     @Column(name = "read_receipts")
     private boolean readReceipts = true;

@@ -14,28 +14,28 @@ import org.hibernate.annotations.Where;
 @SuperBuilder
 @Table(name = "user_keys")
 @Entity
-@Where(clause = "is_deleted = false")
 @EqualsAndHashCode(callSuper = true)
 public class UserKey extends BaseEntity{
-    //Lob büyük veri setleri için kullanılır ve Fetch.LAZY gibi davranır
     @Lob
     @Basic(fetch = FetchType.LAZY)
-    @Column(name = "public_key")
+    @Column(name = "public_key", nullable = false)
     private byte[] publicKey;
+
     @Lob
     @Basic(fetch = FetchType.LAZY)
-    @Column(name = "encrypted_private_key")
+    @Column(name = "encrypted_private_key", nullable = false)
     private byte[] encryptedPrivateKey;
+
     @Lob
     @Basic(fetch = FetchType.LAZY)
-    @Column(name = "salt")
+    @Column(name = "salt", nullable = false)
     private byte[] salt;
+
     @Lob
     @Basic(fetch = FetchType.LAZY)
-    @Column(name = "iv")
+    @Column(name = "iv", nullable = false)
     private byte[] iv;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
+    @OneToOne(mappedBy = "userKey", fetch = FetchType.LAZY)
     private UserProfile user;
 }

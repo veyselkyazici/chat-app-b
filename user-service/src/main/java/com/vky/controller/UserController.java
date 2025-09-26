@@ -67,7 +67,7 @@ public class UserController {
         return userProfileResponseDTO.getEmail();
     }
     @PostMapping("/get-users")
-    public List<FeignClientUserProfileResponseDTO> getUsersOfContacts(@RequestBody List<UUID> ids) {
+    public List<ContactResponseDTO> getUsersOfContacts(@RequestBody List<UUID> ids) {
         return this.userProfileService.getUsers(ids);
     }
 

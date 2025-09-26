@@ -23,15 +23,15 @@ spring:
     username: ${RABBITMQ_USERNAME:veysel}
     password: ${RABBITMQ_PASSWORD:123}
 
-  cloud:
-    openfeign:
-      clients:
-        auth-service:
-          url: ${AUTH_SERVICE_URL:http://localhost:9000}
-        user-service:
-          url: ${USER_SERVICE_URL:http://localhost:9010}
-        contacts-service:
-          url: ${CONTACTS_SERVICE_URL:http://localhost:9030}
+#  cloud:
+#    openfeign:
+#      clients:
+#        auth-service:
+#          url: ${AUTH_SERVICE_URL:http://localhost:9000}
+#        user-service:
+#          url: ${USER_SERVICE_URL:http://localhost:9010}
+#        contacts-service:
+#          url: ${CONTACTS_SERVICE_URL:http://localhost:9030}
 
 eureka:
   client:

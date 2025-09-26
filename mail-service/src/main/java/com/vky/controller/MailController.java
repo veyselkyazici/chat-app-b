@@ -22,14 +22,12 @@ public class MailController {
     private final ForgotPasswordService forgotPasswordService;
     private final MailService mailService;
     @PostMapping("/create-forgot-password")
-    public ResponseEntity<Void> createForgotPassword(@RequestBody ForgotPasswordRequestDTO forgotPasswordRequestDTO) {
+    public void createForgotPassword(@RequestBody ForgotPasswordRequestDTO forgotPasswordRequestDTO) {
         this.forgotPasswordService.createForgotPassword(forgotPasswordRequestDTO);
-        return ResponseEntity.ok().build();
     }
     @PostMapping("/create-confirmation")
-    public ResponseEntity<Void> createConfirmation(@RequestBody CreateConfirmationRequestDTO createConfirmationRequestDTO) {
+    void createConfirmation(@RequestBody CreateConfirmationRequestDTO createConfirmationRequestDTO) {
         confirmationService.createConfirmation(createConfirmationRequestDTO);
-        return ResponseEntity.ok().build();
     }
     @PostMapping("/resend-confirmation")
     public ResponseEntity<Void> resendConfirmationMail(@RequestBody ResendConfirmationRequestDTO resendConfirmationRequestDTO) {
@@ -44,8 +42,7 @@ public class MailController {
 
 
     @PostMapping("/send-invitation-email")
-    public ResponseEntity<String> sendInvitationEmail(@RequestBody SendInvitationEmailDTO sendInvitationEmailDTO){
-        mailService.sendInvitationEmail(sendInvitationEmailDTO);
-        return ResponseEntity.ok("Invitation sent successfully.");
+    void sendInvitationEmail(@RequestBody SendInvitationDTO sendInvitationDTO){
+        mailService.sendInvitationEmail(sendInvitationDTO);
     }
 }

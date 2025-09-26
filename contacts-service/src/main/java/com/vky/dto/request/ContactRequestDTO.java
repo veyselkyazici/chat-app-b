@@ -21,5 +21,8 @@ public class ContactRequestDTO {
     @Email(message = "Please enter a valid email address")
     @NotBlank(message = "Email cannot be empty")
     private String userContactEmail;
+    @Email(message = "Please enter a valid email address")
+    @NotBlank(message = "Email cannot be empty")
+    private String addedByEmail;
 }
 
