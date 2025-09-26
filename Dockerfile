@@ -5,10 +5,7 @@ WORKDIR /app
 
 ARG SERVICE=config-server
 
-COPY ${SERVICE} ${SERVICE}
-COPY gradlew gradlew
-COPY gradle gradle
-COPY build.gradle settings.gradle ./
+COPY . .
 
 RUN chmod +x gradlew
 
@@ -22,7 +19,7 @@ USER spring:spring
 WORKDIR /app
 
 ARG SERVICE=config-server
+
 COPY --from=builder /app/${SERVICE}/build/libs/*.jar app.jar
 
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
-
