@@ -27,11 +27,11 @@ jobs:
         run: |
           docker build \
             --build-arg SERVICE=${{ matrix.service }} \
-            -t ${{ secrets.DOCKER_USERNAME }}/microservices:${{ matrix.service }} .
+            -t ${{ secrets.DOCKER_HUB_USERNAME }}/microservices:${{ matrix.service }} .
 
       - name: Push Docker image
         run: |
-          docker push ${{ secrets.DOCKER_USERNAME }}/microservices:${{ matrix.service }}
+          docker push ${{ secrets.DOCKER_HUB_USERNAME }}/microservices:${{ matrix.service }}
 
   deploy:
     needs: build-and-push
