@@ -30,7 +30,7 @@ spring:
 #        connection-timer-repeat: ${FEIGN_CONNECTION_TIMER_REPEAT:3000}
 
   datasource:
-    url: jdbc:postgresql://${POSTGRES_HOST:postgres-service}:${POSTGRES_PORT:5432}/${POSTGRES_NAME:chat_app_prod}
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_NAME}
     username: ${POSTGRES_USERNAME}
     password: ${POSTGRES_PASSWORD}
 #    hikari:

@@ -11,5 +11,4 @@ dependencies {
     implementation libs.springCloudConfigClient
     implementation libs.eurekaClient
     implementation libs.redisReactive
-    implementation libs.springBootWeb
 }
