@@ -70,7 +70,6 @@ eureka:
     instance-id: ${spring.application.name}:${server.port}
     leaseRenewalIntervalInSeconds: 10
     leaseExpirationDurationInSeconds: 30
-# Development logging
 logging:
   level:
     com.vky: DEBUG
