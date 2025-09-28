@@ -6,12 +6,39 @@ on:
       - main
 
 jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.filter.outputs.changed }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Detect changed services
+        id: filter
+        run: |
+          changed=$(git diff --name-only HEAD^ HEAD | cut -d/ -f1 | sort -u)
+          
+          services=""
+          for dir in $changed; do
+            case $dir in
+              eureka-server|config-server|auth-service|user-service|contacts-service|chat-service|mail-service|api-gateway-service)
+                services="$services $dir"
+                ;;
+            esac
+          done
+          
+          echo "Changed services: $services"
+          echo "changed=$services" >> $GITHUB_OUTPUT
+
   build-and-push:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.changed != ''
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        service: [eureka-server, config-server, auth-service, user-service, contacts-service, chat-service, mail-service, api-gateway-service]
+        service: ${{ fromJSON(format('["%s"]', join(needs.detect-changes.outputs.changed, '","'))) }}
 
     steps:
       - name: Checkout repo
@@ -36,20 +63,7 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
-
     steps:
-#      - name: Setup SSH key
-#        run: |
-#          mkdir -p ~/.ssh
-#          echo "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
-#          chmod 600 ~/.ssh/id_rsa
-#
-#      - name: Add VPS to known_hosts
-#        run: ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
-#
-#      - name: Test SSH connection
-#        run: ssh -i ~/.ssh/id_rsa ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "echo SSH connected""
-
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.1.0
         with:
@@ -59,4 +73,21 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           script: |
             cd /home/vky/vkychatapp
-            ./deploy.sh
+            
+            changed="${{ needs.detect-changes.outputs.changed }}"
+            
+            for service in $changed; do
+              echo "Deploying $service ..."
+            
+              case $service in
+                api-gateway-service)
+                  compose_service="api-gateway"
+                  ;;
+                *)
+                  compose_service=$service
+                  ;;
+              esac
+          
+              docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/microservices:$service
+              docker-compose -f docker-compose-service-ci-cd.yml up -d $compose_service
+            done

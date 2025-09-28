@@ -111,7 +111,8 @@ public class GatewayConfig {
     @Bean
     public CorsWebFilter corsWebFilter() {
         CorsConfiguration corsConfig = new CorsConfiguration();
-        corsConfig.addAllowedOrigin("http://localhost:3000");
+        corsConfig.addAllowedOrigin("https://vkychatapp.com");
+        corsConfig.addAllowedOrigin("https://www.vkychatapp.com");
         corsConfig.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
         corsConfig.setAllowedHeaders(List.of("*"));
         corsConfig.setAllowCredentials(true);
