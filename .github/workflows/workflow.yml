@@ -23,13 +23,14 @@ jobs:
           
           services=""
           for dir in $changed; do
+            dir=$(echo "$dir" | xargs)
             case $dir in
               eureka-server|config-server|auth-service|user-service|contacts-service|chat-service|mail-service|api-gateway-service)
                 services="$services $dir"
                 ;;
             esac
           done
-          
+          services=$(echo "$services" | xargs)
           echo "Changed services: $services"
           echo "changed=$services" >> $GITHUB_OUTPUT
 
