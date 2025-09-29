@@ -1,4 +1,3 @@
-
 name: CI/CD Pipeline
 
 on:
@@ -21,7 +20,7 @@ jobs:
         id: filter
         run: |
           changed=$(git diff --name-only HEAD^ HEAD | cut -d/ -f1 | sort -u)
-            
+          
           services=""
           for dir in $changed; do
             dir=$(echo "$dir" | xargs)
@@ -31,18 +30,18 @@ jobs:
                 ;;
             esac
           done
-            
+          
           services=$(echo "$services" | xargs)
-            
+          
           # Eğer ana build.gradle değiştiyse -> tüm servisler deploy edilsin
           if echo "$changed" | grep -q "build.gradle"; then
             services="eureka-server config-server auth-service user-service contacts-service chat-service mail-service api-gateway-service"
           fi
-            
+          
           echo "Changed services: $services"
-            
-          # JSON array formatına çevir
-          json_services=$(echo $services | jq -R -s -c 'split(" ")')
+          
+          # JSON array formatına çevir - trim whitespace and newlines
+          json_services=$(echo "$services" | tr -s ' ' '\n' | grep -v '^$' | jq -R -s -c 'split("\n") | map(select(length > 0))')
           echo "changed=$json_services" >> $GITHUB_OUTPUT
 
   build-and-push:
@@ -64,17 +63,20 @@ jobs:
 
       - name: Build Docker image
         run: |
-          service="${{ matrix.service }}"   # <- değişkeni al
-          service=$(echo "$service" | tr -d '\n')  # <- satır sonunu sil
+          # Clean the service name from any whitespace/newlines
+          service=$(echo "${{ matrix.service }}" | tr -d '[:space:]')
+          echo "Building service: $service"
           docker build . \
-            --build-arg SERVICE="${{ matrix.service }}" \
-            -t "${{ secrets.DOCKER_HUB_USERNAME }}/microservices:${{ matrix.service }}"
+            --build-arg SERVICE="$service" \
+            -t "${{ secrets.DOCKER_HUB_USERNAME }}/microservices:$service"
 
       - name: Push Docker image
         run: |
-          service="${{ matrix.service }}"
-          service=$(echo "$service" | tr -d '\n')
-          docker push "${{ secrets.DOCKER_HUB_USERNAME }}/microservices:${{ matrix.service }}"
+          # Clean the service name from any whitespace/newlines
+          service=$(echo "${{ matrix.service }}" | tr -d '[:space:]')
+          echo "Pushing service: $service"
+          docker push "${{ secrets.DOCKER_HUB_USERNAME }}/microservices:$service"
+
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
@@ -89,15 +91,16 @@ jobs:
           script: |
             cd /home/vky/vkychatapp
             changed='${{ needs.detect-changes.outputs.changed }}'
-              
+            
             for service in $(echo $changed | jq -r '.[]'); do
+              # Trim whitespace
+              service=$(echo "$service" | tr -d '[:space:]')
               echo "Deploying $service ..."
               case $service in
                 api-gateway-service) compose_service="api-gateway" ;;
                 *) compose_service=$service ;;
               esac
-              
+            
               docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/microservices:$service
               docker-compose -f docker-compose.yml up -d $compose_service
             done
-
