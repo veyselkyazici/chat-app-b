@@ -111,7 +111,6 @@ public class GatewayConfig {
     @Bean
     public CorsWebFilter corsWebFilter() {
 
-
         CorsConfiguration corsConfig = new CorsConfiguration();
         corsConfig.addAllowedOrigin("https://vkychatapp.com");
         corsConfig.addAllowedOrigin("https://www.vkychatapp.com");
