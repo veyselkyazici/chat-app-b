@@ -63,10 +63,7 @@ jobs:
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
       - name: Build Docker image
-        run: |
-          docker build . \
-            --build-arg SERVICE=${{ matrix.service }} \
-            -t ${{ secrets.DOCKER_HUB_USERNAME }}/microservices:${{ matrix.service }}
+        run: docker build . --build-arg SERVICE=${{ matrix.service }} -t ${{ secrets.DOCKER_HUB_USERNAME }}/microservices:${{ matrix.service }}
 
       - name: Push Docker image
         run: |
