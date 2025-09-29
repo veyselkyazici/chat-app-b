@@ -10,7 +10,7 @@ jobs:
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
-    changed: ${{ steps.filter.outputs.changed }}
+      changed: ${{ steps.filter.outputs.changed }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
