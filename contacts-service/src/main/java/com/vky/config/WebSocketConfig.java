@@ -34,7 +34,12 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/ws/contacts").setAllowedOriginPatterns("http://localhost:3000").withSockJS();
+        registry.addEndpoint("/ws/contacts")
+                .setAllowedOriginPatterns(
+                        "https://vkychatapp.com",
+                        "https://www.vkychatapp.com"
+                )
+                .withSockJS();
     }
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
