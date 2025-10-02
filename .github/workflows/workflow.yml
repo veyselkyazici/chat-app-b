@@ -40,7 +40,6 @@ jobs:
           
           echo "Changed services: $services"
           
-          # JSON array formatına çevir - trim whitespace and newlines
           json_services=$(echo "$services" | tr -s ' ' '\n' | grep -v '^$' | jq -R -s -c 'split("\n") | map(select(length > 0))')
           echo "changed=$json_services" >> $GITHUB_OUTPUT
 
@@ -63,7 +62,6 @@ jobs:
 
       - name: Build Docker image
         run: |
-          # Clean the service name from any whitespace/newlines
           service=$(echo "${{ matrix.service }}" | tr -d '[:space:]')
           echo "Building service: $service"
           docker build . \
@@ -72,7 +70,6 @@ jobs:
 
       - name: Push Docker image
         run: |
-          # Clean the service name from any whitespace/newlines
           service=$(echo "${{ matrix.service }}" | tr -d '[:space:]')
           echo "Pushing service: $service"
           docker push "${{ secrets.DOCKER_HUB_USERNAME }}/microservices:$service"
@@ -102,5 +99,9 @@ jobs:
               esac
             
               docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/microservices:$service
+            
+              docker-compose -f docker-compose.yml stop $compose_service
+              docker-compose -f docker-compose.yml rm -f $compose_service
+            
               docker-compose -f docker-compose.yml up -d $compose_service
             done
