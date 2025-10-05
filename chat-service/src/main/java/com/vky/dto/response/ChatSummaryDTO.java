@@ -23,5 +23,5 @@ public class ChatSummaryDTO {
     private ChatDTO  chatDTO;
     private ContactsDTO contactsDTO;
     private UserProfileResponseDTO userProfileResponseDTO;
-    private UserChatSettingsDTO userChatSettings;
+    private UserChatSettingsDTO userChatSettingsDTO;
 }

@@ -91,7 +91,7 @@ public class UserController {
     }
 
 
-    @DeleteMapping("/remove-profile-picture")
+    @PatchMapping("/remove-profile-picture")
     public ResponseEntity<ApiResponse<Void>> removeProfilePicture(@RequestHeader("X-Id") String tokenUserId) {
         userProfileService.removeProfilePicture(tokenUserId);
 

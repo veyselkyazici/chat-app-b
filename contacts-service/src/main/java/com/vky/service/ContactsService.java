@@ -48,8 +48,8 @@ public class ContactsService {
         userRelationshipService.sendUpdatedPrivacySettings(updatePrivacySettingsRequestDTO);
     }
 
-    public void sendUpdatedProfilePhoto(UpdatedProfilePhotoRequestDTO dto) {
-        userRelationshipService.sendUpdatedProfilePhoto(dto);
+    public void sendUserProfile(UpdatedProfilePhotoRequestDTO dto) {
+        userRelationshipService.sendUserProfile(dto);
     }
 
     @Async("taskExecutor")

@@ -63,9 +63,8 @@ public class ContactsController {
     public void typing(@Payload UpdatePrivacySettingsRequestDTO updatePrivacySettingsRequestDTO) {
         contactsService.sendUpdatedPrivacySettings(updatePrivacySettingsRequestDTO);
     }
-    @MessageMapping("/updated-profile-photo-send-message")
-    public void typing(@Payload UpdatedProfilePhotoRequestDTO dto) {
-        contactsService.sendUpdatedProfilePhoto(dto);
+    @MessageMapping("/updated-user-profile-send-message")
+    public void updatedUserProfileSendMessage(@Payload UpdatedProfilePhotoRequestDTO dto) {
+        contactsService.sendUserProfile(dto);
     }
-
 }

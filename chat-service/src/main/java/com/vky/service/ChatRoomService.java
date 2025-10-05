@@ -55,12 +55,12 @@ public class ChatRoomService {
         ChatRoom chatRoom = this.chatRoomRepository.findByParticipantIdsContainsAll(ids);
         if (chatRoom != null) {
             UserChatSettings userChatSettings = userChatSettingsService.findByUserIdAndChatRoomId(userId, chatRoom.getId());
-            return ChatRoomWithUserChatSettingsDTO.builder().userId(userId).participantIds(chatRoom.getParticipantIds()).friendId(friendId).userChatSettings(userChatSettings).id(chatRoom.getId()).build();
+            return ChatRoomWithUserChatSettingsDTO.builder().userId(userId).participantIds(chatRoom.getParticipantIds()).friendId(friendId).userChatSettingsDTO(IChatMapper.INSTANCE.userChatSettingsToDTO(userChatSettings)).id(chatRoom.getId()).build();
         } else {
             ChatRoom chatRoomSave = chatRoomSave(userId, friendId);
             UserChatSettings userChatSettings = userChatSettingsService.saveUserChatSettings(chatRoomSave.getId(), userId,friendId);
             userChatSettingsService.saveUserChatSettings(chatRoomSave.getId(), friendId,userId);
-            return ChatRoomWithUserChatSettingsDTO.builder().id(chatRoomSave.getId()).userId(userId).participantIds(chatRoomSave.getParticipantIds()).friendId(friendId).userChatSettings(userChatSettings).build();
+            return ChatRoomWithUserChatSettingsDTO.builder().id(chatRoomSave.getId()).userId(userId).participantIds(chatRoomSave.getParticipantIds()).friendId(friendId).userChatSettingsDTO(IChatMapper.INSTANCE.userChatSettingsToDTO(userChatSettings)).build();
         }
     }
 
@@ -164,7 +164,7 @@ public class ChatRoomService {
                         .build()
                 )
                 .contactsDTO(profileResponse.getContactsDTO())
-                .userChatSettings(mapUserChatSettingsDTO(userChatSettings))
+                .userChatSettingsDTO(mapUserChatSettingsDTO(userChatSettings))
                 .userProfileResponseDTO(profileResponse.getUserProfileResponseDTO())
                 .build();
         return CompletableFuture.completedFuture(chatSummaryDTO);
@@ -203,7 +203,7 @@ public class ChatRoomService {
                         .isLastPage(true)
                         .build()
                 )
-                .userChatSettings(mapUserChatSettingsDTO(userChatSettings))
+                .userChatSettingsDTO(mapUserChatSettingsDTO(userChatSettings))
                 .userProfileResponseDTO(profile.getUserProfileResponseDTO())
                 .build();
 

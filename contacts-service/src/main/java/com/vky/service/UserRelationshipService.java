@@ -47,13 +47,13 @@ public class UserRelationshipService {
         });
     }
 
-    public void sendUpdatedProfilePhoto(UpdatedProfilePhotoRequestDTO dto) {
+    public void sendUserProfile(UpdatedProfilePhotoRequestDTO dto) {
         List<UserRelationship> userRelationships = userRelationshipRepository.findByUserIdOrRelatedUserId(dto.getUserId());
         userRelationships.forEach(userRelationship -> {
             if (userRelationship.getUserId().equals(dto.getUserId())) {
-                messagingTemplate.convertAndSendToUser(userRelationship.getRelatedUserId().toString(), "/queue/updated-profile-photo-message", dto);
+                messagingTemplate.convertAndSendToUser(userRelationship.getRelatedUserId().toString(), "/queue/updated-user-profile-message", dto);
             } else {
-                messagingTemplate.convertAndSendToUser(userRelationship.getUserId().toString(), "/queue/updated-profile-photo-message", dto);
+                messagingTemplate.convertAndSendToUser(userRelationship.getUserId().toString(), "/queue/updated-user-profile-message", dto);
             }
         });
     }

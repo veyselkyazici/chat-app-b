@@ -154,7 +154,7 @@ public class UserProfileService {
                 })
                 .collect(Collectors.toList());
     }
-
+    @Transactional(readOnly = true)
     public UserProfileResponseDTO getUserById(UUID userId) {
         UserProfile userProfile = this.userProfileRepository.findById(userId).orElseThrow(() -> new NoSuchElementException("User not found witdh ID: " + userId));
         return IUserProfileMapper.INSTANCE.toUserProfileDTO(userProfile);
@@ -251,8 +251,6 @@ public class UserProfileService {
 
         UserProfile user = userProfileRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-
-        // Eğer kullanıcıda fotoğraf varsa Cloudinary'den sil
         if (user.getImage() != null && !user.getImage().isEmpty()) {
             String publicId = extractPublicIdFromUrl(user.getImage());
             try {
@@ -261,8 +259,6 @@ public class UserProfileService {
                 throw new RuntimeException("Error deleting image from Cloudinary", e);
             }
         }
-
-        // DB'deki image alanını boşalt ve güncelle
         user.setImage(null);
         user.setUpdatedAt(Instant.now());
         userProfileRepository.save(user);

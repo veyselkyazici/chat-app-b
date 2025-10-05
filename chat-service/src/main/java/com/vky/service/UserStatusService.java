@@ -37,19 +37,16 @@ public class UserStatusService {
     }
     public UserStatusMessage isOnline(String contactId) {
         UserStatusMessage message;
-        // Redis üzerinden user:{id} hash’ini oku
         Map<Object, Object> userHash = redisTemplate.opsForHash().entries("chat-user:" + contactId);
 
         if ("online".equals(userHash.get("status"))) {
             message = buildUserStatusMessage(contactId,"online",null);
         } else {
-            // Kullanıcı offline, lastSeen’i al
             Instant lastSeen = null;
 
             if (userHash.get("lastSeen") != null) {
                 lastSeen = Instant.parse(userHash.get("lastSeen").toString());
             } else {
-                // Redis’te yoksa DB’den çek
                 UUID userIdUUID = UUID.fromString(contactId);
                 UserLastSeenResponseDTO userLastSeenResponseDTO = userManager.getUserLastSeen(userIdUUID);
                 lastSeen = userLastSeenResponseDTO.getLastSeen();

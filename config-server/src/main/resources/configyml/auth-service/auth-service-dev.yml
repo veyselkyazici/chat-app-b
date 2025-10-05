@@ -51,7 +51,7 @@ eureka:
 
 google:
   recaptcha:
-    secret: ${RECAPTCHA_SECRET_KEY}
+    secret: ${RECAPTCHA_SECRET_KEY:}
 
 services:
   url:

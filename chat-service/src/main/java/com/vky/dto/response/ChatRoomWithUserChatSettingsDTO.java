@@ -18,5 +18,5 @@ public class ChatRoomWithUserChatSettingsDTO {
     private String friendId;
     private String friendEmail;
     private String image;
-    private UserChatSettings userChatSettings;
+    private UserChatSettingsDTO userChatSettingsDTO;
 }

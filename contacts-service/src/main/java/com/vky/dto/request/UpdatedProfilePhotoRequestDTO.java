@@ -15,4 +15,6 @@ import java.util.UUID;
 public class UpdatedProfilePhotoRequestDTO {
     private UUID userId;
     private String url;
+    private String firstName;
+    private String about;
 }
