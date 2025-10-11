@@ -79,12 +79,15 @@ public class ChatMessageService {
         boolean isLastPage = chatMessages.size() < pageable.getPageSize();
 
         ChatDTO chatDTO = new ChatDTO();
-        chatDTO.setParticipantIds(new ArrayList<>());
-        chatDTO.setMessages(IChatMapper.INSTANCE.chatMessagesToDTO(chatMessages));
-        chatDTO.setLastPage(!isLastPage);
-        chatDTO.setId(chatMessages.get(0).getChatRoomId());
-        chatDTO.getParticipantIds().add(chatMessages.get(0).getSenderId());
-        chatDTO.getParticipantIds().add(chatMessages.get(0).getRecipientId());
+        if(!chatMessages.isEmpty()) {
+            chatDTO.setParticipantIds(new ArrayList<>());
+            chatDTO.setMessages(IChatMapper.INSTANCE.chatMessagesToDTO(chatMessages));
+            chatDTO.setLastPage(!isLastPage);
+            chatDTO.setId(chatMessages.get(0).getChatRoomId());
+            chatDTO.getParticipantIds().add(chatMessages.get(0).getSenderId());
+            chatDTO.getParticipantIds().add(chatMessages.get(0).getRecipientId());
+        }
+
         return chatDTO;
     }
 

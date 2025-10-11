@@ -11,6 +11,7 @@ import com.vky.manager.IContactsManager;
 import com.vky.mapper.IChatMapper;
 import com.vky.rabbitmq.RabbitMQProducer;
 import com.vky.repository.IChatRoomRepository;
+import com.vky.repository.IUserChatSettingsRepository;
 import com.vky.repository.entity.ChatMessage;
 import com.vky.repository.entity.ChatRoom;
 import com.vky.repository.entity.UserChatSettings;
@@ -39,6 +40,7 @@ public class ChatRoomService {
     private final RabbitMQProducer rabbitMQProducer;
     private final SimpMessagingTemplate messagingTemplate;
     private final UnreadMessageCountService unreadMessageCountService;
+    private final IUserChatSettingsRepository iUserChatSettingsRepository;
 
     public ChatRoom chatRoomSave(String userId, String friendId) {
         List<String> participantIds = new ArrayList<>();
@@ -55,6 +57,9 @@ public class ChatRoomService {
         ChatRoom chatRoom = this.chatRoomRepository.findByParticipantIdsContainsAll(ids);
         if (chatRoom != null) {
             UserChatSettings userChatSettings = userChatSettingsService.findByUserIdAndChatRoomId(userId, chatRoom.getId());
+            userChatSettings.setDeleted(false);
+            userChatSettings.setDeletedTime(Instant.now());
+            iUserChatSettingsRepository.save(userChatSettings);
             return ChatRoomWithUserChatSettingsDTO.builder().userId(userId).participantIds(chatRoom.getParticipantIds()).friendId(friendId).userChatSettingsDTO(IChatMapper.INSTANCE.userChatSettingsToDTO(userChatSettings)).id(chatRoom.getId()).build();
         } else {
             ChatRoom chatRoomSave = chatRoomSave(userId, friendId);
