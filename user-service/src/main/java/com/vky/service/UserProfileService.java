@@ -181,7 +181,7 @@ public class UserProfileService {
             responseDTO.setId(userProfile.getId());
             return responseDTO;
     }
-    @Transactional(readOnly = true)
+    @Transactional
     public UserProfileResponseDTO updatePrivacySettings(PrivacySettingsRequestDTO privacySettingsRequestDTO, String tokenUserId) {
         UUID userId = UUID.fromString(tokenUserId);
         UserProfile userProfile = userProfileRepository.findById(userId)
