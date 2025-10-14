@@ -311,7 +311,7 @@ public class AuthService {
         } catch (FeignException e) {
             throw new AuthManagerException(ErrorType.USER_KEY_RESET_FAILED);
         }
-
+        redisTemplate.delete(redisKey);
     }
 
     private String generateSecureToken() {
