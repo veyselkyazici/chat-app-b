@@ -216,7 +216,7 @@ public class UserProfileService {
             }
 
             Map uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
-            String profilePictureUrl = uploadResult.get("url").toString();
+            String profilePictureUrl = uploadResult.get("secure_url").toString();
 
 
             user.setImage(profilePictureUrl);
