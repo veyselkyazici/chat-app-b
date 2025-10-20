@@ -31,6 +31,9 @@ public class GatewayConfig {
     @Bean
     public RouteLocator routeLocator(RouteLocatorBuilder builder) {
         return builder.routes()
+                .route("auth-service", r -> r.path("/api/v1/auth/change-password")
+                        .filters(f -> f.filter(rateLimiterFilter).filter(jwtAuthenticationGatewayFilter()))
+                        .uri("lb://auth-service"))
                 .route("auth-service", r -> r.path("/api/v1/auth/authenticate")
                         .filters(f -> f.filter(rateLimiterFilter).filter(jwtAuthenticationGatewayFilter()))
                         .uri("lb://auth-service"))

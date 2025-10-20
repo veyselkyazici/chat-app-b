@@ -241,7 +241,9 @@ public class UserProfileService {
         userProfile.getUserKey().setEncryptedPrivateKey(resetUserKeyDTO.getEncryptedPrivateKey());
         userProfile.getUserKey().setIv(resetUserKeyDTO.getIv());
         userProfile.getUserKey().setSalt(resetUserKeyDTO.getSalt());
-        userProfile.getUserKey().setPublicKey(resetUserKeyDTO.getPublicKey());
+        if(resetUserKeyDTO.getPublicKey() != null) {
+            userProfile.getUserKey().setPublicKey(resetUserKeyDTO.getPublicKey());
+        }
         userProfileRepository.save(userProfile);
     }
 

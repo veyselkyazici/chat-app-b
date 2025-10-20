@@ -87,5 +87,11 @@ public class AuthController {
         return ResponseEntity.ok().build();
     }
 
+    @PostMapping("/change-password")
+    public ResponseEntity<ApiResponse<?>> changePassword(@RequestHeader("X-Id") String userId, @RequestBody ChangePasswordRequestDTO
+                                                                changePasswordRequestDTO) {
+        this.authService.changePassword(changePasswordRequestDTO, userId);
+        return ResponseEntity.ok(new ApiResponse<>(true, "", ""));
+    }
 
 }

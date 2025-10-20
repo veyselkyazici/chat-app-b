@@ -320,4 +320,18 @@ public class AuthService {
         random.nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
+
+    public void changePassword(ChangePasswordRequestDTO changePasswordRequestDTO, String userId) {
+        Auth auth = this.authRepository.findById(UUID.fromString(userId))
+                .orElseThrow(() -> new AuthManagerException(ErrorType.EMAIL_NOT_FOUND));
+        String newPassword = this.passwordEncoder.encode(changePasswordRequestDTO.getNewPassword());
+        auth.setPassword(newPassword);
+        this.authRepository.save(auth);
+        iUserManager.resetUserKey(ResetUserKeyDTO.builder()
+                .userId(auth.getId())
+                .iv(changePasswordRequestDTO.getIv())
+                .encryptedPrivateKey(changePasswordRequestDTO.getEncryptedPrivateKey())
+                .salt(changePasswordRequestDTO.getSalt())
+                .build());
+    }
 }
