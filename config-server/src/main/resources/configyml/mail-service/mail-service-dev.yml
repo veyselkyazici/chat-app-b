@@ -30,10 +30,10 @@ spring:
         format_sql: true
 
   mail:
-    host: ${MAIL_HOST:}
-    port: ${MAIL_PORT:}
-    username: ${MAIL_ID:}
-    password: ${MAIL_PASSWORD:}
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_ID}
+    password: ${MAIL_PASSWORD}
     verify:
       host: ${MAIL_VERIFY_HOST:http://localhost:3000}
     default-encoding: UTF-8

@@ -29,9 +29,7 @@ import java.util.*;
 public class ChatMessageService {
     private final IChatMessageRepository chatMessageRepository;
     private final SimpMessagingTemplate messagingTemplate;
-    private final MongoTemplate mongoTemplate;
-    private final RedisTemplate<String, Object> redisTemplate;
-    private static final Duration REDIS_TTL = Duration.ofHours(24);
+    private final UserStatusService userStatusService;
     public ChatMessage sendMessage(MessageRequestDTO messageRequestDTO) {
         Instant fullDateTime = Instant.parse(messageRequestDTO.getFullDateTime());
 
@@ -62,11 +60,9 @@ public class ChatMessageService {
 
     public ChatDTO getLast30Messages(String chatRoomId, Pageable pageable, Instant fullDateTime) {
         Instant effectiveDeletedTime = fullDateTime == null ? Instant.EPOCH : fullDateTime;
+
         List<ChatMessage> chatMessages = chatMessageRepository
-                .findTop30ByChatRoomIdAfterDeletedTime(chatRoomId, effectiveDeletedTime, pageable)
-                .stream()
-                .sorted(Comparator.comparing(ChatMessage::getFullDateTime))
-                .toList();
+                .findTop30ByChatRoomIdAfterDeletedTime(chatRoomId, effectiveDeletedTime, pageable);
         return getChatDTO(pageable, chatMessages);
     }
 

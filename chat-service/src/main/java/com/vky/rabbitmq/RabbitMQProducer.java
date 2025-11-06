@@ -1,6 +1,5 @@
 package com.vky.rabbitmq;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vky.config.RabbitMQConfig;
 import com.vky.dto.request.MessageRequestDTO;
 import com.vky.dto.request.UnreadMessageCountDTO;
@@ -15,8 +14,7 @@ public class RabbitMQProducer {
 
     public void sendMessage(MessageRequestDTO messageRequestDTO) {
         try {
-            String message = new ObjectMapper().writeValueAsString(messageRequestDTO);
-            rabbitTemplate.convertAndSend(RabbitMQConfig.CHAT_EXCHANGE, RabbitMQConfig.CHAT_ROUTING_KEY, message);
+            rabbitTemplate.convertAndSend(RabbitMQConfig.CHAT_EXCHANGE, messageRequestDTO.getChatRoomId(), messageRequestDTO);
         } catch (Exception e) {
             throw new RuntimeException("Failed to send message to RabbitMQ", e);
         }
@@ -24,8 +22,7 @@ public class RabbitMQProducer {
 
     public void readMessage(UnreadMessageCountDTO unreadMessageCountDTO) {
         try {
-            String message = new ObjectMapper().writeValueAsString(unreadMessageCountDTO);
-            rabbitTemplate.convertAndSend(RabbitMQConfig.MESSAGE_READ_EXCHANGE, RabbitMQConfig.MESSAGE_READ_ROUTING_KEY, message);
+            rabbitTemplate.convertAndSend(RabbitMQConfig.MESSAGE_READ_EXCHANGE, RabbitMQConfig.MESSAGE_READ_ROUTING_KEY, unreadMessageCountDTO);
         } catch (Exception e) {
             throw new RuntimeException("Failed to send read message to RabbitMQ", e);
         }
@@ -33,11 +30,10 @@ public class RabbitMQProducer {
 
     public void updateUnreadCountToMongo(String chatRoomId, String userId, String contactId, int unreadCount) {
         try {
-            String unreadMessageCount = new ObjectMapper().writeValueAsString(new UnreadMessageCountDTO(chatRoomId, userId, contactId, unreadCount));
             rabbitTemplate.convertAndSend(
                     RabbitMQConfig.MONGO_UPDATE_EXCHANGE,
                     RabbitMQConfig.MONGO_UPDATE_ROUTING_KEY,
-                    unreadMessageCount
+                    new UnreadMessageCountDTO(chatRoomId, userId, contactId, unreadCount)
             );
         } catch (Exception e) {
             throw new RuntimeException("Failed to send update message to RabbitMQ", e);

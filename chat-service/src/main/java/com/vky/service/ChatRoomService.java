@@ -53,7 +53,6 @@ public class ChatRoomService {
         List<String> ids = new ArrayList<>();
         ids.add(userId);
         ids.add(friendId);
-        System.out.println("IDS > " + ids.toString());
         ChatRoom chatRoom = this.chatRoomRepository.findByParticipantIdsContainsAll(ids);
         if (chatRoom != null) {
             UserChatSettings userChatSettings = userChatSettingsService.findByUserIdAndChatRoomId(userId, chatRoom.getId());
@@ -89,7 +88,6 @@ public class ChatRoomService {
             chatMessageService.sendErrorNotification(messageRequestDTO, errorType);
             return;
         }
-
         rabbitMQProducer.sendMessage(messageRequestDTO);
     }
 
@@ -239,7 +237,7 @@ public class ChatRoomService {
 
     public ChatDTO getLast30Messages(String chatRoomId, int limit, String userId) {
         UserChatSettings userChatSettings = userChatSettingsService.findByUserIdAndChatRoomId(userId, chatRoomId);
-        Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "fullDateTime"));
+        Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.ASC, "fullDateTime"));
         return chatMessageService.getLast30Messages(chatRoomId, pageable, userChatSettings.getDeletedTime());
     }
 
