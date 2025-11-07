@@ -38,7 +38,7 @@ public class ChatMessageListener {
                     "/queue/received-message",
                     resp
             );
-            userStatusService.setTyping(new TypingMessage(dto.getSenderId(), dto.getRecipientId(), dto.getChatRoomId(), false));
+            //userStatusService.setTyping(new TypingMessage(dto.getSenderId(), dto.getRecipientId(), dto.getChatRoomId(), false));
         } catch (Exception e) {
             log.error("Error processing chat message. chatRoomId={} sender={} recipient={}",
                     dto.getChatRoomId(), dto.getSenderId(), dto.getRecipientId(), e);
