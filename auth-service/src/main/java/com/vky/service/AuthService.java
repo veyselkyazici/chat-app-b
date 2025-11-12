@@ -131,7 +131,7 @@ public class AuthService {
             } else {
                 existingAuth.setPassword(passwordEncoder.encode(registerRequestDTO.getPassword()));
                 authRepository.save(existingAuth);
-                authRepository.flush();
+                //authRepository.flush();
                 iUserManager.resetUserKey(ResetUserKeyDTO.builder().publicKey(registerRequestDTO.getPublicKey()).salt(registerRequestDTO.getSalt()).encryptedPrivateKey(registerRequestDTO.getEncryptedPrivateKey())
                         .iv(registerRequestDTO.getIv()).userId(existingAuth.getId()).build());
                 CreateConfirmationRequestDTO confirmationDTO = IAuthMapper.INSTANCE.toAuthDTOO(existingAuth);

@@ -42,7 +42,7 @@ public class ChatServiceApplication {
 //    public CommandLineRunner commandLineRunner(IChatRoomRepository chatRoomRepository, IChatMessageRepository chatMessageRepository, IUserChatSettingsRepository userChatSettingsRepository) throws Exception {
 //
 //
-//        PublicKey recipientPublicKey = loadPublicKey("MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwEhYvt9doNvohqUxuJDIOEdgaf+3k3iblOwKo0HOi5VzD2TaZISrUoilnS70tEczkPsB4ByinAVQAyXVuZ5aJ53/hH1SpVMtS5L6+Bgn4NeQ2X+jizRcwMikpukbQJdfqFl649wCA8stYM+Gct/6UWwnHXUi1XDZ2dFVaJIIueOAOSateJFavLrqBEWD23IihFtxRyKaijlaO+u1Pd5ghnVNrLfu5bThGBE5dl9iB0L4m1aAg/v5XQ2ZlgJIjzqtRiuyAvbKwdL4tKWMf0UnUbCMSCqr2XlUt1a5DNEQT4imketbybktQEaFstVeJI1CjVfhcFKS6VNChua+rWbJhwIDAQAB");
+//        PublicKey recipientPublicKey = loadPublicKey("MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAjoQyPJZ/ORHKmYPaVukwBF7n31p2P+f2rwaol2kyHnwX8z296kbGscUzn/P+RZf9Sd29A5wFPgUHde6GrAhwejtsoLbPWLCTddQIeWnm4/pzfd1g2pFBf0br0r/5ubwNPgglQB3nWrBO2SeajS3S3x6HDJK8bkkY5PicpheI8UoUSPTcIyV78xHJ3e0iBl3t/kht/CiQbo/kjKjT55fXf0cLJY+n0kSWaePq9fazSmvuR0f+gdm0GLdtNuwWFZ5ZZIXmxB+VKjpYmzymp4z3U1WIzcJX222XtBaP2scrgQ2FvMwFR3Vs5QV98CDcI/o1J8D5unpzwGvbWFnW+V4qZQIDAQAB");
 //
 //
 //        return args -> {

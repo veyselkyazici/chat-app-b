@@ -13,6 +13,7 @@
 .env.prod
 .dockerignore
 docker-compose-services.yml
+docker-compose-dev.yml
 docker-compose-db.yml
 docker-compose-service-ci-cd.yml
 

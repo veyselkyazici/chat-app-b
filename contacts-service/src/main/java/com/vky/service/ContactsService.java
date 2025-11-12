@@ -52,30 +52,15 @@ public class ContactsService {
         userRelationshipService.sendUserProfile(dto);
     }
 
-    @Async("taskExecutor")
-    public CompletableFuture<ApiResponse<Void>> addContactAsync(ContactRequestDTO dto, String userId) {
-        try {
-            addContact(dto, userId); // senkron iş mantığı
-            return CompletableFuture.completedFuture(new ApiResponse<>(true, "Contact added successfully", null));
-        } catch (ContactsServiceException e) {
-            ErrorMessage error = ErrorMessage.builder()
-                    .code(e.getErrorType() != null ? e.getErrorType().getCode() : 500)
-                    .message(e.getErrorType().getMessage())
-                    .fields(List.of("email"))
-                    .build();
-            return CompletableFuture.completedFuture(new ApiResponse<>(false, "Failed to add contact", List.of(error)));
-        }
-    }
-
-
-    public void addContact(ContactRequestDTO contactRequestDTO, String userId) {
-        UserProfileResponseDTO userProfileResponseDTO = userManager.getUserByEmail(contactRequestDTO.getUserContactEmail());
+    public void addContact(ContactRequestDTO dto, String userId) {
+        UserProfileResponseDTO userProfileResponseDTO = userManager.getUserByEmail(dto.getUserContactEmail());
         if (userProfileResponseDTO == null) {
-            handleInvitationProcess(contactRequestDTO, userId);
+            handleInvitationProcess(dto, userId);
         } else {
-            handleExistingContactProcess(contactRequestDTO, userProfileResponseDTO, userId);
+            handleExistingContactProcess(dto, userProfileResponseDTO, userId);
         }
     }
+
 
 
     private void handleInvitationProcess(ContactRequestDTO contactRequestDTO, String userId) {

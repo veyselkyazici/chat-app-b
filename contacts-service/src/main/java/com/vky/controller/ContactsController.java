@@ -27,9 +27,11 @@ public class ContactsController {
     private final ContactsService contactsService;
 
     @PostMapping("/add-contact")
-    public ResponseEntity<ApiResponse<?>> addContact(@RequestBody ContactRequestDTO dto,
-                                                     @RequestHeader("X-Id") String tokenUserId) {
-        return ResponseEntity.ok(contactsService.addContactAsync(dto, tokenUserId).join());
+    public ResponseEntity<ApiResponse<Void>> addContact(
+            @RequestBody ContactRequestDTO dto,
+            @RequestHeader("X-Id") String tokenUserId) {
+        contactsService.addContact(dto, tokenUserId);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Contact added successfully", null));
     }
 
     @GetMapping("/get-contact-list")
