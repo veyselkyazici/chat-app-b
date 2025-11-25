@@ -42,9 +42,11 @@ spring:
     verify:
       host: ${MAIL_VERIFY_HOST}
     protocol: smtp
+    default-encoding: UTF-8
     properties:
       mail:
-        transport.protocol: smtps
+        transport:
+          protocol: smtps
         smtp:
           auth: true
           ssl:

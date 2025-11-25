@@ -36,19 +36,21 @@ spring:
     password: ${MAIL_PASSWORD}
     verify:
       host: ${MAIL_VERIFY_HOST:http://localhost:3000}
+    protocol: smtp
     default-encoding: UTF-8
     properties:
       mail:
-        mime:
-          charset: UTF
+        transport:
+          protocol: smtps
         smtp:
-          writetimeout: 10000
+          auth: true
+          ssl:
+            enable: true
+          starttls:
+            enable: false
           connectiontimeout: 10000
           timeout: 10000
-          auth: true
-          starttls:
-            enable: true
-            required: true
+          writetimeout: 10000
 
 services:
   url:
