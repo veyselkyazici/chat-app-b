@@ -36,7 +36,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws/contacts")
                 .setAllowedOriginPatterns(
-
                         "https://vkychatapp.com",
                         "https://www.vkychatapp.com"
                 )

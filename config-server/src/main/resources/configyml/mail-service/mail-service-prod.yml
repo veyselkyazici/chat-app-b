@@ -45,14 +45,15 @@ spring:
     default-encoding: UTF-8
     properties:
       mail:
-        transport:
-          protocol: smtps
         smtp:
           auth: true
-          ssl:
-            enable: true
           starttls:
+            enable: true
+            required: true
+          ssl:
             enable: false
+        transport:
+          protocol: smtp
         connectiontimeout: 10000
         timeout: 10000
         writetimeout: 10000
