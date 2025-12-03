@@ -38,8 +38,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 .setAllowedOriginPatterns(
                         "https://vkychatapp.com",
                         "https://www.vkychatapp.com"
-                )
-                .withSockJS();
+                );
     }
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
