@@ -11,6 +11,8 @@ spring:
       password: ${REDIS_PASSWORD}
   cloud:
     gateway:
+      websocket:
+        enabled: true
       server:
         webflux:
           httpclient:
