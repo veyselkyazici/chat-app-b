@@ -39,7 +39,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                         "http://localhost:3000",
                         "https://vkychatapp.com",
                         "https://www.vkychatapp.com"
-                ).withSockJS();
+                );
     }
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
