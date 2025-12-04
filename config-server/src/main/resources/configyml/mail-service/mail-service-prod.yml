@@ -48,16 +48,16 @@ spring:
         smtp:
           auth: true
           starttls:
-            enable: true
-            required: true
-          ssl:
             enable: false
+            required: false
+          ssl:
+            enable: true
+            trust: "*"
         transport:
           protocol: smtp
         connectiontimeout: 10000
         timeout: 10000
         writetimeout: 10000
-
 
 services:
   url:
