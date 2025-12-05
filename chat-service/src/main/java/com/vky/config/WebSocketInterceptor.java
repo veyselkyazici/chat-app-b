@@ -97,7 +97,7 @@ public class WebSocketInterceptor implements ChannelInterceptor {
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
 
-            // Burada ChatServiceException fırlatmak yerine direkt ERROR frame döndürüyoruz
+
             return buildErrorFrame(
                     String.valueOf(ErrorType.UNAUTHORIZED_ACCESS.getCode()),
                     "Invalid JWT token",
@@ -107,12 +107,9 @@ public class WebSocketInterceptor implements ChannelInterceptor {
 
         String token = authHeader.substring(7);
 
-        // jwtTokenProvider.isValidToken(token) IMPLEMENTASYONU:
-        //  - signature check
-        //  - expiration check (exp claim)
+
         if (!jwtTokenProvider.isValidToken(token)) {
 
-            // Burada EXPIRED_TOKEN / INVALID_TOKEN gibi frontend'in ayırt edebileceği mesaj kullanabilirsin
             return buildErrorFrame(
                     "EXPIRED_TOKEN",              // frame.headers.message
                     "JWT token expired or invalid", // frame body
@@ -124,10 +121,8 @@ public class WebSocketInterceptor implements ChannelInterceptor {
         String sessionId = accessor.getSessionId();
         String redisKey = "chat-user:" + userId;
 
-        // Tek session kontrolü
         Object oldSessionId = redisTemplate.opsForHash().get(redisKey, "sessionId");
         if (oldSessionId != null && !oldSessionId.equals(sessionId)) {
-            // Eski cihaza disconnect mesajı
             messagingTemplate.convertAndSendToUser(
                     userId,
                     "/queue/disconnect",
@@ -135,7 +130,6 @@ public class WebSocketInterceptor implements ChannelInterceptor {
             );
         }
 
-        // Redis'e güncelleme
         redisTemplate.opsForHash().put(redisKey, "sessionId", sessionId);
         redisTemplate.opsForHash().put(redisKey, "status", "online");
         redisTemplate.opsForHash().put(redisKey, "lastSeen", Instant.now().toString());
@@ -148,10 +142,8 @@ public class WebSocketInterceptor implements ChannelInterceptor {
 
         messagingTemplate.convertAndSendToUser(userId, "/queue/online-status", statusMessage);
 
-        // TTL (örn. 30 sn)
         redisTemplate.expire(redisKey, 30, TimeUnit.SECONDS);
 
-        // Principal set et → validateActiveSession bunu kullanacak
         accessor.setUser(userId::toString);
 
         return originalMessage;
@@ -194,7 +186,6 @@ public class WebSocketInterceptor implements ChannelInterceptor {
         String activeSession = (String) redisTemplate.opsForHash().get("user:" + userId, "sessionId");
 
         if (sessionId.equals(activeSession)) {
-            // Kullanıcı offline yap
             redisTemplate.opsForHash().put("chat-user:" + userId, "status", "offline");
             redisTemplate.opsForHash().put("chat-user:" + userId, "lastSeen", Instant.now().toString());
             redisTemplate.opsForHash().delete("chat-user:" + userId, "sessionId");
@@ -206,7 +197,6 @@ public class WebSocketInterceptor implements ChannelInterceptor {
         if (accessor.getUser() != null) {
             String userId = accessor.getUser().getName();
 
-            // Redis temizliği
             redisTemplate.delete("chat-user:" + userId);
 
             ErrorMessage errorPayload; // Hata mesajını burada tanımla
@@ -237,7 +227,7 @@ public class WebSocketInterceptor implements ChannelInterceptor {
     private Message<byte[]> buildErrorFrame(String code, String body, StompHeaderAccessor originalAccessor) {
         StompHeaderAccessor errorAccessor = StompHeaderAccessor.create(StompCommand.ERROR);
         errorAccessor.setSessionId(originalAccessor.getSessionId());
-        errorAccessor.setMessage(code); // frontend frame.headers.message ile bunu okuyabilir
+        errorAccessor.setMessage(code);
 
         byte[] payload = body != null
                 ? body.getBytes(StandardCharsets.UTF_8)
