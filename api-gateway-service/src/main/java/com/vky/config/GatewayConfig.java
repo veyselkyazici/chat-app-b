@@ -59,9 +59,9 @@ public class GatewayConfig {
                         .filters(f -> f.filter(rateLimiterFilter).filter(jwtAuthenticationGatewayFilter()))
                         .uri("lb://chat-service"))
                 .route("chat-service-ws-http", r -> r.path("/ws/chat/**")
-                        .uri("lb://chat-service"))
+                        .uri("lb:ws://chat-service"))
                 .route("contacts-service-ws-http", r -> r.path("/ws/contacts/**")
-                        .uri("lb://contacts-service"))
+                        .uri("lb:ws://contacts-service"))
                 .build();
     }
     @Bean
