@@ -45,6 +45,12 @@ logging:
     org.springframework.web: INFO
     org.hibernate.SQL: WARN
     org.springframework.data.redis: WARN
+
+    org.springframework.web.socket: DEBUG
+    org.springframework.messaging: DEBUG
+    org.springframework.messaging.simp: DEBUG
+    org.springframework.web.socket.messaging: DEBUG
+    org.springframework.scheduling: DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} %-5level - %msg%n"
 
