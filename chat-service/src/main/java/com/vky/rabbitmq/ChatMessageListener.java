@@ -1,13 +1,11 @@
 package com.vky.rabbitmq;
 
-import com.vky.controller.TypingMessage;
 import com.vky.dto.request.MessageRequestDTO;
 import com.vky.dto.response.MessageFriendResponseDTO;
 import com.vky.mapper.IChatMapper;
 import com.vky.repository.entity.ChatMessage;
 import com.vky.service.ChatMessageService;
 import com.vky.service.UnreadMessageCountService;
-import com.vky.service.UserStatusService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -21,7 +19,6 @@ public class ChatMessageListener {
     private final ChatMessageService chatMessageService;
     private final UnreadMessageCountService unreadMessageCountService;
     private final SimpMessagingTemplate messagingTemplate;
-    private final UserStatusService userStatusService;
 
     public void onMessage(MessageRequestDTO dto) {
         try {

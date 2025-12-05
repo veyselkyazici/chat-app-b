@@ -1,12 +1,9 @@
 package com.vky.config;
 
-import com.vky.controller.UserStatusMessage;
 import com.vky.expcetion.ChatServiceException;
 import com.vky.expcetion.ErrorMessage;
 import com.vky.expcetion.ErrorType;
-import com.vky.service.UserStatusService;
 import com.vky.util.JwtTokenProvider;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -21,10 +18,7 @@ import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 
@@ -107,7 +101,6 @@ public class WebSocketInterceptor implements ChannelInterceptor {
 
         String token = authHeader.substring(7);
 
-
         if (!jwtTokenProvider.isValidToken(token)) {
 
             return buildErrorFrame(
@@ -131,16 +124,6 @@ public class WebSocketInterceptor implements ChannelInterceptor {
         }
 
         redisTemplate.opsForHash().put(redisKey, "sessionId", sessionId);
-        redisTemplate.opsForHash().put(redisKey, "status", "online");
-        redisTemplate.opsForHash().put(redisKey, "lastSeen", Instant.now().toString());
-
-        UserStatusMessage statusMessage = UserStatusMessage.builder()
-                .userId(userId)
-                .status("online")
-                .lastSeen(Instant.now())
-                .build();
-
-        messagingTemplate.convertAndSendToUser(userId, "/queue/online-status", statusMessage);
 
         redisTemplate.expire(redisKey, 30, TimeUnit.SECONDS);
 
@@ -163,11 +146,7 @@ public class WebSocketInterceptor implements ChannelInterceptor {
 
         if (activeSession == null) {
             redisTemplate.opsForHash().put(redisKey, "sessionId", sessionId);
-            redisTemplate.opsForHash().put(redisKey, "status", "online");
-            redisTemplate.opsForHash().put(redisKey, "lastSeen", Instant.now().toString());
-
             redisTemplate.expire(redisKey, 30, TimeUnit.SECONDS);
-
             return;
         }
 
@@ -186,8 +165,6 @@ public class WebSocketInterceptor implements ChannelInterceptor {
         String activeSession = (String) redisTemplate.opsForHash().get("user:" + userId, "sessionId");
 
         if (sessionId.equals(activeSession)) {
-            redisTemplate.opsForHash().put("chat-user:" + userId, "status", "offline");
-            redisTemplate.opsForHash().put("chat-user:" + userId, "lastSeen", Instant.now().toString());
             redisTemplate.opsForHash().delete("chat-user:" + userId, "sessionId");
             redisTemplate.opsForHash().delete("typing:" + userId);
         }
@@ -199,7 +176,7 @@ public class WebSocketInterceptor implements ChannelInterceptor {
 
             redisTemplate.delete("chat-user:" + userId);
 
-            ErrorMessage errorPayload; // Hata mesajını burada tanımla
+            ErrorMessage errorPayload;
 
             if (e instanceof ChatServiceException cse) {
                 errorPayload = ErrorMessage.builder()

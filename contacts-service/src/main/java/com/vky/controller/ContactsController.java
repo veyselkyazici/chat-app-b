@@ -5,6 +5,7 @@ import com.vky.dto.response.ApiResponse;
 import com.vky.dto.response.ContactResponseDTO;
 import com.vky.exception.ContactsServiceException;
 import com.vky.exception.ErrorMessage;
+import com.vky.repository.entity.UserRelationship;
 import com.vky.service.ContactsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

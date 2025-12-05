@@ -2,7 +2,7 @@ package com.vky.service;
 
 import com.vky.dto.LastMessageInfo;
 import com.vky.dto.request.MessageRequestDTO;
-import com.vky.dto.response.*;
+import com.vky.dto.response.ChatDTO;
 import com.vky.expcetion.ErrorMessage;
 import com.vky.expcetion.ErrorType;
 import com.vky.mapper.IChatMapper;
@@ -12,16 +12,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.data.mongodb.core.query.Update;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
-import java.time.*;
+import java.time.Instant;
 import java.util.*;
 
 @Service
@@ -29,7 +23,7 @@ import java.util.*;
 public class ChatMessageService {
     private final IChatMessageRepository chatMessageRepository;
     private final SimpMessagingTemplate messagingTemplate;
-    private final UserStatusService userStatusService;
+
     public ChatMessage sendMessage(MessageRequestDTO messageRequestDTO) {
         Instant fullDateTime = Instant.parse(messageRequestDTO.getFullDateTime());
 

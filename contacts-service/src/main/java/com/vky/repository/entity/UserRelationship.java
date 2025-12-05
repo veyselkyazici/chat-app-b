@@ -21,5 +21,4 @@ public class UserRelationship {
     private boolean userHasAddedRelatedUser;
     private boolean relatedUserHasAddedUser;
 
-    // Diğer gerekli alanlar
 }
