@@ -16,9 +16,11 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
@@ -42,61 +44,117 @@ public class WebSocketInterceptor implements ChannelInterceptor {
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
-        StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+
+        StompHeaderAccessor accessor =
+                MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+
+        if (accessor == null) {
+            return message;
+        }
+
         try {
-            if (StompCommand.CONNECT.equals(accessor.getCommand())) {
-                handleConnect(accessor);
-            } else if (StompCommand.SEND.equals(accessor.getCommand()) ||
-                    StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
+            StompCommand command = accessor.getCommand();
+            if (command == null) {
+                return message;
+            }
+
+            if (StompCommand.CONNECT.equals(command)) {
+                return handleConnect(accessor, message);
+
+            } else if (StompCommand.SEND.equals(command) ||
+                    StompCommand.SUBSCRIBE.equals(command)) {
+
                 validateActiveSession(accessor);
-            } else if (StompCommand.DISCONNECT.equals(accessor.getCommand())) {
+
+            } else if (StompCommand.DISCONNECT.equals(command)) {
+
                 handleDisconnect(accessor);
             }
+
+            return message;
+
+        } catch (ChatServiceException cse) {
+            handleErrorAndCleanup(accessor, cse);
+            return buildErrorFrame(
+                    String.valueOf(cse.getErrorType().getCode()),
+                    cse.getMessage(),
+                    accessor
+            );
+
         } catch (Exception e) {
             handleErrorAndCleanup(accessor, e);
-            throw e;
+            return buildErrorFrame(
+                    String.valueOf(ErrorType.INTERNAL_ERROR.getCode()),
+                    "Unexpected error: " + e.getMessage(),
+                    accessor
+            );
         }
-
-        return message;
     }
 
-    private void handleConnect(StompHeaderAccessor accessor) {
-        String token = accessor.getFirstNativeHeader("Authorization");
-        if (token == null || !token.startsWith("Bearer ")) {
-            throw new ChatServiceException(ErrorType.UNAUTHORIZED_ACCESS, "Invalid JWT token");
+    private Message<?> handleConnect(StompHeaderAccessor accessor, Message<?> originalMessage) {
+
+        String authHeader = accessor.getFirstNativeHeader("Authorization");
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+
+            // Burada ChatServiceException fırlatmak yerine direkt ERROR frame döndürüyoruz
+            return buildErrorFrame(
+                    String.valueOf(ErrorType.UNAUTHORIZED_ACCESS.getCode()),
+                    "Invalid JWT token",
+                    accessor
+            );
         }
-        token = token.substring(7);
-//        if (!"test-error".equals(token)) {
-//            throw new ChatServiceException(ErrorType.UNAUTHORIZED_ACCESS, "Manual test error");
-//        }
+
+        String token = authHeader.substring(7);
+
+        // jwtTokenProvider.isValidToken(token) IMPLEMENTASYONU:
+        //  - signature check
+        //  - expiration check (exp claim)
         if (!jwtTokenProvider.isValidToken(token)) {
-            throw new IllegalArgumentException("Invalid JWT token");
+
+            // Burada EXPIRED_TOKEN / INVALID_TOKEN gibi frontend'in ayırt edebileceği mesaj kullanabilirsin
+            return buildErrorFrame(
+                    "EXPIRED_TOKEN",              // frame.headers.message
+                    "JWT token expired or invalid", // frame body
+                    accessor
+            );
         }
 
         String userId = jwtTokenProvider.extractAuthId(token).toString();
         String sessionId = accessor.getSessionId();
+        String redisKey = "chat-user:" + userId;
 
         // Tek session kontrolü
-        String redisKey = "chat-user:" + userId;
         Object oldSessionId = redisTemplate.opsForHash().get(redisKey, "sessionId");
         if (oldSessionId != null && !oldSessionId.equals(sessionId)) {
-            messagingTemplate.convertAndSendToUser(userId, "/queue/disconnect", "Another device logged in");
+            // Eski cihaza disconnect mesajı
+            messagingTemplate.convertAndSendToUser(
+                    userId,
+                    "/queue/disconnect",
+                    "Another device logged in"
+            );
         }
 
         // Redis'e güncelleme
         redisTemplate.opsForHash().put(redisKey, "sessionId", sessionId);
         redisTemplate.opsForHash().put(redisKey, "status", "online");
         redisTemplate.opsForHash().put(redisKey, "lastSeen", Instant.now().toString());
-        UserStatusMessage message = UserStatusMessage.builder()
+
+        UserStatusMessage statusMessage = UserStatusMessage.builder()
                 .userId(userId)
                 .status("online")
                 .lastSeen(Instant.now())
                 .build();
-        messagingTemplate.convertAndSendToUser(userId, "/queue/online-status", message);
-        // TTL ayarla (örn. 30 saniye, düzenli heartbeat ile yenilenebilir)
+
+        messagingTemplate.convertAndSendToUser(userId, "/queue/online-status", statusMessage);
+
+        // TTL (örn. 30 sn)
         redisTemplate.expire(redisKey, 30, TimeUnit.SECONDS);
 
+        // Principal set et → validateActiveSession bunu kullanacak
         accessor.setUser(userId::toString);
+
+        return originalMessage;
     }
 
     private void validateActiveSession(StompHeaderAccessor accessor) {
@@ -175,5 +233,16 @@ public class WebSocketInterceptor implements ChannelInterceptor {
                 );
             } catch (Exception ignored) {}
         }
+    }
+    private Message<byte[]> buildErrorFrame(String code, String body, StompHeaderAccessor originalAccessor) {
+        StompHeaderAccessor errorAccessor = StompHeaderAccessor.create(StompCommand.ERROR);
+        errorAccessor.setSessionId(originalAccessor.getSessionId());
+        errorAccessor.setMessage(code); // frontend frame.headers.message ile bunu okuyabilir
+
+        byte[] payload = body != null
+                ? body.getBytes(StandardCharsets.UTF_8)
+                : new byte[0];
+
+        return MessageBuilder.createMessage(payload, errorAccessor.getMessageHeaders());
     }
 }

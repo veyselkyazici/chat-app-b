@@ -1,8 +1,5 @@
 package com.vky.config;
 
-import com.vky.exception.ContactsServiceException;
-import com.vky.exception.ErrorMessage;
-import com.vky.exception.ErrorType;
 import com.vky.utility.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
@@ -13,14 +10,11 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import java.nio.charset.StandardCharsets;
 
 
 @Component
@@ -40,31 +34,55 @@ public class WebSocketInterceptor implements ChannelInterceptor {
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
-        StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+
+        StompHeaderAccessor accessor =
+                MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+
+        if (accessor == null || accessor.getCommand() == null)
+            return message;
 
         try {
-            if (StompCommand.CONNECT.equals(accessor.getCommand())) {
-                handleConnect(accessor);
-            } else if (StompCommand.DISCONNECT.equals(accessor.getCommand())) {
-                handleDisconnect(accessor);
+
+            switch (accessor.getCommand()) {
+                case CONNECT -> {
+                    return handleConnect(accessor, message);
+                }
+                case DISCONNECT -> {
+                    handleDisconnect(accessor);
+                }
             }
+
+            return message;
+
         } catch (Exception e) {
             cleanupOnError(accessor);
-            throw e;
+            return buildErrorFrame("INTERNAL_ERROR",
+                    "Unexpected error: " + e.getMessage(),
+                    accessor);
         }
-
-        return message;
     }
 
-    private void handleConnect(StompHeaderAccessor accessor) {
-        String token = accessor.getFirstNativeHeader("Authorization");
-        if (token == null || !token.startsWith("Bearer ")) {
-            throw new IllegalArgumentException("Invalid JWT token");
+    private Message<?> handleConnect(StompHeaderAccessor accessor, Message<?> originalMessage) {
+
+        String authHeader = accessor.getFirstNativeHeader("Authorization");
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+
+            return buildErrorFrame(
+                    "INVALID_TOKEN",
+                    "Missing or invalid Authorization header",
+                    accessor
+            );
         }
-        token = token.substring(7);
+
+        String token = authHeader.substring(7);
 
         if (!jwtTokenProvider.isValidToken(token)) {
-            throw new IllegalArgumentException("Invalid JWT token");
+            return buildErrorFrame(
+                    "EXPIRED_TOKEN",
+                    "JWT token expired or invalid",
+                    accessor
+            );
         }
 
         String userId = jwtTokenProvider.extractAuthId(token).toString();
@@ -72,19 +90,22 @@ public class WebSocketInterceptor implements ChannelInterceptor {
 
         String redisKey = "contacts-user:" + userId;
 
-        // Eski session varsa disconnect et
         Object oldSessionId = redisTemplate.opsForValue().get(redisKey);
         if (oldSessionId != null && !oldSessionId.equals(sessionId)) {
+
             messagingTemplate.convertAndSendToUser(
                     userId,
                     "/queue/disconnect",
-                    "You have been disconnected due to login from another device"
+                    "Another device logged in"
             );
         }
 
-        // Yeni session'u Redis'e kaydet
+        // Yeni session
         redisTemplate.opsForValue().set(redisKey, sessionId);
+
         accessor.setUser(() -> userId);
+
+        return originalMessage;
     }
 
     private void handleDisconnect(StompHeaderAccessor accessor) {
@@ -93,7 +114,6 @@ public class WebSocketInterceptor implements ChannelInterceptor {
         String userId = accessor.getUser().getName();
         String redisKey = "contacts-user:" + userId;
 
-        // Session Redis’ten sil
         redisTemplate.delete(redisKey);
     }
 
@@ -102,5 +122,18 @@ public class WebSocketInterceptor implements ChannelInterceptor {
 
         String userId = accessor.getUser().getName();
         redisTemplate.delete("contacts-user:" + userId);
+    }
+
+    private Message<byte[]> buildErrorFrame(String code, String body, StompHeaderAccessor originalAccessor) {
+
+        StompHeaderAccessor errorAccessor = StompHeaderAccessor.create(StompCommand.ERROR);
+        errorAccessor.setSessionId(originalAccessor.getSessionId());
+        errorAccessor.setMessage(code); // frontend → frame.headers.message ile bunu okuyacak
+
+        byte[] payload = body != null
+                ? body.getBytes(StandardCharsets.UTF_8)
+                : new byte[0];
+
+        return MessageBuilder.createMessage(payload, errorAccessor.getMessageHeaders());
     }
 }
