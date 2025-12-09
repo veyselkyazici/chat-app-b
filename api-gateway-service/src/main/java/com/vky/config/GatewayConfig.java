@@ -1,5 +1,6 @@
 package com.vky.config;
 
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.vky.service.TokenBlacklistService;
 import com.vky.util.JwtTokenManager;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.reactive.CorsWebFilter;
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
+import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
@@ -73,29 +75,19 @@ public class GatewayConfig {
             String authHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
 
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                ServerHttpResponse response = exchange.getResponse();
-                response.setStatusCode(HttpStatus.UNAUTHORIZED);
-                response.getHeaders().add("Content-Type", "application/json");
-
-                DataBufferFactory bufferFactory = response.bufferFactory();
-                DataBuffer buffer = bufferFactory.wrap("{\"error\":\"Authorization header missing\"}".getBytes());
-                return response.writeWith(Mono.just(buffer));
+                return unauthorized(exchange, "Authorization header missing");
             }
 
             String token = authHeader.substring(7);
-            boolean isBlackListed = tokenBlacklistService.isBlacklisted(token);
+
+            if (tokenBlacklistService.isBlacklisted(token)) {
+                return unauthorized(exchange, "Invalid token");
+            }
+
             try {
-                if (!jwtTokenManager.isValidToken(token) || isBlackListed) {
-                    ServerHttpResponse response = exchange.getResponse();
-                    response.setStatusCode(HttpStatus.UNAUTHORIZED);
-                    response.getHeaders().add("Content-Type", "application/json");
+                DecodedJWT jwt = jwtTokenManager.validateAndGet(token);
 
-                    DataBufferFactory bufferFactory = response.bufferFactory();
-                    DataBuffer buffer = bufferFactory.wrap("{\"error\":\"Invalid token\"}".getBytes());
-                    return response.writeWith(Mono.just(buffer));
-                }
-
-                String userId = jwtTokenManager.extractAuthId(token).toString();
+                String userId = jwt.getClaim("id").asString();
 
                 ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
                         .header("X-Id", userId)
@@ -103,17 +95,26 @@ public class GatewayConfig {
 
                 return chain.filter(exchange.mutate().request(mutatedRequest).build());
 
+            } catch (com.auth0.jwt.exceptions.TokenExpiredException e) {
+                return unauthorized(exchange, "Token expired");
+            } catch (com.auth0.jwt.exceptions.JWTVerificationException e) {
+                return unauthorized(exchange, "Invalid token");
             } catch (Exception e) {
-                ServerHttpResponse response = exchange.getResponse();
-                response.setStatusCode(HttpStatus.UNAUTHORIZED);
-                response.getHeaders().add("Content-Type", "application/json");
-
-                DataBufferFactory bufferFactory = response.bufferFactory();
-                DataBuffer buffer = bufferFactory.wrap("{\"error\":\"Token validation failed\"}".getBytes());
-                return response.writeWith(Mono.just(buffer));
+                return unauthorized(exchange, "Token validation failed");
             }
         };
     }
+
+    private Mono<Void> unauthorized(ServerWebExchange exchange, String message) {
+        ServerHttpResponse response = exchange.getResponse();
+        response.setStatusCode(HttpStatus.UNAUTHORIZED);
+        response.getHeaders().add("Content-Type", "application/json");
+
+        DataBufferFactory bufferFactory = response.bufferFactory();
+        DataBuffer buffer = bufferFactory.wrap(("{\"error\":\"" + message + "\"}").getBytes());
+        return response.writeWith(Mono.just(buffer));
+    }
+
     @Bean
     public CorsWebFilter corsWebFilter() {
 
@@ -127,6 +128,7 @@ public class GatewayConfig {
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", corsConfig);
+        source.registerCorsConfiguration("/ws/**", corsConfig);
 
         return new CorsWebFilter(source);
     }

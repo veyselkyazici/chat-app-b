@@ -164,12 +164,11 @@ public class UserProfileService {
         return userProfileRepository.findUserProfileByEmailIgnoreCaseAndIsDeletedFalse(contactEmail).map(IUserProfileMapper.INSTANCE::toUserProfileDTO).orElse(null);
     }
 
-    public void updateUserLastSeen(String tokenUserId) {
-        UUID userId = UUID.fromString(tokenUserId);
+    public void updateUserLastSeen(UUID userId, Instant lastSeen) {
         UserProfile userProfile = userProfileRepository.findById(userId)
                 .orElseThrow(() -> new UserServiceException(ErrorType.USER_NOT_FOUND));
 
-        userProfile.setLastSeen(Instant.now());
+        userProfile.setLastSeen(lastSeen);
             userProfileRepository.save(userProfile);
     }
 

@@ -1,9 +1,6 @@
 package com.vky.controller;
 
-import com.vky.dto.request.FindUserProfileByAuthIdRequestDTO;
-import com.vky.dto.request.PrivacySettingsRequestDTO;
-import com.vky.dto.request.UpdateUserDTO;
-import com.vky.dto.request.UserLastSeenRequestDTO;
+import com.vky.dto.request.*;
 import com.vky.dto.response.*;
 import com.vky.service.UserProfileService;
 import jakarta.validation.Valid;
@@ -47,10 +44,12 @@ public class UserController {
         return ResponseEntity.ok(new ApiResponse<>(true, "success", userProfileService.updateUserAbout(dto,tokenUserId)));
     }
 
-    @PutMapping("/update-user-last-seen")
-    public ResponseEntity<Void> updateUserLastSeen(@RequestHeader("X-Id") String tokenUserId) {
-        this.userProfileService.updateUserLastSeen(tokenUserId);
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    @PutMapping("/internal/update-user-last-seen")
+    public ResponseEntity<Void> updateUserLastSeen(
+            @RequestBody UpdateLastSeenRequestDTO request
+    ) {
+        userProfileService.updateUserLastSeen(request.getUserId(), request.getLastSeen());
+        return ResponseEntity.noContent().build();
     }
     @GetMapping("/get-user-last-seen")
     public UserLastSeenResponseDTO getUserLastSeen(@RequestParam UUID userId) {

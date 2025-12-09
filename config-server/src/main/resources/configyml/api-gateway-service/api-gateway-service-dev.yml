@@ -43,3 +43,4 @@ application:
       expiration: 120000
       refresh-token:
         expiration: 604800000
+      issuer: ${JWT_ISSUER:issuer}

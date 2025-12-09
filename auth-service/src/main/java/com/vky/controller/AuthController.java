@@ -81,9 +81,24 @@ public class AuthController {
 
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@RequestHeader("Authorization") String accessTokenHeader) {
-        String accessToken = accessTokenHeader.replace("Bearer ", "");
-        this.tokenBlacklistService.blacklistToken(accessToken);
+    public ResponseEntity<Void> logout(
+            @RequestHeader(value = "Authorization", required = false) String accessHeader,
+            @RequestBody(required = false) Map<String, String> body
+    ) {
+        String token = null;
+
+        if (accessHeader != null && accessHeader.startsWith("Bearer ")) {
+            token = accessHeader.substring(7);
+        }
+
+        if (token == null && body != null && body.containsKey("token")) {
+            token = body.get("token");
+        }
+
+        if (token != null) {
+            tokenBlacklistService.blacklistToken(token);
+        }
+
         return ResponseEntity.ok().build();
     }
 

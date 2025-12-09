@@ -1,6 +1,7 @@
 package com.vky.service;
 
 
+import com.vky.dto.request.UpdateLastSeenRequestDTO;
 import com.vky.dto.request.UpdatePrivacySettingsRequestDTO;
 import com.vky.dto.request.UpdatedProfilePhotoRequestDTO;
 import com.vky.dto.response.UserLastSeenResponseDTO;
@@ -28,40 +29,55 @@ public class ContactsWebSocketService {
     private SimpMessagingTemplate messagingTemplate;
     private final RedisTemplate<String, Object> redisTemplate;
     private final IUserManager userManager;
-
+    private static final String REDIS_KEY_PREFIX = "contacts-user:";
     @Autowired
     @Lazy
     public void setMessagingTemplate(SimpMessagingTemplate messagingTemplate) {
         this.messagingTemplate = messagingTemplate;
     }
-    public void updateStatus(List<UserRelationship> userRelationshipList, UUID userId, String status, long ttlSeconds) {
+    public void updateStatus(List<UserRelationship> userRelationshipList,
+                             UUID userId,
+                             String status,
+                             long ttlSeconds) {
+
         Instant now = Instant.now();
-        String key = "contacts-user:" + userId.toString();
+        String key = REDIS_KEY_PREFIX + userId;
+
         redisTemplate.opsForHash().put(key, "status", status);
-        redisTemplate.opsForHash().put(key, "lastSeen", now.toString());
+
+        if (!"online".equals(status)) {
+
+            redisTemplate.opsForHash().put(key, "lastSeen", now.toString());
+
+            userManager.updateLastSeen(
+                    new UpdateLastSeenRequestDTO(userId, now)
+            );
+        }
+
         redisTemplate.expire(key, ttlSeconds, TimeUnit.SECONDS);
 
         userOnlineStatusMessage(userRelationshipList, userId, status, now);
     }
     public UserStatusMessage isOnline(String contactId) {
-        UserStatusMessage message;
-        Map<Object, Object> userHash = redisTemplate.opsForHash().entries("contacts-user:" + contactId);
+        String key = REDIS_KEY_PREFIX + contactId;
+
+        Map<Object, Object> userHash = redisTemplate.opsForHash().entries(key);
 
         if ("online".equals(userHash.get("status"))) {
-            message = buildUserStatusMessage(contactId,"online",null);
+            return buildUserStatusMessage(contactId, "online", null);
         } else {
-            Instant lastSeen = null;
+            Instant lastSeen;
 
             if (userHash.get("lastSeen") != null) {
                 lastSeen = Instant.parse(userHash.get("lastSeen").toString());
             } else {
                 UUID userIdUUID = UUID.fromString(contactId);
-                UserLastSeenResponseDTO userLastSeenResponseDTO = userManager.getUserLastSeen(userIdUUID);
-                lastSeen = userLastSeenResponseDTO.getLastSeen();
+                UserLastSeenResponseDTO dto = userManager.getUserLastSeen(userIdUUID);
+                lastSeen = dto.getLastSeen();
             }
-            message = buildUserStatusMessage(contactId,"offline",lastSeen);
+
+            return buildUserStatusMessage(contactId, "offline", lastSeen);
         }
-        return message;
     }
     private UserStatusMessage buildUserStatusMessage(String contactId, String status, Instant lastSeen) {
         return UserStatusMessage.builder()
@@ -80,47 +96,51 @@ public class ContactsWebSocketService {
 
     public void updatePrivacySettingsMessage(List<UserRelationship> userRelationships, UpdatePrivacySettingsRequestDTO updatePrivacySettingsRequestDTO) {
         userRelationships.forEach(userRelationship -> {
-            if (userRelationship.getUserId().equals(updatePrivacySettingsRequestDTO.getId())) {
-                messagingTemplate.convertAndSendToUser(userRelationship.getRelatedUserId().toString(), "/queue/updated-privacy-response", updatePrivacySettingsRequestDTO);
-            } else {
-                messagingTemplate.convertAndSendToUser(userRelationship.getUserId().toString(), "/queue/updated-privacy-response", updatePrivacySettingsRequestDTO);
+            UUID targetUserId = userRelationship.getUserId()
+                    .equals(updatePrivacySettingsRequestDTO.getId())
+                    ? userRelationship.getRelatedUserId()
+                    : userRelationship.getUserId();
 
-            }
+            messagingTemplate.convertAndSendToUser(
+                    targetUserId.toString(),
+                    "/queue/updated-privacy-response",
+                    updatePrivacySettingsRequestDTO
+            );
         });
     }
 
     public void updateProfilePhotoMessage(List<UserRelationship> userRelationships, UpdatedProfilePhotoRequestDTO dto) {
         userRelationships.forEach(userRelationship -> {
-            if (userRelationship.getUserId().equals(dto.getUserId())) {
-                messagingTemplate.convertAndSendToUser(userRelationship.getRelatedUserId().toString(), "/queue/updated-user-profile-message", dto);
-            } else {
-                messagingTemplate.convertAndSendToUser(userRelationship.getUserId().toString(), "/queue/updated-user-profile-message", dto);
-            }
+            UUID targetUserId = userRelationship.getUserId()
+                    .equals(dto.getUserId())
+                    ? userRelationship.getRelatedUserId()
+                    : userRelationship.getUserId();
+
+            messagingTemplate.convertAndSendToUser(
+                    targetUserId.toString(),
+                    "/queue/updated-user-profile-message",
+                    dto
+            );
         });
     }
 
     public void userOnlineStatusMessage(List<UserRelationship> userRelationshipList, UUID userId, String status, Instant now) {
-        UserStatusMessage statusMessage = UserStatusMessage.builder()
+        UserStatusMessage message = UserStatusMessage.builder()
                 .userId(userId.toString())
-                .status("online")
-                .lastSeen(Instant.now())
+                .status(status)
+                .lastSeen("online".equals(status) ? null : now)
                 .build();
-        UserStatusMessage message = new UserStatusMessage();
-        if(status.equals("online")){
-            message.setStatus(status);
-            message.setLastSeen(now);
-            message.setUserId(userId.toString());
-        } else {
-            message.setStatus(status);
-            message.setLastSeen(null);
-            message.setUserId(userId.toString());
-        }
+
         userRelationshipList.forEach(userRelationship -> {
-                if(userRelationship.getUserId().equals(userId)) {
-                    messagingTemplate.convertAndSendToUser(userRelationship.getRelatedUserId().toString(), "/queue/online-status", statusMessage);
-                } else {
-                    messagingTemplate.convertAndSendToUser(userRelationship.getUserId().toString(), "/queue/online-status", statusMessage);
-                }
+            UUID targetUserId = userRelationship.getUserId().equals(userId)
+                    ? userRelationship.getRelatedUserId()
+                    : userRelationship.getUserId();
+
+            messagingTemplate.convertAndSendToUser(
+                    targetUserId.toString(),
+                    "/queue/online-status",
+                    message
+            );
         });
     }
 }

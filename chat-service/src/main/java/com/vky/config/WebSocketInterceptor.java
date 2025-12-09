@@ -127,7 +127,7 @@ public class WebSocketInterceptor implements ChannelInterceptor {
 
         redisTemplate.expire(redisKey, 30, TimeUnit.SECONDS);
 
-        accessor.setUser(userId::toString);
+        accessor.setUser(() -> userId);
 
         return originalMessage;
     }
@@ -154,7 +154,7 @@ public class WebSocketInterceptor implements ChannelInterceptor {
             throw new IllegalStateException("This session is no longer active");
         }
 
-        redisTemplate.expire(redisKey, 30, TimeUnit.SECONDS);
+        redisTemplate.expire(redisKey, 300, TimeUnit.SECONDS);
     }
 
     private void handleDisconnect(StompHeaderAccessor accessor) {
@@ -162,7 +162,7 @@ public class WebSocketInterceptor implements ChannelInterceptor {
 
         String userId = accessor.getUser().getName();
         String sessionId = accessor.getSessionId();
-        String activeSession = (String) redisTemplate.opsForHash().get("user:" + userId, "sessionId");
+        String activeSession = (String) redisTemplate.opsForHash().get("chat-user:" + userId, "sessionId");
 
         if (sessionId.equals(activeSession)) {
             redisTemplate.opsForHash().delete("chat-user:" + userId, "sessionId");

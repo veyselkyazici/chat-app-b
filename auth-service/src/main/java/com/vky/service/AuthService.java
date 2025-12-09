@@ -1,7 +1,9 @@
 package com.vky.service;
 
+import com.auth0.jwt.JWT;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.exceptions.TokenExpiredException;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.vky.util.JwtTokenManager;
 import com.vky.dto.request.*;
 import com.vky.dto.response.*;
@@ -79,32 +81,35 @@ public class AuthService {
 
     public LoginResponseDTO refreshAuthenticationToken(String refreshToken) {
         try {
-            // 1. Refresh token'ı doğrula ve email'i çıkar (expiry otomatik kontrol edilir)
-            UUID authId = jwtTokenManager.extractAuthId(refreshToken);
-            String email = jwtTokenManager.extractUsernameSecurely(refreshToken);
+            DecodedJWT decoded = JWT.decode(refreshToken);
+            UUID authId = UUID.fromString(decoded.getClaim("id").asString());
 
-            // 2. Redis'teki refresh token ile karşılaştır
-            String storedRefreshToken = (String) redisTemplate.opsForValue().get("refreshToken:" + authId);
-            if (storedRefreshToken == null || !storedRefreshToken.equals(refreshToken)) {
+            String redisKey = "refreshToken:" + authId;
+            String storedRefresh = (String) redisTemplate.opsForValue().get(redisKey);
+
+            if (storedRefresh == null || !storedRefresh.equals(refreshToken)) {
                 throw new AuthManagerException(ErrorType.INVALID_TOKEN);
             }
 
-            // 3. Yeni token'lar oluştur (expiry kontrolü yukarıda yapıldı)
+            jwtTokenManager.validateAndGet(refreshToken);
+
+            String email = decoded.getSubject();
+
             Auth authUser = authRepository.findByEmailIgnoreCase(email)
                     .orElseThrow(() -> new AuthManagerException(ErrorType.USER_NOT_FOUND));
-
 
             String newAccessToken = jwtTokenManager.generateToken(authUser.getEmail(), authUser.getId());
             String newRefreshToken = jwtTokenManager.generateRefreshToken(authUser.getEmail(), authUser.getId());
 
-            // Eski refresh token'ı sil, yenisini kaydet
-            redisTemplate.delete("refreshToken:" + authId);
+            redisTemplate.delete(redisKey);
+
             redisTemplate.opsForValue().set(
-                    "refreshToken:" + authId,
+                    redisKey,
                     newRefreshToken,
                     jwtTokenManager.getRefreshExpiration(),
                     TimeUnit.MILLISECONDS
             );
+
 
             return LoginResponseDTO.builder()
                     .accessToken(newAccessToken)

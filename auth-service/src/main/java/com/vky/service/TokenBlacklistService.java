@@ -2,6 +2,7 @@ package com.vky.service;
 
 import com.vky.util.JwtTokenManager;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -22,8 +23,10 @@ public class TokenBlacklistService {
 
         redisTemplate.delete("refreshToken:" + authId);
 
+        String hash = DigestUtils.sha256Hex(accessToken);
+
         redisTemplate.opsForValue().set(
-                "blacklist:" + accessToken,
+                "blacklist:" + hash,
                 "true",
                 ttlSeconds,
                 TimeUnit.SECONDS

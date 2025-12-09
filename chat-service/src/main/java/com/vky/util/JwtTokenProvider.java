@@ -3,6 +3,7 @@ package com.vky.util;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -14,18 +15,32 @@ import java.util.function.Function;
 public class JwtTokenProvider {
     @Value("${application.security.jwt.secret-key}")
     private String secretKey;
+    @Value("${application.security.jwt.issuer}")
+    private String issuer;
 
-    public <T> T extractClaim(String token, Function<DecodedJWT, T> claimsResolver) {
-        DecodedJWT decodedJWT = JWT.decode(token);
-        return claimsResolver.apply(decodedJWT);
+    private Algorithm algorithm() {
+        return Algorithm.HMAC256(secretKey);
+    }
+
+    private JWTVerifier verifier() {
+        return JWT.require(algorithm())
+                .withIssuer(issuer)
+                .build();
+    }
+
+    public DecodedJWT validateAndGet(String token) throws JWTVerificationException {
+        return verifier().verify(token);
+    }
+
+
+    public <T> T extractClaim(String token, Function<DecodedJWT, T> resolver) {
+        DecodedJWT decoded = validateAndGet(token);
+        return resolver.apply(decoded);
     }
 
     public boolean isValidToken(String token) {
         try {
-            Algorithm signKey = Algorithm.HMAC256(secretKey);
-            JWTVerifier verifier = JWT.require(signKey)
-                    .build();
-            verifier.verify(token);
+            validateAndGet(token);
             return true;
         } catch (Exception e) {
             return false;
@@ -33,6 +48,7 @@ public class JwtTokenProvider {
     }
 
     public UUID extractAuthId(String token) {
-        return UUID.fromString(extractClaim(token, decodedJWT -> decodedJWT.getClaim("id").asString()));
+        return extractClaim(token, jwt ->
+                UUID.fromString(jwt.getClaim("id").asString()));
     }
 }

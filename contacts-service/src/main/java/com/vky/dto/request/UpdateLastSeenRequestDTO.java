@@ -1,16 +1,14 @@
 package com.vky.dto.request;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
+import java.time.Instant;
 import java.util.UUID;
 
-@AllArgsConstructor
-@NoArgsConstructor
 @Data
-@Builder
-public class UserLastSeenRequestDTO {
+@AllArgsConstructor
+public class UpdateLastSeenRequestDTO {
     private UUID userId;
+    private Instant lastSeen;
 }

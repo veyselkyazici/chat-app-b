@@ -66,6 +66,7 @@ services:
       expiration: ${JWT_EXPIRATION:120000} # 1 hour for dev
       refresh-token:
         expiration: ${JWT_REFRESH_EXPIRATION:604800000} # 7 days
+      issuer: ${JWT_ISSUER:issuer}
 
 # Development logging
 logging:

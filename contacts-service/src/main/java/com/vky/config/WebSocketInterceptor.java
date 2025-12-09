@@ -1,7 +1,10 @@
 package com.vky.config;
 
-import com.vky.exception.ErrorType;
-import com.vky.service.ContactsWebSocketService;
+import com.auth0.jwt.exceptions.JWTVerificationException;
+import com.auth0.jwt.exceptions.TokenExpiredException;
+import com.auth0.jwt.interfaces.DecodedJWT;
+import com.vky.dto.request.UpdateLastSeenRequestDTO;
+import com.vky.manager.IUserManager;
 import com.vky.service.UserRelationshipService;
 import com.vky.utility.JwtTokenProvider;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -26,33 +29,46 @@ public class WebSocketInterceptor implements ChannelInterceptor {
     private final JwtTokenProvider jwtTokenProvider;
     private final RedisTemplate<String, Object> redisTemplate;
     private final UserRelationshipService userRelationshipService;
+    private final IUserManager userManager;
 
-    WebSocketInterceptor(JwtTokenProvider jwtTokenProvider, RedisTemplate<String, Object> redisTemplate, UserRelationshipService userRelationshipService) {
+    private static final String REDIS_KEY_PREFIX = "contacts-user:";
+
+    public WebSocketInterceptor(JwtTokenProvider jwtTokenProvider, RedisTemplate<String, Object> redisTemplate, UserRelationshipService userRelationshipService, IUserManager userManager) {
         this.jwtTokenProvider = jwtTokenProvider;
         this.redisTemplate = redisTemplate;
         this.userRelationshipService = userRelationshipService;
+        this.userManager = userManager;
     }
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
 
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+
         if (accessor == null || accessor.getCommand() == null) {
             return message;
         }
 
         try {
-            switch (accessor.getCommand()) {
-                case CONNECT -> handleConnect(accessor, message);
-                case DISCONNECT -> handleDisconnect(accessor);
-                case SUBSCRIBE, SEND -> validateActiveSession(accessor);
-            }
-        } catch (Exception e) {
-            cleanupOnError(accessor);
-            throw e;
-        }
+            StompCommand command = accessor.getCommand();
 
-        return message;
+            return switch (command) {
+                case CONNECT -> handleConnect(accessor, message);
+                case DISCONNECT -> {
+                    handleDisconnect(accessor);
+                    yield message;
+                }
+                case SUBSCRIBE, SEND -> handleSubscribeOrSend(accessor, message);
+                default -> message;
+            };
+
+        } catch (TokenExpiredException e) {
+            return buildErrorFrame("EXPIRED_TOKEN", "Token expired", accessor);
+        } catch (JWTVerificationException e) {
+            return buildErrorFrame("INVALID_TOKEN", "Invalid token", accessor);
+        } catch (Exception e) {
+            return buildErrorFrame("INTERNAL_ERROR", "Unexpected error", accessor);
+        }
     }
 
     private Message<?> handleConnect(StompHeaderAccessor accessor, Message<?> originalMessage) {
@@ -60,73 +76,66 @@ public class WebSocketInterceptor implements ChannelInterceptor {
         String authHeader = accessor.getFirstNativeHeader("Authorization");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return buildErrorFrame(
-                    String.valueOf(ErrorType.UNAUTHORIZED_ACCESS.getCode()),
-                    "Invalid JWT token",
-                    accessor
-            );
+            return buildErrorFrame("401", "Missing or invalid Authorization header", accessor);
         }
 
         String token = authHeader.substring(7);
-        if (!jwtTokenProvider.isValidToken(token)) {
-            return buildErrorFrame(
-                    "EXPIRED_TOKEN",
-                    "JWT token expired or invalid",
-                    accessor
-            );
+
+        DecodedJWT verifiedToken = jwtTokenProvider.validateAndGet(token);
+        String userId = verifiedToken.getClaim("id").asString();
+
+        if (userId == null) {
+            return buildErrorFrame("INVALID_TOKEN", "Missing claim 'id'", accessor);
         }
 
-        String userId = jwtTokenProvider.extractAuthId(token).toString();
-        UUID userUuid = UUID.fromString(userId);
         String sessionId = accessor.getSessionId();
-        String redisKey = "contacts-user:" + userId;
+        String redisKey = REDIS_KEY_PREFIX + userId;
 
-        Object oldSessionId = redisTemplate.opsForHash().get(redisKey, "sessionId");
+        Object oldSession = redisTemplate.opsForHash().get(redisKey, "sessionId");
 
-        if (oldSessionId != null && !oldSessionId.equals(sessionId)) {
+        if (oldSession != null && !oldSession.equals(sessionId)) {
             userRelationshipService.disconnectMessage(userId);
         }
 
-        // REDIS UPDATE
         redisTemplate.opsForHash().put(redisKey, "sessionId", sessionId);
         redisTemplate.opsForHash().put(redisKey, "status", "online");
-        redisTemplate.opsForHash().put(redisKey, "lastSeen", Instant.now().toString());
-        redisTemplate.expire(redisKey, 30, TimeUnit.SECONDS);
+        redisTemplate.expire(redisKey, 300, TimeUnit.SECONDS);
 
-        userRelationshipService.userStatusMessage(userUuid, "online");
+        userRelationshipService.userStatusMessage(UUID.fromString(userId), "online");
 
         accessor.setUser(() -> userId);
 
         return originalMessage;
     }
 
-    private void validateActiveSession(StompHeaderAccessor accessor) {
+
+    private Message<?> handleSubscribeOrSend(StompHeaderAccessor accessor, Message<?> originalMessage) {
 
         if (accessor.getUser() == null) {
-            throw new IllegalStateException("No active session");
+            return null;
         }
 
         String userId = accessor.getUser().getName();
         String sessionId = accessor.getSessionId();
-        String redisKey = "contacts-user:" + userId;
+        String redisKey = REDIS_KEY_PREFIX + userId;
 
         String activeSession = (String) redisTemplate.opsForHash().get(redisKey, "sessionId");
 
         if (activeSession == null) {
-
             redisTemplate.opsForHash().put(redisKey, "sessionId", sessionId);
             redisTemplate.opsForHash().put(redisKey, "status", "online");
             redisTemplate.opsForHash().put(redisKey, "lastSeen", Instant.now().toString());
             redisTemplate.expire(redisKey, 30, TimeUnit.SECONDS);
-
-            return;
+            return originalMessage;
         }
 
         if (!sessionId.equals(activeSession)) {
-            throw new IllegalStateException("Session is no longer active");
+            return buildErrorFrame("INVALID_SESSION", "Session is no longer active", accessor);
         }
 
         redisTemplate.expire(redisKey, 30, TimeUnit.SECONDS);
+
+        return originalMessage;
     }
 
 
@@ -136,26 +145,26 @@ public class WebSocketInterceptor implements ChannelInterceptor {
 
         String userId = accessor.getUser().getName();
         String sessionId = accessor.getSessionId();
-        String redisKey = "contacts-user:" + userId;
+        String redisKey = REDIS_KEY_PREFIX + userId;
 
         String activeSession = (String) redisTemplate.opsForHash().get(redisKey, "sessionId");
 
         if (sessionId.equals(activeSession)) {
+            Instant now = Instant.now();
+
             redisTemplate.opsForHash().put(redisKey, "status", "offline");
-            redisTemplate.opsForHash().put(redisKey, "lastSeen", Instant.now().toString());
+            redisTemplate.opsForHash().put(redisKey, "lastSeen", now.toString());
             redisTemplate.opsForHash().delete(redisKey, "sessionId");
+
+            userManager.updateLastSeen(new UpdateLastSeenRequestDTO(UUID.fromString(userId),Instant.now()));
+
+            userRelationshipService.userStatusMessage(UUID.fromString(userId), "offline");
         }
-    }
-    private void cleanupOnError(StompHeaderAccessor accessor) {
-
-        if (accessor.getUser() == null) return;
-
-        String userId = accessor.getUser().getName();
-        redisTemplate.delete("contacts-user:" + userId);
     }
 
     private Message<byte[]> buildErrorFrame(String code, String body, StompHeaderAccessor originalAccessor) {
         StompHeaderAccessor errorAccessor = StompHeaderAccessor.create(StompCommand.ERROR);
+
         errorAccessor.setSessionId(originalAccessor.getSessionId());
         errorAccessor.setMessage(code);
 

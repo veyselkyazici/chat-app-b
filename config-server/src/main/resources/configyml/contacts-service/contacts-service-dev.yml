@@ -72,9 +72,10 @@ application:
   security:
     jwt:
       secret-key: ${JWT_SECRET_KEY:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
-      expiration: ${JWT_EXPIRATION:3600000}      # 1 saat
+      expiration: ${JWT_EXPIRATION:120000}      # 1 saat
       refresh-token:
         expiration: ${JWT_REFRESH_EXPIRATION:86400000} # 1 gün
+      issuer: ${JWT_ISSUER:issuer}
 
 # Development logging
 logging:

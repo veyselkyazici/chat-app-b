@@ -23,6 +23,7 @@ public class ContactsWebSocketController {
 
     @MessageMapping("/user-status")
     public void onlineStatus(Principal principal, @Payload UserStatusUpdateDTO dto) {
+
         UUID userId = UUID.fromString(principal.getName());
         userRelationshipService.userStatusMessage(userId, dto.getStatus());
     }

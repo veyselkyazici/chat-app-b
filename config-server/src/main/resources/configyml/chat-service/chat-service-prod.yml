@@ -85,6 +85,7 @@ application:
       expiration: ${JWT_EXPIRATION}
       refresh-token:
         expiration: ${JWT_REFRESH_EXPIRATION}
+      issuer: ${JWT_ISSUER}
 
 # Production logging
 logging:

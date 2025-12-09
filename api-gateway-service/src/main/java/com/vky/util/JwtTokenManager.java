@@ -7,13 +7,7 @@ import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-
-import java.util.Date;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
 @Service
 public class JwtTokenManager {
@@ -22,23 +16,22 @@ public class JwtTokenManager {
     @Getter
     @Value("${application.security.jwt.refresh-token.expiration}")
     private long refreshExpiration;
+    @Value("${application.security.jwt.issuer}")
+    private String issuer;
+
+    private Algorithm algorithm() {
+        return Algorithm.HMAC256(secretKey);
+    }
+
+    private JWTVerifier verifier() {
+        return JWT.require(algorithm())
+                .withIssuer(issuer)
+                .build();
+    }
 
 
-    public <T> T extractClaim(String token, Function<DecodedJWT, T> claimsResolver) {
-        DecodedJWT decodedJWT = JWT.decode(token);
-        return claimsResolver.apply(decodedJWT);
+    public DecodedJWT validateAndGet(String token) throws JWTVerificationException {
+        return verifier().verify(token);
     }
-    public boolean isValidToken(String token) {
-        try {
-            Algorithm signKey = Algorithm.HMAC256(secretKey);
-            JWTVerifier verifier = JWT.require(signKey).build();
-            verifier.verify(token);
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-    public UUID extractAuthId(String token) {
-        return UUID.fromString(extractClaim(token, decodedJWT -> decodedJWT.getClaim("id").asString()));
-    }
+
 }
