@@ -1,35 +1,8 @@
 package com.vky;
 
-import com.vky.repository.IChatMessageRepository;
-import com.vky.repository.IChatRoomRepository;
-import com.vky.repository.IUserChatSettingsRepository;
-import com.vky.repository.entity.ChatMessage;
-import com.vky.repository.entity.ChatRoom;
-import com.vky.repository.entity.UserChatSettings;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.openfeign.EnableFeignClients;
-import org.springframework.context.annotation.Bean;
-
-import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.GCMParameterSpec;
-import javax.crypto.spec.OAEPParameterSpec;
-import javax.crypto.spec.PSource;
-import java.nio.charset.StandardCharsets;
-import java.security.KeyFactory;
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.security.SecureRandom;
-import java.security.spec.MGF1ParameterSpec;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
-import java.util.concurrent.ThreadLocalRandom;
 
 @SpringBootApplication
 @EnableFeignClients
@@ -37,6 +10,7 @@ public class ChatServiceApplication {
     public static void main(String[] args) {
         SpringApplication.run(ChatServiceApplication.class, args);
     }
+
 
 //    @Bean
 //    public CommandLineRunner commandLineRunner(IChatRoomRepository chatRoomRepository, IChatMessageRepository chatMessageRepository, IUserChatSettingsRepository userChatSettingsRepository) throws Exception {
