@@ -18,6 +18,7 @@ public class RabbitMQConfig {
     public static final String WS_REL_SYNC_QUEUE    = "ws.relationship.sync.queue";
     public static final String WS_REL_SYNC_ROUTING  = "ws.relationship.sync";
 
+
     @Bean
     public TopicExchange wsDeliveryExchange() {
         return new TopicExchange(WS_DELIVERY_EXCHANGE, true, false);
