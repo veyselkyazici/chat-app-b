@@ -19,7 +19,7 @@ jobs:
       - name: Detect changed services
         id: filter
         run: |
-          changed=$(git diff --name-only HEAD^ HEAD | cut -d/ -f1 | sort -u)
+          changed=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | cut -d/ -f1 | sort -u)
           
           services=""
           for dir in $changed; do
