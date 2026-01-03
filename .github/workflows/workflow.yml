@@ -25,7 +25,7 @@ jobs:
           for dir in $changed; do
             dir=$(echo "$dir" | xargs)
             case $dir in
-              eureka-server|config-server|auth-service|user-service|contacts-service|chat-service|mail-service|api-gateway-service)
+              eureka-server|config-server|auth-service|user-service|contacts-service|chat-service|mail-service|api-gateway-service|websocket-service)
                 services="$services $dir"
                 ;;
             esac
@@ -35,7 +35,7 @@ jobs:
           
           # Eğer ana build.gradle değiştiyse -> tüm servisler deploy edilsin
           if echo "$changed" | grep -q "build.gradle"; then
-            services="eureka-server config-server auth-service user-service contacts-service chat-service mail-service api-gateway-service"
+            services="eureka-server config-server auth-service user-service contacts-service chat-service mail-service api-gateway-service websocket-service"
           fi
           
           echo "Changed services: $services"
