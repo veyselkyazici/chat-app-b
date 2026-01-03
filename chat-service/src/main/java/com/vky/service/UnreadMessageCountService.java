@@ -1,5 +1,6 @@
 package com.vky.service;
 
+import com.vky.dto.request.UnreadMessageCountDTO;
 import com.vky.rabbitmq.RabbitMQProducer;
 import com.vky.repository.entity.UserChatSettings;
 import lombok.RequiredArgsConstructor;
@@ -15,58 +16,72 @@ public class UnreadMessageCountService {
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final UserChatSettingsService userChatSettingsService;
-    private final RabbitMQProducer rabbitMQProducer;
-    private final ChatMessageService chatMessageService;
+
     private static final Duration REDIS_TTL = Duration.ofHours(24);
 
-    public int incrementUnreadCount(String chatRoomId, String recipientId, String senderId) {
-        String redisKey = generateUnreadKey(chatRoomId, recipientId);
+    public int incrementUnreadCount(UnreadMessageCountDTO dto) {
 
-        Integer currentCount = (Integer) redisTemplate.opsForValue().get(redisKey);
-        if (currentCount == null) {
-            currentCount = setUnreadCountFromMongo(chatRoomId, recipientId);
+        String key = generateUnreadKey(dto.getChatRoomId(), dto.getRecipientId());
+
+        Integer current = (Integer) redisTemplate.opsForValue().get(key);
+        if (current == null) {
+            current = loadUnreadFromMongo(dto.getChatRoomId(), dto.getRecipientId());
         }
-        redisTemplate.opsForValue().increment(redisKey, 1);
 
-        currentCount = getUnreadCount(chatRoomId, recipientId);
+        // Redis'te arttır
+        int updated = redisTemplate.opsForValue().increment(key, 1).intValue();
 
-        rabbitMQProducer.updateUnreadCountToMongo(chatRoomId, recipientId, senderId, currentCount);
-        return currentCount;
+        // Mongo'da unread güncelle (senkron, basit çözüm)
+        userChatSettingsService.setUnreadCount(
+                dto.getChatRoomId(),
+                dto.getRecipientId(),
+                updated
+        );
+
+        return updated;
     }
 
     public int resetUnreadCount(String chatRoomId, String recipientId) {
-        String redisKey = generateUnreadKey(chatRoomId, recipientId);
 
-        Integer currentCount = (Integer) redisTemplate.opsForValue().get(redisKey);
-        if (currentCount == null) {
+        String key = generateUnreadKey(chatRoomId, recipientId);
 
-            currentCount = setUnreadCountFromMongo(chatRoomId, recipientId);
+        Integer unread = (Integer) redisTemplate.opsForValue().get(key);
+        if (unread == null) {
+            unread = loadUnreadFromMongo(chatRoomId, recipientId);
         }
-        userChatSettingsService.resetUnreadCount(chatRoomId, recipientId,0);
-        redisTemplate.opsForValue().set(redisKey, 0, REDIS_TTL);
 
-        return currentCount;
+        // Redis sıfırla (TTL'ı da yenile)
+        redisTemplate.opsForValue().set(key, 0, REDIS_TTL);
+
+        // Mongo sıfırla
+        userChatSettingsService.resetUnread(chatRoomId, recipientId);
+
+        return unread;
     }
 
-    public Integer getUnreadCount(String chatRoomId, String recipientId) {
-        String redisKey = generateUnreadKey(chatRoomId, recipientId);
-        Object value = redisTemplate.opsForValue().get(redisKey);
+    private int loadUnreadFromMongo(String chatRoomId, String userId) {
 
-        if (value == null) {
-            return setUnreadCountFromMongo(chatRoomId, recipientId);
-        }
-        return (Integer) value;
+        Optional<UserChatSettings> settings =
+                userChatSettingsService.findUserChatSettingsByChatRoomIdAndUserId(chatRoomId, userId);
+
+        int unread = settings.map(UserChatSettings::getUnreadMessageCount).orElse(0);
+
+        String redisKey = generateUnreadKey(chatRoomId, userId);
+        redisTemplate.opsForValue().set(redisKey, unread, REDIS_TTL);
+
+        return unread;
     }
 
-    private int setUnreadCountFromMongo(String chatRoomId, String recipientId) {
-        String redisKey = generateUnreadKey(chatRoomId, recipientId);
+    public int getUnreadCount(String chatRoomId, String userId) {
+        String key = generateUnreadKey(chatRoomId, userId);
 
-        Optional<UserChatSettings> optionalUserChatSettings =
-                userChatSettingsService.findUserChatSettingsByChatRoomIdAndUserId(chatRoomId, recipientId);
-        int unreadCount = optionalUserChatSettings.map(UserChatSettings::getUnreadMessageCount).orElse(0);
+        Integer unread = (Integer) redisTemplate.opsForValue().get(key);
 
-        redisTemplate.opsForValue().set(redisKey, unreadCount, REDIS_TTL);
-        return unreadCount;
+        if (unread == null) {
+            unread = loadUnreadFromMongo(chatRoomId, userId);
+        }
+
+        return unread;
     }
 
     public String generateUnreadKey(String chatRoomId, String recipientId) {

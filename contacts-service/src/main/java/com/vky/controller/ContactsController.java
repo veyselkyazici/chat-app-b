@@ -61,13 +61,4 @@ public class ContactsController {
         contactsService.deleteContact(id,tokenUserId);
         return ResponseEntity.ok().build();
     }
-
-    @MessageMapping("/updated-privacy-send-message")
-    public void typing(@Payload UpdatePrivacySettingsRequestDTO updatePrivacySettingsRequestDTO) {
-        contactsService.sendUpdatedPrivacySettings(updatePrivacySettingsRequestDTO);
-    }
-    @MessageMapping("/updated-user-profile-send-message")
-    public void updatedUserProfileSendMessage(@Payload UpdatedProfilePhotoRequestDTO dto) {
-        contactsService.sendUserProfile(dto);
-    }
 }

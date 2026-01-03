@@ -20,7 +20,7 @@ public interface IUserManager {
     @PostMapping("/get-users")
     List<ContactResponseDTO> getUsers(List<UUID> ids);
     @PostMapping("/get-user-by-id")
-    UserProfileResponseDTO getFeignUserById(@RequestBody UUID userId);
+    UserProfileResponseDTO getUserById(@RequestBody UUID userId);
 
     @GetMapping("/get-user-last-seen")
     UserLastSeenResponseDTO getUserLastSeen(@RequestParam("userId") UUID userId);

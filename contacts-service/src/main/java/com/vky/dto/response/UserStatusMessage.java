@@ -13,7 +13,7 @@ import java.time.Instant;
 @NoArgsConstructor
 public class UserStatusMessage {
     private String userId;
-    private String friendId;
+    private String targetUserId;
     private String status;
     private Instant lastSeen;
 

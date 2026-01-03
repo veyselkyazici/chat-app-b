@@ -8,3 +8,5 @@ include 'eureka-server'
 include 'api-gateway-service'
 include 'contacts-service'
 
+
+include 'websocket-service'

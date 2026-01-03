@@ -1,0 +1,77 @@
+# config-server/src/main/resources/config/websocket-service-dev.yml
+server:
+  port: ${SERVER_PORT:9050}
+
+spring:
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:veysel}
+    password: ${RABBITMQ_PASSWORD:123}
+
+  cloud:
+    openfeign:
+      clients:
+        auth-service:
+          url: ${AUTH_SERVICE_URL:http://localhost:9000}
+        user-service:
+          url: ${USER_SERVICE_URL:http://localhost:9010}
+        mail-service:
+          url: ${MAIL_SERVICE_URL:http://localhost:9020}
+        chat-service:
+          url: ${CHAT_SERVICE_URL:http://localhost:9040}
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  #      password: ${REDIS_PASSWORD:}
+  #      timeout: ${REDIS_TIMEOUT:2000ms}
+
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka/}
+    registryFetchIntervalSeconds: 30
+    connectTimeoutSeconds: 5
+    retryable: true
+  instance:
+    instance-id: ${spring.application.name}:${server.port}
+    leaseRenewalIntervalInSeconds: 10
+    leaseExpirationDurationInSeconds: 30
+
+
+application:
+  security:
+    jwt:
+      secret-key: ${JWT_SECRET_KEY:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+      expiration: ${JWT_EXPIRATION:120000}
+      refresh-token:
+        expiration: ${JWT_REFRESH_EXPIRATION:86400000}
+      issuer: ${JWT_ISSUER:issuer}
+
+# Development logging
+logging:
+  level:
+    root: INFO
+    com.vky: DEBUG
+    com.vky.controller: TRACE
+    com.vky.service: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.boot.web.embedded.tomcat: INFO
+    org.springframework.cloud.openfeign: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%clr(%d{HH:mm:ss.SSS}){faint} %clr(%-5level) %clr([%thread]){magenta} %clr(%logger{36}){cyan} - %msg%n"
+
+# Development actuator endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always

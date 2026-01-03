@@ -21,5 +21,4 @@ public class PrivacySettingsResponseDTO {
     // ToDo
 //    private boolean readReceipts = true;
     private boolean readReceipts;
-    private boolean isInContactList;
 }

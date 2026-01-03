@@ -1,8 +1,38 @@
 package com.vky;
 
+import com.vky.repository.IChatMessageRepository;
+import com.vky.repository.IChatRoomRepository;
+import com.vky.repository.IUserChatSettingsRepository;
+import com.vky.repository.entity.ChatMessage;
+import com.vky.repository.entity.ChatRoom;
+import com.vky.repository.entity.UserChatSettings;
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.openfeign.EnableFeignClients;
+import org.springframework.context.annotation.Bean;
+
+import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.OAEPParameterSpec;
+import javax.crypto.spec.PSource;
+import java.nio.charset.StandardCharsets;
+import java.security.KeyFactory;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.SecureRandom;
+import java.security.spec.MGF1ParameterSpec;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 @SpringBootApplication
 @EnableFeignClients
@@ -16,7 +46,7 @@ public class ChatServiceApplication {
 //    public CommandLineRunner commandLineRunner(IChatRoomRepository chatRoomRepository, IChatMessageRepository chatMessageRepository, IUserChatSettingsRepository userChatSettingsRepository) throws Exception {
 //
 //
-//        PublicKey recipientPublicKey = loadPublicKey("MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAjoQyPJZ/ORHKmYPaVukwBF7n31p2P+f2rwaol2kyHnwX8z296kbGscUzn/P+RZf9Sd29A5wFPgUHde6GrAhwejtsoLbPWLCTddQIeWnm4/pzfd1g2pFBf0br0r/5ubwNPgglQB3nWrBO2SeajS3S3x6HDJK8bkkY5PicpheI8UoUSPTcIyV78xHJ3e0iBl3t/kht/CiQbo/kjKjT55fXf0cLJY+n0kSWaePq9fazSmvuR0f+gdm0GLdtNuwWFZ5ZZIXmxB+VKjpYmzymp4z3U1WIzcJX222XtBaP2scrgQ2FvMwFR3Vs5QV98CDcI/o1J8D5unpzwGvbWFnW+V4qZQIDAQAB");
+//        PublicKey recipientPublicKey = loadPublicKey("MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAigVk3wLspWSnp161jt7Wiusf3DORhyEzj5rtHSGDIe2zbvBhr62eD5NXXaopehpV1H2momswr1Zkk5fAyhS7e1YHLPHfMvZkNFoXGSUgeZYW59PD9Ke3e7eN9e53UAt1BLyBdhATcfimbNdShKV7BG3nPE4X1oVrkKF2Ngc1uQuQeSPHcf9vehZdvvWf+gSUKa5Z0czvAJd3SDNqY1hwKMwSGP5Iw06JAXojCEJ6jXSbioLfQjVpvRoM4QGsv6UlnGHuIqFlKrhvI0H9JLIJoX+UMQqmhHqZagUhXZCK2i5BoX34WjhW6XJkaHBaUl5YPJl1zVn/B3T4SZnWbNgbRQIDAQAB");
 //
 //
 //        return args -> {

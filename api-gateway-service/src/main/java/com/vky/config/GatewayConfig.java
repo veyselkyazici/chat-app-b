@@ -57,16 +57,14 @@ public class GatewayConfig {
                 .route("chat-service", r -> r.path("/api/v1/chat/**")
                         .filters(f -> f.filter(rateLimiterFilter).filter(jwtAuthenticationGatewayFilter()))
                         .uri("lb://chat-service"))
-                .route("contacts-service-status", r -> r.path("/api/v1/status/is-online/**")
-                        .filters(f -> f.filter(rateLimiterFilter).filter(jwtAuthenticationGatewayFilter()))
-                        .uri("lb://contacts-service"))
-                .route("chat-service-status", r -> r.path("/api/v1/status/is-typing/**")
-                        .filters(f -> f.filter(rateLimiterFilter).filter(jwtAuthenticationGatewayFilter()))
-                        .uri("lb://chat-service"))
-                .route("chat-service-ws-http", r -> r.path("/ws/chat/**")
-                        .uri("lb:ws://chat-service"))
-                .route("contacts-service-ws-http", r -> r.path("/ws/contacts/**")
-                        .uri("lb:ws://contacts-service"))
+//                .route("contacts-service-status", r -> r.path("/api/v1/status/is-online/**")
+//                        .filters(f -> f.filter(rateLimiterFilter).filter(jwtAuthenticationGatewayFilter()))
+//                        .uri("lb://contacts-service"))
+//                .route("chat-service-status", r -> r.path("/api/v1/status/is-typing/**")
+//                        .filters(f -> f.filter(rateLimiterFilter).filter(jwtAuthenticationGatewayFilter()))
+//                        .uri("lb://chat-service"))
+                .route("websocket-service", r -> r.path("/ws/**")
+                        .uri("lb:ws://websocket-service"))
                 .build();
     }
     @Bean
@@ -119,7 +117,7 @@ public class GatewayConfig {
     public CorsWebFilter corsWebFilter() {
 
         CorsConfiguration corsConfig = new CorsConfiguration();
-        corsConfig.addAllowedOrigin("http://localhost:3000");
+        //corsConfig.addAllowedOrigin("http://localhost:3000");
         corsConfig.addAllowedOrigin("https://vkychatapp.com");
         corsConfig.addAllowedOrigin("https://www.vkychatapp.com");
         corsConfig.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS", "PATCH"));

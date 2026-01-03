@@ -1,21 +1,14 @@
 package com.vky.controller;
 
 import com.vky.dto.request.CreateChatRoom;
-import com.vky.dto.request.MessageRequestDTO;
-import com.vky.dto.request.UnreadMessageCountDTO;
 import com.vky.dto.response.*;
 import com.vky.service.ChatRoomService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.Principal;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -31,17 +24,6 @@ public class ChatController {
         return ResponseEntity.ok(new ApiResponse<>(true,"success",this.chatRoomService.findByParticipantIds(tokenUserId, createChatRoom.getFriendId())));
     }
 
-    @MessageMapping("/send-message")
-    public void handleMessage(@Payload MessageRequestDTO messageRequestDTO, Principal principal) {
-        messageRequestDTO.setSenderId(principal.getName());
-        chatRoomService.processMessage(messageRequestDTO);
-    }
-
-    @MessageMapping("/read-message")
-    public void readMessage(@Payload UnreadMessageCountDTO unreadMessageCountDTO, Principal principal) {
-        unreadMessageCountDTO.setRecipientId(principal.getName());
-        chatRoomService.readMessage(unreadMessageCountDTO);
-    }
 
     @GetMapping("/chat-summaries")
     public CompletableFuture<ResponseEntity<ApiResponse<List<ChatSummaryDTO>>>> getUserChatSummaries(@RequestHeader("X-Id") String tokenUserId) {

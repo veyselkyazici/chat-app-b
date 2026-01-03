@@ -19,5 +19,4 @@ public class PrivacySettingsResponseDTO {
     private VisibilityOption onlineStatusVisibility;
     private VisibilityOption aboutVisibility;
     private boolean readReceipts = true;
-    private boolean isInContactList;
 }

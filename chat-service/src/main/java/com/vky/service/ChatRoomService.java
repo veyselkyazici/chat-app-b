@@ -6,9 +6,11 @@ import com.vky.dto.request.ContactInformationOfExistingChatsRequestDTO;
 import com.vky.dto.request.MessageRequestDTO;
 import com.vky.dto.request.UnreadMessageCountDTO;
 import com.vky.dto.response.*;
+import com.vky.expcetion.ErrorMessage;
 import com.vky.expcetion.ErrorType;
 import com.vky.manager.IContactsManager;
 import com.vky.mapper.IChatMapper;
+import com.vky.rabbitmq.ChatMessageListener;
 import com.vky.rabbitmq.RabbitMQProducer;
 import com.vky.repository.IChatRoomRepository;
 import com.vky.repository.IUserChatSettingsRepository;
@@ -19,7 +21,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -38,9 +39,9 @@ public class ChatRoomService {
     private final UserChatSettingsService userChatSettingsService;
     private final IContactsManager contactsManager;
     private final RabbitMQProducer rabbitMQProducer;
-    private final SimpMessagingTemplate messagingTemplate;
     private final UnreadMessageCountService unreadMessageCountService;
     private final IUserChatSettingsRepository iUserChatSettingsRepository;
+    private final ChatMessageListener chatMessageListener;
 
     public ChatRoom chatRoomSave(String userId, String friendId) {
         List<String> participantIds = new ArrayList<>();
@@ -79,16 +80,25 @@ public class ChatRoomService {
         return settings != null && settings.isBlocked();
     }
     @Async("taskExecutor")
-    public void processMessage(MessageRequestDTO messageRequestDTO) {
-        boolean isSenderBlocked = isUserBlocked(messageRequestDTO.getSenderId(), messageRequestDTO.getChatRoomId());
-        boolean isRecipientBlocked = isUserBlocked(messageRequestDTO.getRecipientId(), messageRequestDTO.getChatRoomId());
+    public void processMessage(MessageRequestDTO dto) {
 
-        if (isSenderBlocked || isRecipientBlocked) {
-            ErrorType errorType = isSenderBlocked ? ErrorType.SENDER_BLOCKED : ErrorType.RECIPIENT_BLOCKED;
-            chatMessageService.sendErrorNotification(messageRequestDTO, errorType);
+        boolean senderBlocked   = isUserBlocked(dto.getSenderId(), dto.getChatRoomId());
+        boolean recipientBlocked = isUserBlocked(dto.getRecipientId(), dto.getChatRoomId());
+
+        if (senderBlocked || recipientBlocked) {
+            ErrorType type = senderBlocked
+                    ? ErrorType.SENDER_BLOCKED
+                    : ErrorType.RECIPIENT_BLOCKED;
+
+            rabbitMQProducer.publishErrorEvent(dto.getSenderId(), new ErrorMessage(
+                    type.getCode(),
+                    type.getMessage(),
+                    null
+            ));
             return;
         }
-        rabbitMQProducer.sendMessage(messageRequestDTO);
+
+        chatMessageListener.onMessage(dto);
     }
 
     @Async("taskExecutor")
@@ -266,9 +276,8 @@ public class ChatRoomService {
 
         userChatSettingsService.updateUserChatSettingsSaveAll(userChatSettingsArr);
 
-        messagingTemplate.convertAndSendToUser(
+        rabbitMQProducer.publishBlockEvent(
                 chatSummaryDTO.getContactsDTO().getUserContactId().toString(),
-                "/queue/block",
                 contactsUserChatSettings
         );
     }
@@ -284,7 +293,10 @@ public class ChatRoomService {
             userChatSettingsArr[0] = userChatSettings;
             userChatSettingsArr[1] = contactsUserChatSettings;
             userChatSettingsService.updateUserChatSettingsSaveAll(userChatSettingsArr);
-            messagingTemplate.convertAndSendToUser(chatSummaryDTO.getContactsDTO().getUserContactId().toString(), "/queue/unblock", contactsUserChatSettings);
+            rabbitMQProducer.publishUnblockEvent(
+                    chatSummaryDTO.getContactsDTO().getUserContactId().toString(),
+                    contactsUserChatSettings
+            );
     }
 
     public void deleteChat(UserChatSettingsDTO userChatSettingsDTO, String userId) {
@@ -296,10 +308,6 @@ public class ChatRoomService {
         userSettings.setDeletedTime(Instant.now());
         userChatSettingsService.updateUserChatSettings(userSettings);
         unreadMessageCountService.deleteUnreadMessageCount(userSettings.getChatRoomId(),userId);
-    }
-
-    public void readMessage(UnreadMessageCountDTO unreadMessageCountDTO) {
-        rabbitMQProducer.readMessage(unreadMessageCountDTO);
     }
 
 }

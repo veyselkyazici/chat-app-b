@@ -1,11 +1,6 @@
 package com.vky.rabbitmq.producer;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.vky.dto.request.CheckContactDTO;
 import com.vky.dto.response.UserProfileResponseDTO;
-import com.vky.rabbitmq.model.CreateUser;
-import com.vky.repository.entity.UserProfile;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
@@ -14,16 +9,12 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class RabbitMQProducer {
     private final RabbitTemplate rabbitTemplate;
-    private final ObjectMapper objectMapper;
 
-    public void checkContactUser(UserProfileResponseDTO userProfileResponseDTO){
-        try {
-            String jsonUser = objectMapper.writeValueAsString(userProfileResponseDTO);
-            rabbitTemplate.convertAndSend("exchange-user",
-                    "key-user", jsonUser);
-        }catch (JsonProcessingException e) {
-            throw new RuntimeException("Could not send CheckContactUser message", e);
-        }
-
+    public void checkContactUser(UserProfileResponseDTO dto) {
+        rabbitTemplate.convertAndSend(
+                "exchange-user",
+                "key-user",
+                dto
+        );
     }
 }

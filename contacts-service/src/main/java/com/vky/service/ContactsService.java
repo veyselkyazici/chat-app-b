@@ -3,10 +3,10 @@ package com.vky.service;
 import com.vky.dto.request.*;
 import com.vky.dto.response.*;
 import com.vky.exception.ContactsServiceException;
-import com.vky.exception.ErrorMessage;
 import com.vky.exception.ErrorType;
 import com.vky.manager.IUserManager;
 import com.vky.mapper.IInvitationMapper;
+import com.vky.rabbitmq.RabbitMQProducer;
 import com.vky.repository.ContactWithRelationshipDTO;
 import com.vky.repository.IContactsRepository;
 import com.vky.repository.entity.Contacts;
@@ -14,7 +14,6 @@ import com.vky.repository.entity.Invitation;
 import com.vky.repository.entity.UserRelationship;
 import com.vky.repository.entity.enums.VisibilityOption;
 import lombok.RequiredArgsConstructor;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,8 +29,8 @@ public class ContactsService {
     private final IContactsRepository contactsRepository;
     private final IUserManager userManager;
     private final InvitationService invitationService;
-    private final SimpMessagingTemplate messagingTemplate;
     private final UserRelationshipService userRelationshipService;
+    private final RabbitMQProducer rabbitMQProducer;
 
     @Transactional
     public void deleteContact(UUID id, String userId) {
@@ -44,21 +43,23 @@ public class ContactsService {
         userRelationshipService.updateUserRelationship(UUID.fromString(userId), contact.getUserContactId(),contact);
     }
 
-    public void sendUpdatedPrivacySettings(UpdatePrivacySettingsRequestDTO updatePrivacySettingsRequestDTO) {
-        userRelationshipService.sendUpdatedPrivacySettings(updatePrivacySettingsRequestDTO);
-    }
-
-    public void sendUserProfile(UpdatedProfilePhotoRequestDTO dto) {
-        userRelationshipService.sendUserProfile(dto);
-    }
-
     public void addContact(ContactRequestDTO dto, String userId) {
-        UserProfileResponseDTO userProfileResponseDTO = userManager.getUserByEmail(dto.getUserContactEmail());
-        if (userProfileResponseDTO == null) {
+
+        UserProfileResponseDTO profile = userManager.getUserByEmail(dto.getUserContactEmail());
+        if (profile == null) {
             handleInvitationProcess(dto, userId);
-        } else {
-            handleExistingContactProcess(dto, userProfileResponseDTO, userId);
+            return;
         }
+
+        if (userId.equals(profile.getId().toString())) {
+            throw new ContactsServiceException(ErrorType.CANNOT_ADD_SELF_AS_CONTACT);
+        }
+
+
+        handleExistingContactProcess(dto, profile, userId);
+
+        userRelationshipService.publishRelationshipSyncForUser(UUID.fromString(userId));
+        userRelationshipService.publishRelationshipSyncForUser(profile.getId());
     }
 
 
@@ -70,7 +71,7 @@ public class ContactsService {
             Invitation invitation = invitationService.addInvitation(contactRequestDTO, userId);
             ContactResponseDTO dto = new ContactResponseDTO();
             dto.setInvitationResponseDTO(new InvitationResponseDTO(invitation.getId(),invitation.isInvited(),invitation.getContactName(),invitation.getInviterUserId(), invitation.getInviteeEmail()));
-            messagingTemplate.convertAndSendToUser(invitation.getInviterUserId().toString(), "/queue/add-invitation", dto);
+            rabbitMQProducer.publishAddInvitation(dto, invitation.getInviterUserId().toString());
         }
     }
 
@@ -106,9 +107,9 @@ public class ContactsService {
         UserRelationship reverseRelationship = handleReverseUserRelationship(userProfileResponseDTO, UUIDuserId);
         UserRelationship relationship = (reverseRelationship == null) ? handleUserRelationship(userProfileResponseDTO, UUIDuserId) : null;
         ContactResponseDTO contactResponseDTO = createContactResponseDTO(contact, relationship, reverseRelationship, userProfileResponseDTO);
-        messagingTemplate.convertAndSendToUser(contact.getUserId().toString(), "/queue/add-contact", contactResponseDTO);
+        rabbitMQProducer.publishContactAdded(contactResponseDTO,contact.getUserId().toString());
         userProfileResponseDTO.setImagee(contactRequestDTO.getImagee());
-        messagingTemplate.convertAndSendToUser(contact.getUserContactId().toString(), "/queue/add-contact-user", contactResponseDTO);
+        rabbitMQProducer.publishContactAddedUser(contactResponseDTO,contact.getUserContactId().toString());
     }
 
     private UserRelationship handleUserRelationship(UserProfileResponseDTO userProfileResponseDTO, UUID UUIDuserId) {
@@ -179,7 +180,7 @@ public class ContactsService {
                 // Privacy logic
                 if (userResponse.getUserProfileResponseDTO().getImagee() != null) {
                     if (userResponse.getUserProfileResponseDTO().getPrivacySettings().getProfilePhotoVisibility() == VisibilityOption.NOBODY ||
-                            (userResponse.getUserProfileResponseDTO().getPrivacySettings().getProfilePhotoVisibility() == VisibilityOption.CONTACTS &&
+                            (userResponse.getUserProfileResponseDTO().getPrivacySettings().getProfilePhotoVisibility() == VisibilityOption.MY_CONTACTS &&
                                     !correspondingContact.getRelatedUserHasAddedUser())) {
                         userResponse.getUserProfileResponseDTO().setImagee(null);
                     }
@@ -301,7 +302,7 @@ public class ContactsService {
         String image = null;
         if(user.getUserProfileResponseDTO().getImagee() != null) {
             if(user.getUserProfileResponseDTO().getPrivacySettings().getProfilePhotoVisibility() == VisibilityOption.NOBODY ||
-                    (user.getUserProfileResponseDTO().getPrivacySettings().getProfilePhotoVisibility() == VisibilityOption.CONTACTS && !contact.getRelatedUserHasAddedUser())) {
+                    (user.getUserProfileResponseDTO().getPrivacySettings().getProfilePhotoVisibility() == VisibilityOption.MY_CONTACTS && !contact.getRelatedUserHasAddedUser())) {
                 image = null;
             } else {
                 image = user.getUserProfileResponseDTO().getImagee();
@@ -314,7 +315,7 @@ public class ContactsService {
         System.out.println("contactInformationOfExistingChatRequestDTO > " + contactInformationOfExistingChatRequestDTO.toString());
         Optional<ContactWithRelationshipDTO> optionalContact = contactsRepository.findContactWithRelationship(contactInformationOfExistingChatRequestDTO.getUserId(), contactInformationOfExistingChatRequestDTO.getUserContactId());
         ContactWithRelationshipDTO contact;
-        UserProfileResponseDTO userProfileResponseDTO = this.userManager.getFeignUserById(contactInformationOfExistingChatRequestDTO.getUserContactId());
+        UserProfileResponseDTO userProfileResponseDTO = this.userManager.getUserById(contactInformationOfExistingChatRequestDTO.getUserContactId());
         System.out.println("userProfileResponseDTO > " + userProfileResponseDTO);
         if (optionalContact.isPresent()) {
             contact = optionalContact.get();
@@ -380,9 +381,9 @@ public class ContactsService {
             contactResponseDTO.setContactsDTO(contactsDTO);
             contactResponseDTO.setUserProfileResponseDTO(userProfile);
             contactResponseDTO.setInvitationResponseDTO(null);
-            messagingTemplate.convertAndSendToUser(contact.getUserId().toString(), "/queue/invited-user-joined", contactResponseDTO);
             invitation.setDeleted(true);
             invitationService.saveInvitation(invitation);
+            rabbitMQProducer.publishInvitedUserJoined(contactResponseDTO,contact.getUserId().toString());
         });
     }
 
@@ -405,5 +406,35 @@ public class ContactsService {
         contacts.setUserContactName(invitation.getContactName());
         contacts.setUserEmail(invitation.getInviterEmail());
         return contactsRepository.save(contacts);
+    }
+
+    public void sendUpdatedUserProfile(UpdatedProfilePhotoRequestDTO dto) {
+
+        UserProfileResponseDTO owner = userManager.getUserById(dto.getUserId());
+
+        List<UserRelationship> rels =
+                userRelationshipService.findByUserIdOrRelatedUserId(dto.getUserId());
+
+        List<UUID> targets =
+                userRelationshipService.filterTargetsForProfileUpdate(dto.getUserId(), rels, owner);
+
+        for (UUID t : targets) {
+            rabbitMQProducer.publishProfile(dto, t);
+        }
+    }
+
+    public void sendUpdatedUserPrivacy(UpdatePrivacySettingsRequestDTO dto) {
+
+        UserProfileResponseDTO owner = userManager.getUserById(dto.getId());
+
+        List<UserRelationship> rels =
+                userRelationshipService.findByUserIdOrRelatedUserId(dto.getId());
+
+        List<UUID> targets =
+                userRelationshipService.filterTargetsForProfileUpdate(dto.getId(), rels, owner);
+
+        for (UUID t : targets) {
+            rabbitMQProducer.publishPrivacy(dto, t);
+        }
     }
 }

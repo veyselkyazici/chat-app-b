@@ -35,6 +35,11 @@ spring:
     port: ${RABBITMQ_PORT}
     username: ${RABBITMQ_USERNAME}
     password: ${RABBITMQ_PASSWORD}
+  listener:
+    simple:
+      concurrency: 5
+      max-concurrency: 20
+      prefetch: 50
 #    connection-timeout: ${RABBITMQ_CONNECTION_TIMEOUT:30000}
 #    requested-heartbeat: ${RABBITMQ_HEARTBEAT:30}
 

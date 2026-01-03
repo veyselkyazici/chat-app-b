@@ -2,14 +2,12 @@ package com.vky.service;
 
 import com.vky.dto.request.ContactRequestDTO;
 import com.vky.dto.request.SendInvitationDTO;
-import com.vky.dto.response.DeleteContactResponseDTO;
 import com.vky.exception.ContactsServiceException;
 import com.vky.exception.ErrorType;
 import com.vky.manager.IMailManager;
 import com.vky.repository.IInvitationRepository;
 import com.vky.repository.entity.Invitation;
 import lombok.RequiredArgsConstructor;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,7 +19,6 @@ import java.util.UUID;
 public class InvitationService {
     private final IInvitationRepository invitationRepository;
     private final IMailManager mailManager;
-    private final SimpMessagingTemplate messagingTemplate;
 
     public boolean isExistsInvitation(UUID uuid, String email) {
         return invitationRepository.existsByInviterUserIdAndInviteeEmailIgnoreCaseAndIsDeletedFalse(uuid, email);
@@ -43,19 +40,15 @@ public class InvitationService {
         invitation.setDeleted(true);
         invitationRepository.save(invitation);
 
-        DeleteContactResponseDTO dto = new DeleteContactResponseDTO(
-                invitation.getId(),
-                invitation.getInviteeEmail(),
-                invitation.getContactName(),
-                invitation.getInviterUserId(),
-                null,invitation.isInvited()
-        );
+//        DeleteContactResponseDTO dto = new DeleteContactResponseDTO(
+//                invitation.getId(),
+//                invitation.getInviteeEmail(),
+//                invitation.getContactName(),
+//                invitation.getInviterUserId(),
+//                null,invitation.isInvited()
+//        );
 
-        messagingTemplate.convertAndSendToUser(
-                invitation.getInviterUserId().toString(),
-                "queue/delete/contact",
-                dto
-        );
+    //    rabbitMQProducer.publish("delete-contact", invitation.getInviterUserId().toString(), dto);
     }
     @Transactional
     public void sendInvitation(SendInvitationDTO sendInvitationDTO, String tokenUserId) {

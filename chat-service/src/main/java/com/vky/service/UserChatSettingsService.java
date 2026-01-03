@@ -71,26 +71,25 @@ public class UserChatSettingsService {
         return userChatSettingsRepository.findByChatRoomIdAndUserId(chatRoomId, userId);
     }
 
-    public void incrementUnreadCount(String chatRoomId, String userId, int unreadCount) {
-        Optional<UserChatSettings> optionalUserChatSettings = findUserChatSettingsByChatRoomIdAndUserId(chatRoomId, userId);
-        if (optionalUserChatSettings.isEmpty()) {
-            throw new RuntimeException("Beklenmedik bir hata olustu");
-        }else {
-            UserChatSettings settings = optionalUserChatSettings.get();
-            settings.setUnreadMessageCount(unreadCount);
-            userChatSettingsRepository.save(settings);
-        }
+    public void setUnreadCount(String chatRoomId, String userId, int unreadCount) {
+
+        UserChatSettings settings = findByUserIdAndChatRoomId(userId, chatRoomId);
+
+        if (settings == null)
+            throw new RuntimeException("UserChatSettings not found");
+
+        settings.setUnreadMessageCount(unreadCount);
+        userChatSettingsRepository.save(settings);
     }
-    public void resetUnreadCount(String chatRoomId, String userId, int unreadCount) {
-        Optional<UserChatSettings> optionalUserChatSettings = findUserChatSettingsByChatRoomIdAndUserId(chatRoomId, userId);
-        if (optionalUserChatSettings.isEmpty()) {
-            throw new RuntimeException("Beklenmedik bir hata olustu");
-        }else {
-            UserChatSettings settings = optionalUserChatSettings.get();
-            int userChatSettingsUnreadCount = settings.getUnreadMessageCount();
-            settings.setUnreadMessageCount(unreadCount);
-            userChatSettingsRepository.save(settings);
-            chatMessageService.setIsSeenUpdateForUnreadMessageCount(chatRoomId,userId,userChatSettingsUnreadCount);
-        }
+
+    public void resetUnread(String chatRoomId, String userId) {
+
+        UserChatSettings settings = findByUserIdAndChatRoomId(userId, chatRoomId);
+
+        if (settings == null)
+            throw new RuntimeException("UserChatSettings not found");
+
+        settings.setUnreadMessageCount(0);
+        userChatSettingsRepository.save(settings);
     }
 }

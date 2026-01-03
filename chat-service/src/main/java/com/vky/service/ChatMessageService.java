@@ -3,8 +3,6 @@ package com.vky.service;
 import com.vky.dto.LastMessageInfo;
 import com.vky.dto.request.MessageRequestDTO;
 import com.vky.dto.response.ChatDTO;
-import com.vky.expcetion.ErrorMessage;
-import com.vky.expcetion.ErrorType;
 import com.vky.mapper.IChatMapper;
 import com.vky.repository.IChatMessageRepository;
 import com.vky.repository.entity.ChatMessage;
@@ -12,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -22,7 +19,6 @@ import java.util.*;
 @RequiredArgsConstructor
 public class ChatMessageService {
     private final IChatMessageRepository chatMessageRepository;
-    private final SimpMessagingTemplate messagingTemplate;
 
     public ChatMessage sendMessage(MessageRequestDTO messageRequestDTO) {
         Instant fullDateTime = Instant.parse(messageRequestDTO.getFullDateTime());
@@ -40,17 +36,6 @@ public class ChatMessageService {
                 .build());
 
     }
-
-    public void sendErrorNotification(MessageRequestDTO messageRequestDTO, ErrorType errorType) {
-        String destination = "/queue/error-message";
-        ErrorMessage errorMessage = new ErrorMessage(errorType.getCode(),errorType.getMessage(),null);
-        messagingTemplate.convertAndSendToUser(messageRequestDTO.getSenderId(), destination, errorMessage);
-    }
-    public List<ChatMessage> getChatMessages(String chatRoomId) {
-        return chatMessageRepository.findByChatRoomIdAndIsDeletedFalse(chatRoomId);
-    }
-
-
 
     public ChatDTO getLast30Messages(String chatRoomId, Pageable pageable, Instant fullDateTime) {
         Instant effectiveDeletedTime = fullDateTime == null ? Instant.EPOCH : fullDateTime;
@@ -107,26 +92,25 @@ public class ChatMessageService {
     public ChatMessage getLastMessageForChatRooms(String chatRoomId) {
         return chatMessageRepository.findLatestMessageByChatRoomId(chatRoomId);
     }
-    public void setIsSeenUpdateForUnreadMessageCount(String chatRoomId, String userId, int unreadMessageCount) {
-        if (unreadMessageCount <= 0) {
-            return;
+
+
+    public List<ChatMessage> setMessagesAsSeen(String chatRoomId, String recipientId, int unreadCount) {
+
+        if (unreadCount <= 0) {
+            return Collections.emptyList();
         }
-        Pageable pageable = PageRequest.of(0, unreadMessageCount, Sort.by(Sort.Direction.DESC, "fullDateTime"));
-        List<ChatMessage> chatMessages = chatMessageRepository.findByChatRoomIdAndRecipientIdOrderByFullDateTimeDesc(chatRoomId, userId,pageable);
+
+        Pageable pageable = PageRequest.of(0, unreadCount, Sort.by(Sort.Direction.DESC, "fullDateTime"));
+
+        List<ChatMessage> chatMessages = chatMessageRepository
+                .findByChatRoomIdAndRecipientIdOrderByFullDateTimeDesc(chatRoomId, recipientId, pageable);
+
         for (ChatMessage chatMessage : chatMessages) {
             chatMessage.setSeen(true);
         }
-        List<ChatMessage> chatMessageList = chatMessageRepository.saveAll(chatMessages);
-        ChatMessage message = chatMessageList.get(0);
-        String senderId = message.getSenderId().equals(userId) ? message.getRecipientId() : message.getSenderId();
-        messagingTemplate.convertAndSendToUser(
-                senderId,
-                "/queue/read-messages",
-                chatMessageList
-        );
+
+        return chatMessageRepository.saveAll(chatMessages);
     }
-
-
 //    public void markUnreadMessagesAsSeen(String chatRoomId, String recipientId, int unreadMessageCount) {
 //        if (unreadMessageCount <= 0) return;
 //

@@ -19,6 +19,7 @@ public enum ErrorType {
     UNAUTHORIZED_ACCESS(3004, "Unauthorized operation", HttpStatus.FORBIDDEN),
     INVALID_USER_ID_FORMAT(3005, "Invalid user ID format", HttpStatus.BAD_REQUEST),
     USER_NOT_FOUD(3006, "Unauthorized operation", HttpStatus.NOT_FOUND),
+    CANNOT_ADD_SELF_AS_CONTACT(3008, "CANNOT_ADD_SELF_AS_CONTACT", HttpStatus.BAD_REQUEST),
     ALREADY_INVITED(3007, "Already invited", HttpStatus.BAD_REQUEST);
 
     private int code;

@@ -1,19 +1,22 @@
 package com.vky.service;
 
+import com.vky.dto.RelationshipSyncEvent;
 import com.vky.dto.request.ContactInformationOfExistingChatsRequestDTO;
-import com.vky.dto.request.UpdatePrivacySettingsRequestDTO;
-import com.vky.dto.request.UpdatedProfilePhotoRequestDTO;
+import com.vky.dto.response.PrivacySettingsResponseDTO;
 import com.vky.dto.response.UserProfileResponseDTO;
-import com.vky.dto.response.UserStatusMessage;
 import com.vky.exception.ContactsServiceException;
 import com.vky.exception.ErrorType;
+import com.vky.rabbitmq.RabbitMQProducer;
 import com.vky.repository.IUserRelationshipRepository;
 import com.vky.repository.entity.Contacts;
 import com.vky.repository.entity.UserRelationship;
+import com.vky.service.privacy.PrivacyEvaluator;
+import com.vky.service.privacy.RelationshipContext;
+import com.vky.service.privacy.RelationshipContextBuilder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,7 +25,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class UserRelationshipService {
     private final IUserRelationshipRepository userRelationshipRepository;
-    private final ContactsWebSocketService contactsWebSocketService;
+    private final RabbitMQProducer rabbitMQProducer;
+    private final PrivacyEvaluator privacyEvaluator;
+    private final RelationshipContextBuilder relationshipContextBuilder;
 
     public void updateUserRelationship(UUID userId, UUID userContactId, Contacts contact) {
         UserRelationship userRelationship = userRelationshipRepository.findRelationshipBetweenUsers(userId, userContactId)
@@ -33,16 +38,6 @@ public class UserRelationshipService {
             userRelationship.setRelatedUserHasAddedUser(false);
         }
         userRelationshipRepository.save(userRelationship);
-    }
-
-    public void sendUpdatedPrivacySettings(UpdatePrivacySettingsRequestDTO updatePrivacySettingsRequestDTO) {
-        List<UserRelationship> userRelationships = userRelationshipRepository.findByUserIdOrRelatedUserId(updatePrivacySettingsRequestDTO.getId());
-        contactsWebSocketService.updatePrivacySettingsMessage(userRelationships,updatePrivacySettingsRequestDTO);
-    }
-
-    public void sendUserProfile(UpdatedProfilePhotoRequestDTO dto) {
-        List<UserRelationship> userRelationships = userRelationshipRepository.findByUserIdOrRelatedUserId(dto.getUserId());
-        contactsWebSocketService.updateProfilePhotoMessage(userRelationships,dto);
     }
 
     public UserRelationship handleUserRelationship(UserProfileResponseDTO userProfileResponseDTO, UUID uuiDuserId) {
@@ -93,14 +88,56 @@ public class UserRelationshipService {
         userRelationshipRepository.save(userRelationship);
         return userRelationship;
     }
+    public List<UserRelationship> findByUserIdOrRelatedUserId(UUID userId) {
+        return userRelationshipRepository.findByUserIdOrRelatedUserId(userId);
+    }
+    public void publishRelationshipSyncForUser(UUID userId) {
 
-    public void userStatusMessage(UUID uuid, String status) {
-         List<UserRelationship> userRelationshipList = userRelationshipRepository.findByUserIdOrRelatedUserId(uuid);
-         contactsWebSocketService.updateStatus(userRelationshipList,uuid, status, 30);
+        List<UserRelationship> relations =
+                userRelationshipRepository.findByUserIdOrRelatedUserId(userId);
 
+        List<String> relatedUserIds = relations.stream()
+                .map(rel -> rel.getUserId().equals(userId)
+                        ? rel.getRelatedUserId().toString()
+                        : rel.getUserId().toString()
+                )
+                .distinct()
+                .toList();
+
+        RelationshipSyncEvent event = RelationshipSyncEvent.builder()
+                .userId(userId.toString())
+                .relatedUserIds(relatedUserIds)
+                .build();
+
+        rabbitMQProducer.publishRelationshipSync(event);
     }
 
-    public void disconnectMessage(String userId) {
-        contactsWebSocketService.disconnectMessage(userId);
+    public List<UUID> filterTargetsForProfileUpdate(
+            UUID ownerId,
+            List<UserRelationship> rels,
+            UserProfileResponseDTO ownerProfile
+    ) {
+        PrivacySettingsResponseDTO settings = ownerProfile.getPrivacySettings();
+
+        List<UUID> targets = new ArrayList<>();
+
+        for (UserRelationship rel : rels) {
+
+            UUID targetId =
+                    rel.getUserId().equals(ownerId)
+                            ? rel.getRelatedUserId()
+                            : rel.getUserId();
+
+            RelationshipContext ctx = relationshipContextBuilder.build(ownerId, targetId);
+
+            boolean allowed = privacyEvaluator.canSeeProfilePhoto(settings, ctx);
+
+            if (allowed) {
+                targets.add(targetId);
+            }
+        }
+
+        return targets;
     }
+
 }
