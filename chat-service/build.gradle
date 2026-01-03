@@ -5,7 +5,6 @@ buildscript {
 }
 
 dependencies {
-
     implementation libs.eurekaClient
     implementation libs.mongoDB
     implementation libs.springCloudConfigClient

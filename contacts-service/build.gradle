@@ -9,10 +9,8 @@ dependencies {
     implementation libs.springBootDataJpa
     implementation libs.springCloudConfigClient
     implementation libs.eurekaClient
-    implementation libs.webSocket
     implementation libs.springBootRabbitMQ
     implementation libs.springBootWeb
-    implementation libs.redis
 }
 
 
