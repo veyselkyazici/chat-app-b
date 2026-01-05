@@ -50,8 +50,15 @@ logging:
   level:
     root: INFO
     com.vky: INFO
+    org.springframework.web: INFO
+    org.hibernate.SQL: WARN
+    org.springframework.data.redis: WARN
+    org.springframework.data.mongodb: WARN
+
     org.springframework.web.socket: DEBUG
+    org.springframework.messaging: DEBUG
     org.springframework.messaging.simp: DEBUG
+    org.springframework.web.socket.messaging: DEBUG
 
 management:
   endpoints:

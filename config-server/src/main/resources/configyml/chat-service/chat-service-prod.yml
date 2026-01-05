@@ -123,5 +123,3 @@ management:
     web:
       exposure:
         include: health,info,prometheus
-    prometheus:
-      enabled: true
