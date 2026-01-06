@@ -3,6 +3,7 @@ package com.vky.service;
 import com.vky.dto.LastMessageInfo;
 import com.vky.dto.request.MessageRequestDTO;
 import com.vky.dto.response.ChatDTO;
+import com.vky.dto.response.MessageDTO;
 import com.vky.mapper.IChatMapper;
 import com.vky.repository.IChatMessageRepository;
 import com.vky.repository.entity.ChatMessage;
@@ -94,7 +95,7 @@ public class ChatMessageService {
     }
 
 
-    public List<ChatMessage> setMessagesAsSeen(String chatRoomId, String recipientId, int unreadCount) {
+    public List<MessageDTO> setMessagesAsSeen(String chatRoomId, String recipientId, int unreadCount) {
 
         if (unreadCount <= 0) {
             return Collections.emptyList();
@@ -108,8 +109,8 @@ public class ChatMessageService {
         for (ChatMessage chatMessage : chatMessages) {
             chatMessage.setSeen(true);
         }
-
-        return chatMessageRepository.saveAll(chatMessages);
+        chatMessageRepository.saveAll(chatMessages);
+        return IChatMapper.INSTANCE.chatMessagesToDTO(chatMessages);
     }
 //    public void markUnreadMessagesAsSeen(String chatRoomId, String recipientId, int unreadMessageCount) {
 //        if (unreadMessageCount <= 0) return;

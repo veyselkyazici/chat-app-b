@@ -3,12 +3,16 @@ package com.vky.rabbitmq;
 import com.vky.config.RabbitMQConfig;
 import com.vky.dto.WsEvent;
 import com.vky.dto.request.UnreadMessageCountDTO;
+import com.vky.dto.response.MessageDTO;
 import com.vky.dto.response.MessageFriendResponseDTO;
 import com.vky.expcetion.ErrorMessage;
+import com.vky.repository.entity.ChatMessage;
 import com.vky.repository.entity.UserChatSettings;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -29,7 +33,7 @@ public class RabbitMQProducer {
 
     public void publishReadConfirmation(UnreadMessageCountDTO dto) {
         WsEvent<UnreadMessageCountDTO> event =
-                WsEvent.read(dto.getRecipientId(), dto);
+                WsEvent.readRecipient(dto.getRecipientId(), dto);
 
         rabbitTemplate.convertAndSend(
                 RabbitMQConfig.WS_DELIVERY_EXCHANGE,
@@ -37,7 +41,16 @@ public class RabbitMQProducer {
                 event
         );
     }
+    public void publishReadMessages(List<MessageDTO> dto, String targetUserId) {
+        WsEvent<List<MessageDTO>> event =
+                WsEvent.readMessages(targetUserId, dto);
 
+        rabbitTemplate.convertAndSend(
+                RabbitMQConfig.WS_DELIVERY_EXCHANGE,
+                RabbitMQConfig.WS_DELIVERY_ROUTING,
+                event
+        );
+    }
     public void publishBlockEvent(String targetUserId, UserChatSettings settings) {
         WsEvent<UserChatSettings> event =
                 WsEvent.block(targetUserId, settings);
@@ -70,5 +83,7 @@ public class RabbitMQProducer {
                 event
         );
     }
+
+
 }
 

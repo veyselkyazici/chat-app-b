@@ -25,11 +25,16 @@ public class WsEvent<T> {
         return new WsEvent<>(targetUserId, "unblock", payload);
     }
 
-    public static <T> WsEvent<T> read(String targetUserId, T payload) {
-        return new WsEvent<>(targetUserId, "read", payload);
+    public static <T> WsEvent<T> readRecipient(String targetUserId, T payload) {
+        return new WsEvent<>(targetUserId, "read-recipient", payload);
     }
 
+    public static <T> WsEvent<T> readMessages(String targetUserId, T payload) {
+        return new WsEvent<>(targetUserId, "read-messages", payload);
+    }
     public static <T> WsEvent<T> error(String targetUserId, T payload) {
         return new WsEvent<>(targetUserId, "error", payload);
     }
+
+
 }

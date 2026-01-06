@@ -34,7 +34,8 @@ public class RabbitMQConsumer {
 
             // CHAT
             case "delivery" -> "/queue/received-message";
-            case "read"     -> "/queue/read-confirmation";
+            case "read-recipient"     -> "/queue/read-confirmation-recipient";
+            case "read-messages" -> "/queue/read-messages";
             case "block"    -> "/queue/block";
             case "unblock"  -> "/queue/unblock";
             case "error"    -> "/queue/error-message";
