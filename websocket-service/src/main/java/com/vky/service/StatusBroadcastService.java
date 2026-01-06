@@ -21,9 +21,6 @@ public class StatusBroadcastService {
 
     @EventListener
     public void onUserStatus(UserStatusEvent event) {
-        System.out.println("EVENT > " + event);
-        System.out.println("EVENT > " + event);
-        System.out.println("EVENT > " + event);
         String userId = event.userId();
 
         redisTemplate.opsForHash()
@@ -47,9 +44,6 @@ public class StatusBroadcastService {
                 .build();
 
         relatedUsers.forEach(target -> {
-            System.out.println("TARGET >>>>>" + target);
-            System.out.println("TARGET >>>>>" + target);
-            System.out.println("TARGET >>>>>" + target);
                 messagingTemplate.convertAndSendToUser(
                         target,
                         "/queue/online-status",
