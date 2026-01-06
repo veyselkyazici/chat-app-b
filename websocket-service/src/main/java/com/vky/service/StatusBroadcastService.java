@@ -21,7 +21,9 @@ public class StatusBroadcastService {
 
     @EventListener
     public void onUserStatus(UserStatusEvent event) {
-
+        System.out.println("EVENT > " + event);
+        System.out.println("EVENT > " + event);
+        System.out.println("EVENT > " + event);
         String userId = event.userId();
 
         redisTemplate.opsForHash()
@@ -44,13 +46,16 @@ public class StatusBroadcastService {
                 .lastSeen(event.lastSeen())
                 .build();
 
-        relatedUsers.forEach(target ->
+        relatedUsers.forEach(target -> {
+            System.out.println("TARGET >>>>>" + target);
+            System.out.println("TARGET >>>>>" + target);
+            System.out.println("TARGET >>>>>" + target);
                 messagingTemplate.convertAndSendToUser(
                         target,
                         "/queue/online-status",
                         msg
-                )
-        );
+                );
+        });
     }
 
     public void sendSnapshotToUser(String requesterId, List<String> relatedUsers) {
