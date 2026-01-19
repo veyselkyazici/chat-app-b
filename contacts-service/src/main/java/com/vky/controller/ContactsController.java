@@ -1,22 +1,16 @@
 package com.vky.controller;
 
-import com.vky.dto.request.*;
+import com.vky.dto.request.ContactInformationOfExistingChatRequestDTO;
+import com.vky.dto.request.ContactInformationOfExistingChatsRequestDTO;
+import com.vky.dto.request.ContactRequestDTO;
 import com.vky.dto.response.ApiResponse;
 import com.vky.dto.response.ContactResponseDTO;
-import com.vky.exception.ContactsServiceException;
-import com.vky.exception.ErrorMessage;
-import com.vky.repository.entity.UserRelationship;
 import com.vky.service.ContactsService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -44,6 +38,13 @@ public class ContactsController {
                         60, TimeUnit.SECONDS
                 );
     }
+
+    @GetMapping("/{userId}/snapshot")
+    public RelationshipSnapshotDTO snapshot(@PathVariable UUID userId) {
+        return contactsService.snapshot(userId);
+    }
+
+    public record RelationshipSnapshotDTO(String userId, List<String> relatedUserIds, List<String> outgoingContactIds) {}
 
     @PostMapping("/get-contact-information-of-existing-chats")
     public CompletableFuture<List<ContactResponseDTO>>  getContactInformationOfExistingChats(@RequestBody ContactInformationOfExistingChatsRequestDTO contactInformationOfExistingChatsRequestDTO) {

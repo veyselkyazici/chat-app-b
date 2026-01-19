@@ -1,8 +1,6 @@
 package com.vky.exception;
 
 import com.vky.dto.response.ApiResponse;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;

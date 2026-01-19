@@ -1,8 +1,8 @@
 package com.vky.manager;
 
 import com.vky.dto.request.UpdateLastSeenRequestDTO;
+import com.vky.dto.request.UpdateSettingsRequestDTO;
 import com.vky.dto.response.ContactResponseDTO;
-import com.vky.dto.response.UserLastSeenResponseDTO;
 import com.vky.dto.response.UserProfileResponseDTO;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
@@ -22,9 +22,9 @@ public interface IUserManager {
     @PostMapping("/get-user-by-id")
     UserProfileResponseDTO getUserById(@RequestBody UUID userId);
 
-    @GetMapping("/get-user-last-seen")
-    UserLastSeenResponseDTO getUserLastSeen(@RequestParam("userId") UUID userId);
-
     @PutMapping("/internal/update-user-last-seen")
     void updateLastSeen(@RequestBody UpdateLastSeenRequestDTO request);
+
+    @PostMapping("/get-user-by-id-with-out-user-key")
+    UpdateSettingsRequestDTO getFeignUserByIdWithOutUserKey(@RequestBody UUID userId);
 }

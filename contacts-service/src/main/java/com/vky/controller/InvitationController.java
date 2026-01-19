@@ -1,10 +1,8 @@
 package com.vky.controller;
 
 import com.vky.dto.request.SendInvitationDTO;
-import com.vky.dto.response.DeleteContactResponseDTO;
 import com.vky.service.InvitationService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

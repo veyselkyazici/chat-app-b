@@ -9,21 +9,21 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
+
 @Service
 @RequiredArgsConstructor
 public class RedisService {
     private final RedisTemplate<String, Object> redisTemplate;
 
     public void saveForgotPassword(ForgotPasswordRequestDTO forgotPasswordRequestDTO, String otp) {
-        String redisKey = "reset_password:" + forgotPasswordRequestDTO.getAuthId();
+        String redisKey = "reset_password:" + forgotPasswordRequestDTO.authId();
 
         Map<String, String> resetData = Map.of(
-                "otp",            otp,
-                "email",          forgotPasswordRequestDTO.getEmail(),
-                "attempts",       "0",
+                "otp", otp,
+                "email", forgotPasswordRequestDTO.email(),
+                "attempts", "0",
                 "attempts_limit", "3",
-                "created_at",     Instant.now().toString()
-        );
+                "created_at", Instant.now().toString());
 
         redisTemplate.opsForHash().putAll(redisKey, resetData);
         redisTemplate.expire(redisKey, Duration.ofMinutes(3));
@@ -36,8 +36,7 @@ public class RedisService {
                 "authId", confirmation.getAuthId() != null ? confirmation.getAuthId().toString() : "",
                 "email", confirmation.getEmail(),
                 "isUsed", String.valueOf(confirmation.isUsed()),
-                "expiresAt", confirmation.getExpiresAt().toString()
-        );
+                "expiresAt", confirmation.getExpiresAt().toString());
 
         redisTemplate.opsForHash().putAll(redisKey, confirmationData);
 

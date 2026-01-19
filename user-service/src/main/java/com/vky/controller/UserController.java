@@ -1,11 +1,12 @@
 package com.vky.controller;
 
-import com.vky.dto.request.*;
+import com.vky.dto.request.PrivacySettingsRequestDTO;
+import com.vky.dto.request.UpdateSettingsRequestDTO;
+import com.vky.dto.request.UpdateUserDTO;
 import com.vky.dto.response.*;
 import com.vky.service.UserProfileService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -25,36 +26,28 @@ public class UserController {
     }
 
     @PostMapping("/get-user-with-user-key-by-auth-id")
-    public ResponseEntity<ApiResponse<UserProfileResponseDTO>> getUserWithUserKeyByAuthId(@RequestHeader("X-Id") String tokenUserId) {
+    public ResponseEntity<ApiResponse<UserProfileResponseDTO>> getUserWithUserKeyByAuthId(
+            @RequestHeader("X-Id") String tokenUserId) {
         UserProfileResponseDTO responseDTO = userProfileService.findWithUserKeyByAuthId(tokenUserId);
-        System.out.println(responseDTO.getUserKey());
+        System.out.println(responseDTO.userKey());
         return ResponseEntity.ok(new ApiResponse<>(true, "success", responseDTO));
     }
 
     @PutMapping("/update-user-name")
-    public ResponseEntity<ApiResponse<UpdateUserDTO>>  updateUserName(@RequestBody @Valid UpdateUserDTO dto,@RequestHeader("X-Id") String tokenUserId)
-    {
-        return ResponseEntity.ok(new ApiResponse<>(true, "success", userProfileService.updateUserName(dto,tokenUserId)));
+    public ResponseEntity<ApiResponse<UpdateUserDTO>> updateUserName(@RequestBody @Valid UpdateUserDTO dto,
+            @RequestHeader("X-Id") String tokenUserId) {
+        return ResponseEntity
+                .ok(new ApiResponse<>(true, "success", userProfileService.updateUserName(dto, tokenUserId)));
 
     }
 
     @PutMapping("/update-user-about")
-    public ResponseEntity<ApiResponse<UpdateUserDTO>>  userAboutUpdate(@RequestBody @Valid UpdateUserDTO dto,@RequestHeader("X-Id") String tokenUserId)
-    {
-        return ResponseEntity.ok(new ApiResponse<>(true, "success", userProfileService.updateUserAbout(dto,tokenUserId)));
+    public ResponseEntity<ApiResponse<UpdateUserDTO>> userAboutUpdate(@RequestBody @Valid UpdateUserDTO dto,
+            @RequestHeader("X-Id") String tokenUserId) {
+        return ResponseEntity
+                .ok(new ApiResponse<>(true, "success", userProfileService.updateUserAbout(dto, tokenUserId)));
     }
 
-    @PutMapping("/internal/update-user-last-seen")
-    public ResponseEntity<Void> updateUserLastSeen(
-            @RequestBody UpdateLastSeenRequestDTO request
-    ) {
-        userProfileService.updateUserLastSeen(request.getUserId(), request.getLastSeen());
-        return ResponseEntity.noContent().build();
-    }
-    @GetMapping("/get-user-last-seen")
-    public UserLastSeenResponseDTO getUserLastSeen(@RequestParam UUID userId) {
-        return this.userProfileService.getUserLastSeen(userId);
-    }
     @PostMapping("/get-user-by-id")
     public UserProfileResponseDTO getFeignUserById(@RequestBody UUID userId) {
         return this.userProfileService.getUserById(userId);
@@ -63,32 +56,57 @@ public class UserController {
     @GetMapping("/get-user-email-by-id")
     public String getUserEmailById(@RequestParam("id") UUID id) {
         UserProfileResponseDTO userProfileResponseDTO = this.userProfileService.getUserById(id);
-        return userProfileResponseDTO.getEmail();
+        return userProfileResponseDTO.email();
     }
+
     @PostMapping("/get-users")
     public List<ContactResponseDTO> getUsersOfContacts(@RequestBody List<UUID> ids) {
         return this.userProfileService.getUsers(ids);
     }
 
-    @PutMapping("/privacy-settings")
-    public ResponseEntity<ApiResponse<UserProfileResponseDTO>> updatePrivacySettings(
-            @RequestBody PrivacySettingsRequestDTO privacySettingsRequestDTO, @RequestHeader("X-Id") String tokenUserId) {
+    @PostMapping("/get-user-by-id-with-out-user-key")
+    public UpdateSettingsRequestDTO getFeignUserByIdWithOutUserKey(@RequestBody UUID userId) {
+        return this.userProfileService.getFeignUserByIdWithOutUserKey(userId);
+    }
 
-        UserProfileResponseDTO response = userProfileService.updatePrivacySettings(privacySettingsRequestDTO, tokenUserId);
+    @PutMapping("/privacy-settings")
+    public ResponseEntity<ApiResponse<UpdateSettingsRequestDTO>> updatePrivacySettings(
+            @RequestBody PrivacySettingsRequestDTO privacySettingsRequestDTO,
+            @RequestHeader("X-Id") String tokenUserId) {
+
+        UpdateSettingsRequestDTO response = userProfileService.updatePrivacySettings(privacySettingsRequestDTO,
+                tokenUserId);
         return ResponseEntity.ok(new ApiResponse<>(true, "success", response));
     }
 
+    @PutMapping("/{userId}/last-seen")
+    public void updateLastSeen(@PathVariable String userId, @RequestBody LastSeenDTO req) {
+        userProfileService.updateUserLastSeen(UUID.fromString(userId), req.lastSeen());
+    }
+
+    @GetMapping("/api/v1/users/{userId}/last-seen")
+    LastSeenDTO getLastSeen(@PathVariable String userId) {
+        return userProfileService.getLastSeen(userId);
+    }
+
+    @GetMapping("/{userId}/privacy")
+    public ResponseEntity<PrivacySettingsResponseDTO> getPrivacy(
+            @PathVariable String userId) {
+        PrivacySettingsResponseDTO dto = userProfileService.getPrivacySettings(userId);
+        return ResponseEntity.ok(dto);
+    }
 
     @PostMapping("/upload-profile-picture")
-    public ResponseEntity<ApiResponse<UserProfilePhotoURLResponseDTO>> uploadProfilePicture(@RequestParam("file") MultipartFile file, @RequestHeader("X-Id") String tokenUserId) {
-        return ResponseEntity.ok(new ApiResponse<>(true,"success",userProfileService.uploadProfilePhoto(file, tokenUserId)));
+    public ResponseEntity<ApiResponse<UserProfilePhotoURLResponseDTO>> uploadProfilePicture(
+            @RequestParam("file") MultipartFile file, @RequestHeader("X-Id") String tokenUserId) {
+        return ResponseEntity
+                .ok(new ApiResponse<>(true, "success", userProfileService.uploadProfilePhoto(file, tokenUserId)));
     }
 
     @PostMapping("/reset-user-key")
     void resetUserKey(@RequestBody ResetUserKeyDTO resetUserKeyDTO) {
         this.userProfileService.resetUserKey(resetUserKeyDTO);
     }
-
 
     @PatchMapping("/remove-profile-picture")
     public ResponseEntity<ApiResponse<Void>> removeProfilePicture(@RequestHeader("X-Id") String tokenUserId) {
@@ -97,10 +115,8 @@ public class UserController {
         ApiResponse<Void> response = new ApiResponse<>(
                 true,
                 "Profile picture removed successfully",
-                null
-        );
+                null);
 
         return ResponseEntity.ok(response);
     }
 }
-

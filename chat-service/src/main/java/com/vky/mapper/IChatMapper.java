@@ -1,8 +1,9 @@
 package com.vky.mapper;
 
-import com.vky.dto.response.*;
+import com.vky.dto.response.MessageDTO;
+import com.vky.dto.response.MessageFriendResponseDTO;
+import com.vky.dto.response.UserChatSettingsDTO;
 import com.vky.repository.entity.ChatMessage;
-import com.vky.repository.entity.ChatRoom;
 import com.vky.repository.entity.UserChatSettings;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

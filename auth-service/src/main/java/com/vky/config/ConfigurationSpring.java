@@ -1,22 +1,9 @@
 package com.vky.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.vky.exception.AuthManagerException;
-import com.vky.exception.ErrorType;
 import com.vky.repository.IAuthRepository;
-import com.vky.repository.entity.Auth;
-import feign.Logger;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-//import org.springframework.security.authentication.AuthenticationManager;
-//import org.springframework.security.authentication.AuthenticationProvider;
-//import org.springframework.security.authentication.BadCredentialsException;
-//import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-//import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-//import org.springframework.security.core.userdetails.UserDetailsService;
-//import org.springframework.security.core.userdetails.UsernameNotFoundException;
-//import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 

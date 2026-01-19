@@ -1,6 +1,9 @@
 package com.vky.service;
 
-import com.vky.dto.request.*;
+import com.vky.controller.ContactsController;
+import com.vky.dto.request.ContactInformationOfExistingChatRequestDTO;
+import com.vky.dto.request.ContactInformationOfExistingChatsRequestDTO;
+import com.vky.dto.request.ContactRequestDTO;
 import com.vky.dto.response.*;
 import com.vky.exception.ContactsServiceException;
 import com.vky.exception.ErrorType;
@@ -40,110 +43,122 @@ public class ContactsService {
         contact.setDeleted(true);
         contact.setUserContactName(null);
         contactsRepository.save(contact);
-        userRelationshipService.updateUserRelationship(UUID.fromString(userId), contact.getUserContactId(),contact);
+        userRelationshipService.updateUserRelationship(UUID.fromString(userId), contact.getUserContactId(), contact);
     }
 
     public void addContact(ContactRequestDTO dto, String userId) {
 
-        UserProfileResponseDTO profile = userManager.getUserByEmail(dto.getUserContactEmail());
+        UserProfileResponseDTO profile = userManager.getUserByEmail(dto.userContactEmail());
         if (profile == null) {
             handleInvitationProcess(dto, userId);
             return;
         }
 
-        if (userId.equals(profile.getId().toString())) {
+        if (userId.equals(profile.id().toString())) {
             throw new ContactsServiceException(ErrorType.CANNOT_ADD_SELF_AS_CONTACT);
         }
-
 
         handleExistingContactProcess(dto, profile, userId);
 
         userRelationshipService.publishRelationshipSyncForUser(UUID.fromString(userId));
-        userRelationshipService.publishRelationshipSyncForUser(profile.getId());
+        userRelationshipService.publishRelationshipSyncForUser(profile.id());
     }
 
-
-
     private void handleInvitationProcess(ContactRequestDTO contactRequestDTO, String userId) {
-        if (invitationService.isExistsInvitation(UUID.fromString(userId), contactRequestDTO.getUserContactEmail())) {
+        if (invitationService.isExistsInvitation(UUID.fromString(userId), contactRequestDTO.userContactEmail())) {
             throw new ContactsServiceException(ErrorType.INVITATION_ALREADY);
         } else {
             Invitation invitation = invitationService.addInvitation(contactRequestDTO, userId);
-            ContactResponseDTO dto = new ContactResponseDTO();
-            dto.setInvitationResponseDTO(new InvitationResponseDTO(invitation.getId(),invitation.isInvited(),invitation.getContactName(),invitation.getInviterUserId(), invitation.getInviteeEmail()));
+            ContactResponseDTO dto = ContactResponseDTO.builder()
+                    .invitationResponseDTO(new InvitationResponseDTO(invitation.getId(), invitation.isInvited(),
+                            invitation.getContactName(), invitation.getInviterUserId(), invitation.getInviteeEmail()))
+                    .build();
             rabbitMQProducer.publishAddInvitation(dto, invitation.getInviterUserId().toString());
         }
     }
 
-    private void handleExistingContactProcess(ContactRequestDTO contactRequestDTO, UserProfileResponseDTO userProfileResponseDTO, String userId) {
+    private void handleExistingContactProcess(ContactRequestDTO contactRequestDTO,
+            UserProfileResponseDTO userProfileResponseDTO, String userId) {
         UUID UUIDuserId = UUID.fromString(userId);
-        Optional<Contacts> existingContactOpt = contactsRepository.findContactsByUserContactEmailAndUserIdAndIsDeletedFalse(
-                userProfileResponseDTO.getEmail(),
-                UUIDuserId
-        );
+        Optional<Contacts> existingContactOpt = contactsRepository
+                .findContactsByUserContactEmailAndUserIdAndIsDeletedFalse(
+                        userProfileResponseDTO.email(),
+                        UUIDuserId);
 
         Contacts contact = existingContactOpt.map(existingContact -> {
             if (!existingContact.isDeleted()) {
                 throw new ContactsServiceException(
-                        ErrorType.CONTACT_ALREADY
-                );
+                        ErrorType.CONTACT_ALREADY);
             }
             existingContact.setDeleted(false);
-            existingContact.setUserContactName(contactRequestDTO.getUserContactName());
+            existingContact.setUserContactName(contactRequestDTO.userContactName());
             return contactsRepository.save(existingContact);
         }).orElseGet(() -> {
-            if (UUIDuserId.equals(userProfileResponseDTO.getId())) {
+            if (UUIDuserId.equals(userProfileResponseDTO.id())) {
                 throw new IllegalArgumentException("User contact ID cannot be null");
             }
             return contactsRepository.save(
                     Contacts.builder()
-                            .userContactEmail(contactRequestDTO.getUserContactEmail())
-                            .userContactName(contactRequestDTO.getUserContactName())
+                            .userContactEmail(contactRequestDTO.userContactEmail())
+                            .userContactName(contactRequestDTO.userContactName())
                             .userId(UUIDuserId)
-                            .userContactId(userProfileResponseDTO.getId())
-                            .build()
-            );
+                            .userContactId(userProfileResponseDTO.id())
+                            .build());
         });
         UserRelationship reverseRelationship = handleReverseUserRelationship(userProfileResponseDTO, UUIDuserId);
-        UserRelationship relationship = (reverseRelationship == null) ? handleUserRelationship(userProfileResponseDTO, UUIDuserId) : null;
-        ContactResponseDTO contactResponseDTO = createContactResponseDTO(contact, relationship, reverseRelationship, userProfileResponseDTO);
-        rabbitMQProducer.publishContactAdded(contactResponseDTO,contact.getUserId().toString());
-        userProfileResponseDTO.setImagee(contactRequestDTO.getImagee());
-        rabbitMQProducer.publishContactAddedUser(contactResponseDTO,contact.getUserContactId().toString());
+        UserRelationship relationship = (reverseRelationship == null)
+                ? handleUserRelationship(userProfileResponseDTO, UUIDuserId)
+                : null;
+        ContactResponseDTO contactResponseDTO = createContactResponseDTO(contact, relationship, reverseRelationship,
+                userProfileResponseDTO);
+        rabbitMQProducer.publishContactAdded(contactResponseDTO, contact.getUserId().toString());
+
+        UserProfileResponseDTO updatedProfile = userProfileResponseDTO.toBuilder().imagee(contactRequestDTO.imagee())
+                .build();
+        ContactResponseDTO updatedContactResponseDTO = contactResponseDTO.toBuilder()
+                .userProfileResponseDTO(updatedProfile).build();
+
+        rabbitMQProducer.publishContactAddedUser(updatedContactResponseDTO, contact.getUserContactId().toString());
     }
 
     private UserRelationship handleUserRelationship(UserProfileResponseDTO userProfileResponseDTO, UUID UUIDuserId) {
-        return userRelationshipService.handleUserRelationship(userProfileResponseDTO,UUIDuserId);
+        return userRelationshipService.handleUserRelationship(userProfileResponseDTO, UUIDuserId);
 
     }
 
-    private UserRelationship handleReverseUserRelationship(UserProfileResponseDTO userProfileResponseDTO, UUID UUIDuserId) {
-        return userRelationshipService.handleReverseUserRelationship(userProfileResponseDTO,UUIDuserId);
+    private UserRelationship handleReverseUserRelationship(UserProfileResponseDTO userProfileResponseDTO,
+            UUID UUIDuserId) {
+        return userRelationshipService.handleReverseUserRelationship(userProfileResponseDTO, UUIDuserId);
     }
 
-    private ContactResponseDTO createContactResponseDTO(Contacts contact, UserRelationship relationship, UserRelationship reverseRelationship, UserProfileResponseDTO userProfileResponseDTO) {
-        ContactResponseDTO dto = new ContactResponseDTO(
-                ContactsDTO.builder()
+    private ContactResponseDTO createContactResponseDTO(Contacts contact, UserRelationship relationship,
+            UserRelationship reverseRelationship, UserProfileResponseDTO userProfileResponseDTO) {
+
+        UserKeyResponseDTO newUserKey = UserKeyResponseDTO.builder()
+                .iv(userProfileResponseDTO.userKey().iv())
+                .salt(userProfileResponseDTO.userKey().salt())
+                .publicKey(userProfileResponseDTO.userKey().publicKey())
+                .encryptedPrivateKey(userProfileResponseDTO.userKey().encryptedPrivateKey())
+                .build();
+
+        UserProfileResponseDTO updatedProfile = userProfileResponseDTO.toBuilder()
+                .userKey(newUserKey)
+                .build();
+
+        return ContactResponseDTO.builder()
+                .contactsDTO(ContactsDTO.builder()
                         .id(contact.getId())
                         .userId(contact.getUserId())
                         .userContactId(contact.getUserContactId())
                         .userContactName(contact.getUserContactName())
-                        .relatedUserHasAddedUser(relationship != null ? relationship.isRelatedUserHasAddedUser() : reverseRelationship.isUserHasAddedRelatedUser())
-                        .userHasAddedRelatedUser(relationship != null ? relationship.isUserHasAddedRelatedUser() : reverseRelationship.isUserHasAddedRelatedUser())
-                        .build(),
-                null,
-                null
-        );
-        dto.setUserProfileResponseDTO(userProfileResponseDTO);
-        dto.getUserProfileResponseDTO().setUserKey(UserKeyResponseDTO.builder()
-                .iv(userProfileResponseDTO.getUserKey().getIv())
-                .salt(userProfileResponseDTO.getUserKey().getSalt())
-                .publicKey(userProfileResponseDTO.getUserKey().getPublicKey()).build());
-        return dto;
+                        .relatedUserHasAddedUser(relationship != null ? relationship.isRelatedUserHasAddedUser()
+                                : reverseRelationship.isUserHasAddedRelatedUser())
+                        .userHasAddedRelatedUser(relationship != null ? relationship.isUserHasAddedRelatedUser()
+                                : reverseRelationship.isUserHasAddedRelatedUser())
+                        .build())
+                .userProfileResponseDTO(updatedProfile)
+                .build();
     }
-
-
-
 
     @Transactional(readOnly = true)
     @Async("taskExecutor")
@@ -157,8 +172,7 @@ public class ContactsService {
                         ContactWithRelationshipDTO::getUserContactId,
                         Function.identity(),
                         (existing, replacement) -> existing,
-                        LinkedHashMap::new
-                ));
+                        LinkedHashMap::new));
 
         List<UUID> orderedIds = new ArrayList<>(contactMap.keySet());
 
@@ -166,9 +180,8 @@ public class ContactsService {
 
         Map<UUID, ContactResponseDTO> responseMap = userResponseDTOS.stream()
                 .collect(Collectors.toMap(
-                        response -> response.getUserProfileResponseDTO().getId(),
-                        Function.identity()
-                ));
+                        response -> response.userProfileResponseDTO().id(),
+                        Function.identity()));
 
         List<ContactResponseDTO> orderedResults = new ArrayList<>();
 
@@ -178,11 +191,15 @@ public class ContactsService {
                 ContactWithRelationshipDTO correspondingContact = contactMap.get(orderedId);
 
                 // Privacy logic
-                if (userResponse.getUserProfileResponseDTO().getImagee() != null) {
-                    if (userResponse.getUserProfileResponseDTO().getPrivacySettings().getProfilePhotoVisibility() == VisibilityOption.NOBODY ||
-                            (userResponse.getUserProfileResponseDTO().getPrivacySettings().getProfilePhotoVisibility() == VisibilityOption.MY_CONTACTS &&
+                if (userResponse.userProfileResponseDTO().imagee() != null) {
+                    if (userResponse.userProfileResponseDTO().privacySettings()
+                            .profilePhotoVisibility() == VisibilityOption.NOBODY ||
+                            (userResponse.userProfileResponseDTO().privacySettings()
+                                    .profilePhotoVisibility() == VisibilityOption.MY_CONTACTS &&
                                     !correspondingContact.getRelatedUserHasAddedUser())) {
-                        userResponse.getUserProfileResponseDTO().setImagee(null);
+                        UserProfileResponseDTO updatedProfile = userResponse.userProfileResponseDTO().toBuilder()
+                                .imagee(null).build();
+                        userResponse = userResponse.toBuilder().userProfileResponseDTO(updatedProfile).build();
                     }
                 }
 
@@ -195,7 +212,7 @@ public class ContactsService {
                             .userHasAddedRelatedUser(correspondingContact.getUserHasAddedRelatedUser())
                             .relatedUserHasAddedUser(correspondingContact.getRelatedUserHasAddedUser())
                             .build();
-                    userResponse.setContactsDTO(contactsDTO);
+                    userResponse = userResponse.toBuilder().contactsDTO(contactsDTO).build();
                 }
 
                 orderedResults.add(userResponse);
@@ -212,13 +229,15 @@ public class ContactsService {
     }
 
     @Async("taskExecutor")
-    public CompletableFuture<List<ContactResponseDTO>>  getContactInformationOfExistingChats(
-           ContactInformationOfExistingChatsRequestDTO contactInformationOfExistingChatsRequestDTO) {
+    public CompletableFuture<List<ContactResponseDTO>> getContactInformationOfExistingChats(
+            ContactInformationOfExistingChatsRequestDTO contactInformationOfExistingChatsRequestDTO) {
 
-        List<UserRelationship> relationships = userRelationshipService.getContactInformationOfExistingChats(contactInformationOfExistingChatsRequestDTO);
+        List<UserRelationship> relationships = userRelationshipService
+                .getContactInformationOfExistingChats(contactInformationOfExistingChatsRequestDTO);
 
         List<Contacts> contacts = contactsRepository.findContactsForUser(
-                contactInformationOfExistingChatsRequestDTO.getUserId(), contactInformationOfExistingChatsRequestDTO.getUserContactIds());
+                contactInformationOfExistingChatsRequestDTO.userId(),
+                contactInformationOfExistingChatsRequestDTO.userContactIds());
 
         Map<UUID, Contacts> contactMap = contacts.stream()
                 .collect(Collectors.toMap(
@@ -228,21 +247,24 @@ public class ContactsService {
 
         Map<UUID, ContactWithRelationshipDTO> contactDTOMap = new HashMap<>();
         for (UserRelationship ur : relationships) {
-            UUID relatedUserId = ur.getUserId().equals(contactInformationOfExistingChatsRequestDTO.getUserId()) ?
-                    ur.getRelatedUserId() : ur.getUserId();
+            UUID relatedUserId = ur.getUserId().equals(contactInformationOfExistingChatsRequestDTO.userId())
+                    ? ur.getRelatedUserId()
+                    : ur.getUserId();
 
             Contacts contact = contactMap.get(relatedUserId);
 
             String userContactName = contact != null ? contact.getUserContactName() : null;
 
-            boolean userHasAdded = ur.getUserId().equals(contactInformationOfExistingChatsRequestDTO.getUserId()) ?
-                    ur.isUserHasAddedRelatedUser() : ur.isRelatedUserHasAddedUser();
+            boolean userHasAdded = ur.getUserId().equals(contactInformationOfExistingChatsRequestDTO.userId())
+                    ? ur.isUserHasAddedRelatedUser()
+                    : ur.isRelatedUserHasAddedUser();
 
-            boolean relatedHasAdded = ur.getUserId().equals(contactInformationOfExistingChatsRequestDTO.getUserId()) ?
-                    ur.isRelatedUserHasAddedUser() : ur.isUserHasAddedRelatedUser();
+            boolean relatedHasAdded = ur.getUserId().equals(contactInformationOfExistingChatsRequestDTO.userId())
+                    ? ur.isRelatedUserHasAddedUser()
+                    : ur.isUserHasAddedRelatedUser();
 
             ContactWithRelationshipDTO dto = new ContactWithRelationshipDTO();
-            dto.setUserId(contactInformationOfExistingChatsRequestDTO.getUserId());
+            dto.setUserId(contactInformationOfExistingChatsRequestDTO.userId());
             dto.setUserContactId(relatedUserId);
             dto.setUserContactName(userContactName);
             dto.setUserHasAddedRelatedUser(userHasAdded);
@@ -256,29 +278,35 @@ public class ContactsService {
 
         List<ContactResponseDTO> dto = userResponseDTOS.stream()
                 .map(user -> {
-                    ContactWithRelationshipDTO contact = contactDTOMap.get(user.getUserProfileResponseDTO().getId());
+                    ContactWithRelationshipDTO contact = contactDTOMap.get(user.userProfileResponseDTO().id());
                     String image = getImage(user, contact);
                     return ContactResponseDTO.builder()
                             .userProfileResponseDTO(UserProfileResponseDTO.builder()
-                                    .id(user.getUserProfileResponseDTO().getId())
-                                    .email(user.getUserProfileResponseDTO().getEmail())
-                                    .about(user.getUserProfileResponseDTO().getAbout())
+                                    .id(user.userProfileResponseDTO().id())
+                                    .email(user.userProfileResponseDTO().email())
+                                    .about(user.userProfileResponseDTO().about())
                                     .imagee(image)
-                                    .firstName(user.getUserProfileResponseDTO().getFirstName())
-                                    .lastName(user.getUserProfileResponseDTO().getLastName())
+                                    .firstName(user.userProfileResponseDTO().firstName())
+                                    .lastName(user.userProfileResponseDTO().lastName())
                                     .privacySettings(PrivacySettingsResponseDTO.builder()
-                                            .id(user.getUserProfileResponseDTO().getPrivacySettings().getId())
-                                            .onlineStatusVisibility(user.getUserProfileResponseDTO().getPrivacySettings().getOnlineStatusVisibility())
-                                            .profilePhotoVisibility(user.getUserProfileResponseDTO().getPrivacySettings().getProfilePhotoVisibility())
-                                            .lastSeenVisibility(user.getUserProfileResponseDTO().getPrivacySettings().getLastSeenVisibility())
-                                            .aboutVisibility(user.getUserProfileResponseDTO().getPrivacySettings().getAboutVisibility())
-                                            .readReceipts(user.getUserProfileResponseDTO().getPrivacySettings().isReadReceipts())
+                                            .id(user.userProfileResponseDTO().privacySettings().id())
+                                            .onlineStatusVisibility(user.userProfileResponseDTO()
+                                                    .privacySettings().onlineStatusVisibility())
+                                            .profilePhotoVisibility(user.userProfileResponseDTO()
+                                                    .privacySettings().profilePhotoVisibility())
+                                            .lastSeenVisibility(user.userProfileResponseDTO().privacySettings()
+                                                    .lastSeenVisibility())
+                                            .aboutVisibility(user.userProfileResponseDTO().privacySettings()
+                                                    .aboutVisibility())
+                                            .readReceipts(user.userProfileResponseDTO().privacySettings()
+                                                    .readReceipts())
                                             .build())
                                     .userKey(UserKeyResponseDTO.builder()
-                                            .iv(user.getUserProfileResponseDTO().getUserKey().getIv())
-                                            .publicKey(user.getUserProfileResponseDTO().getUserKey().getPublicKey())
-                                            .encryptedPrivateKey(user.getUserProfileResponseDTO().getUserKey().getEncryptedPrivateKey())
-                                            .salt(user.getUserProfileResponseDTO().getUserKey().getSalt())
+                                            .iv(user.userProfileResponseDTO().userKey().iv())
+                                            .publicKey(user.userProfileResponseDTO().userKey().publicKey())
+                                            .encryptedPrivateKey(user.userProfileResponseDTO().userKey()
+                                                    .encryptedPrivateKey())
+                                            .salt(user.userProfileResponseDTO().userKey().salt())
                                             .build())
                                     .build())
                             .contactsDTO(ContactsDTO.builder()
@@ -295,32 +323,39 @@ public class ContactsService {
         return CompletableFuture.completedFuture(dto);
     }
 
-
-
     private static String getImage(ContactResponseDTO user, ContactWithRelationshipDTO contact) {
 
         String image = null;
-        if(user.getUserProfileResponseDTO().getImagee() != null) {
-            if(user.getUserProfileResponseDTO().getPrivacySettings().getProfilePhotoVisibility() == VisibilityOption.NOBODY ||
-                    (user.getUserProfileResponseDTO().getPrivacySettings().getProfilePhotoVisibility() == VisibilityOption.MY_CONTACTS && !contact.getRelatedUserHasAddedUser())) {
+        if (user.userProfileResponseDTO().imagee() != null) {
+            if (user.userProfileResponseDTO().privacySettings()
+                    .profilePhotoVisibility() == VisibilityOption.NOBODY ||
+                    (user.userProfileResponseDTO().privacySettings()
+                            .profilePhotoVisibility() == VisibilityOption.MY_CONTACTS
+                            && !contact.getRelatedUserHasAddedUser())) {
                 image = null;
             } else {
-                image = user.getUserProfileResponseDTO().getImagee();
+                image = user.userProfileResponseDTO().imagee();
             }
         }
         return image;
     }
+
     @Async("taskExecutor")
-    public CompletableFuture<ContactResponseDTO>  getContactInformationOfSingleChat(ContactInformationOfExistingChatRequestDTO contactInformationOfExistingChatRequestDTO) {
-        System.out.println("contactInformationOfExistingChatRequestDTO > " + contactInformationOfExistingChatRequestDTO.toString());
-        Optional<ContactWithRelationshipDTO> optionalContact = contactsRepository.findContactWithRelationship(contactInformationOfExistingChatRequestDTO.getUserId(), contactInformationOfExistingChatRequestDTO.getUserContactId());
+    public CompletableFuture<ContactResponseDTO> getContactInformationOfSingleChat(
+            ContactInformationOfExistingChatRequestDTO contactInformationOfExistingChatRequestDTO) {
+        System.out.println("contactInformationOfExistingChatRequestDTO > "
+                + contactInformationOfExistingChatRequestDTO.toString());
+        Optional<ContactWithRelationshipDTO> optionalContact = contactsRepository.findContactWithRelationship(
+                contactInformationOfExistingChatRequestDTO.userId(),
+                contactInformationOfExistingChatRequestDTO.userContactId());
         ContactWithRelationshipDTO contact;
-        UserProfileResponseDTO userProfileResponseDTO = this.userManager.getUserById(contactInformationOfExistingChatRequestDTO.getUserContactId());
+        UserProfileResponseDTO userProfileResponseDTO = this.userManager
+                .getUserById(contactInformationOfExistingChatRequestDTO.userContactId());
         System.out.println("userProfileResponseDTO > " + userProfileResponseDTO);
         if (optionalContact.isPresent()) {
             contact = optionalContact.get();
             System.out.println("CONTACT > " + contact);
-            if (contact.getUserId().equals(contactInformationOfExistingChatRequestDTO.getUserId())) {
+            if (contact.getUserId().equals(contactInformationOfExistingChatRequestDTO.userId())) {
                 return CompletableFuture.completedFuture(ContactResponseDTO.builder()
                         .userProfileResponseDTO(userProfileResponseDTO)
                         .contactsDTO(ContactsDTO.builder()
@@ -354,13 +389,12 @@ public class ContactsService {
                             .id(null)
                             .userHasAddedRelatedUser(false)
                             .relatedUserHasAddedUser(false)
-                            .userContactId(contactInformationOfExistingChatRequestDTO.getUserContactId())
-                            .userId(contactInformationOfExistingChatRequestDTO.getUserId())
+                            .userContactId(contactInformationOfExistingChatRequestDTO.userContactId())
+                            .userId(contactInformationOfExistingChatRequestDTO.userId())
                             .build())
                     .build());
         }
     }
-
 
     private ContactResponseDTO convertInvitationToContact(Invitation invitation) {
         InvitationResponseDTO invitationResponseDTO = IInvitationMapper.INSTANCE.toInvitationResponseDTO(invitation);
@@ -368,34 +402,39 @@ public class ContactsService {
                 .invitationResponseDTO(invitationResponseDTO)
                 .build();
     }
+
     @Transactional
     public void checkUsersWhoInvited(UserProfileResponseDTO userProfile) {
-        List<Invitation> invitations = invitationService.getInvitations(userProfile.getEmail());
+        List<Invitation> invitations = invitationService.getInvitations(userProfile.email());
 
-        invitations.forEach(invitation ->  {
-            UserRelationship userRelationship = userRelationshipService.saveUserRelationship(invitation.getInviterUserId(), userProfile, true);
-            ContactResponseDTO contactResponseDTO = new ContactResponseDTO();
-            Contacts contact = saveContacts(invitation, userProfile.getId());
+        invitations.forEach(invitation -> {
+            UserRelationship userRelationship = userRelationshipService
+                    .saveUserRelationship(invitation.getInviterUserId(), userProfile, true);
+
+            Contacts contact = saveContacts(invitation, userProfile.id());
             ContactsDTO contactsDTO = getContactsDTO(contact, userRelationship);
 
-            contactResponseDTO.setContactsDTO(contactsDTO);
-            contactResponseDTO.setUserProfileResponseDTO(userProfile);
-            contactResponseDTO.setInvitationResponseDTO(null);
+            ContactResponseDTO contactResponseDTO = ContactResponseDTO.builder()
+                    .contactsDTO(contactsDTO)
+                    .userProfileResponseDTO(userProfile)
+                    .invitationResponseDTO(null)
+                    .build();
+
             invitation.setDeleted(true);
             invitationService.saveInvitation(invitation);
-            rabbitMQProducer.publishInvitedUserJoined(contactResponseDTO,contact.getUserId().toString());
+            rabbitMQProducer.publishInvitedUserJoined(contactResponseDTO, contact.getUserId().toString());
         });
     }
 
     private ContactsDTO getContactsDTO(Contacts contact, UserRelationship userRelationship) {
-        ContactsDTO contactsDTO = new ContactsDTO();
-        contactsDTO.setId(contact.getId());
-        contactsDTO.setUserId(contact.getUserId());
-        contactsDTO.setUserContactId(contact.getUserContactId());
-        contactsDTO.setUserContactName(contact.getUserContactName());
-        contactsDTO.setUserHasAddedRelatedUser(userRelationship.isUserHasAddedRelatedUser());
-        contactsDTO.setRelatedUserHasAddedUser(userRelationship.isRelatedUserHasAddedUser());
-        return contactsDTO;
+        return ContactsDTO.builder()
+                .id(contact.getId())
+                .userId(contact.getUserId())
+                .userContactId(contact.getUserContactId())
+                .userContactName(contact.getUserContactName())
+                .userHasAddedRelatedUser(userRelationship.isUserHasAddedRelatedUser())
+                .relatedUserHasAddedUser(userRelationship.isRelatedUserHasAddedUser())
+                .build();
     }
 
     private Contacts saveContacts(Invitation invitation, UUID invitedUserId) {
@@ -408,33 +447,22 @@ public class ContactsService {
         return contactsRepository.save(contacts);
     }
 
-    public void sendUpdatedUserProfile(UpdatedProfilePhotoRequestDTO dto) {
+    public ContactsController.RelationshipSnapshotDTO snapshot(UUID userId) {
+        List<UserRelationship> relations = userRelationshipService.findByUserIdOrRelatedUserId(userId);
+        List<String> relatedUserIds = relations.stream()
+                .map(rel -> rel.getUserId().equals(userId)
+                        ? rel.getRelatedUserId().toString()
+                        : rel.getUserId().toString())
+                .distinct()
+                .toList();
 
-        UserProfileResponseDTO owner = userManager.getUserById(dto.getUserId());
+        List<UserRelationship> outgoing = userRelationshipService.findByUserId(userId);
+        List<String> outgoingContactIds = outgoing.stream()
+                .filter(UserRelationship::isUserHasAddedRelatedUser)
+                .map(rel -> rel.getRelatedUserId().toString())
+                .distinct()
+                .toList();
 
-        List<UserRelationship> rels =
-                userRelationshipService.findByUserIdOrRelatedUserId(dto.getUserId());
-
-        List<UUID> targets =
-                userRelationshipService.filterTargetsForProfileUpdate(dto.getUserId(), rels, owner);
-
-        for (UUID t : targets) {
-            rabbitMQProducer.publishProfile(dto, t);
-        }
-    }
-
-    public void sendUpdatedUserPrivacy(UpdatePrivacySettingsRequestDTO dto) {
-
-        UserProfileResponseDTO owner = userManager.getUserById(dto.getId());
-
-        List<UserRelationship> rels =
-                userRelationshipService.findByUserIdOrRelatedUserId(dto.getId());
-
-        List<UUID> targets =
-                userRelationshipService.filterTargetsForProfileUpdate(dto.getId(), rels, owner);
-
-        for (UUID t : targets) {
-            rabbitMQProducer.publishPrivacy(dto, t);
-        }
+        return new ContactsController.RelationshipSnapshotDTO(userId.toString(), relatedUserIds, outgoingContactIds);
     }
 }

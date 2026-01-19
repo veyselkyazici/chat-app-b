@@ -1,15 +1,9 @@
 package com.vky.dto.response;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
-@AllArgsConstructor
-@NoArgsConstructor
-@Data
-@Builder
-public class ContactResponseDTO {
-    private UserProfileResponseDTO userProfileResponseDTO;
-    private InvitationResponseDTO invitationResponseDTO;
+@Builder(toBuilder = true)
+public record ContactResponseDTO(
+        UserProfileResponseDTO userProfileResponseDTO,
+        InvitationResponseDTO invitationResponseDTO) {
 }

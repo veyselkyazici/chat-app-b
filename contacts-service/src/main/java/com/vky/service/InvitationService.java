@@ -34,43 +34,47 @@ public class InvitationService {
 
     // ToDo where tokenUserId == inviterId
     public void deleteInvitation(UUID id, String tokenUserId) {
-        Invitation invitation = invitationRepository.findByIdAndInviterUserIdAndIsDeletedFalse(id, UUID.fromString(tokenUserId))
+        Invitation invitation = invitationRepository
+                .findByIdAndInviterUserIdAndIsDeletedFalse(id, UUID.fromString(tokenUserId))
                 .orElseThrow(() -> new ContactsServiceException(ErrorType.USER_NOT_FOUD));
 
         invitation.setDeleted(true);
         invitationRepository.save(invitation);
 
-//        DeleteContactResponseDTO dto = new DeleteContactResponseDTO(
-//                invitation.getId(),
-//                invitation.getInviteeEmail(),
-//                invitation.getContactName(),
-//                invitation.getInviterUserId(),
-//                null,invitation.isInvited()
-//        );
+        // DeleteContactResponseDTO dto = new DeleteContactResponseDTO(
+        // invitation.getId(),
+        // invitation.getInviteeEmail(),
+        // invitation.getContactName(),
+        // invitation.getInviterUserId(),
+        // null,invitation.isInvited()
+        // );
 
-    //    rabbitMQProducer.publish("delete-contact", invitation.getInviterUserId().toString(), dto);
+        // rabbitMQProducer.publish("delete-contact",
+        // invitation.getInviterUserId().toString(), dto);
     }
+
     @Transactional
     public void sendInvitation(SendInvitationDTO sendInvitationDTO, String tokenUserId) {
-        if(sendInvitationDTO.getInviteeEmail() == null || !tokenUserId.equals(sendInvitationDTO.getInviterUserId().toString())) {
+        if (sendInvitationDTO.inviteeEmail() == null
+                || !tokenUserId.equals(sendInvitationDTO.inviterUserId().toString())) {
             throw new ContactsServiceException(ErrorType.USER_NOT_FOUD);
         }
-        Invitation invitation = invitationRepository.findById(sendInvitationDTO.getInvitationId()).orElseThrow(() -> new ContactsServiceException(ErrorType.USER_NOT_FOUD));
+        Invitation invitation = invitationRepository.findById(sendInvitationDTO.invitationId())
+                .orElseThrow(() -> new ContactsServiceException(ErrorType.USER_NOT_FOUD));
         mailManager.sendInvitation(sendInvitationDTO);
-        if(invitation.isInvited()) {
+        if (invitation.isInvited()) {
             throw new ContactsServiceException(ErrorType.ALREADY_INVITED);
         }
         invitation.setInvited(true);
         invitationRepository.save(invitation);
     }
 
-
     public Invitation addInvitation(ContactRequestDTO contactRequestDTO, String userId) {
         return invitationRepository.save(Invitation.builder()
                 .inviterUserId(UUID.fromString(userId))
-                .inviteeEmail(contactRequestDTO.getUserContactEmail())
-                .contactName(contactRequestDTO.getUserContactName())
-                .inviterEmail(contactRequestDTO.getAddedByEmail())
+                .inviteeEmail(contactRequestDTO.userContactEmail())
+                .contactName(contactRequestDTO.userContactName())
+                .inviterEmail(contactRequestDTO.addedByEmail())
                 .build());
 
     }

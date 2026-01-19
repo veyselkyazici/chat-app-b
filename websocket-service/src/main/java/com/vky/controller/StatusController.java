@@ -1,6 +1,5 @@
 package com.vky.controller;
 
-import com.vky.dto.RequestOnlineStatus;
 import com.vky.dto.UserStatusMessage;
 import com.vky.service.StatusBroadcastService;
 import com.vky.service.UserStatusEvent;
@@ -11,7 +10,6 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Controller;
 
 import java.security.Principal;
-import java.time.Duration;
 
 @Controller
 @RequiredArgsConstructor
@@ -20,18 +18,26 @@ public class StatusController {
     private final ApplicationEventPublisher eventPublisher;
     private final StatusBroadcastService statusBroadcastService;
 
+//    @MessageMapping("/request-status-snapshot")
+//    public void requestSnapshot(
+//            Principal principal,
+//            @Payload RequestOnlineStatus req
+//    ) {
+//
+//        statusBroadcastService.sendSingleSnapshot(
+//                principal.getName(),
+//                req.getTargetUserId()
+//        );
+//    }
+    public record SnapshotRequest(String targetUserId) {}
     @MessageMapping("/request-status-snapshot")
-    public void requestSnapshot(
-            Principal principal,
-            @Payload RequestOnlineStatus req
-    ) {
+    public void requestSnapshot(Principal principal, SnapshotRequest req) {
+        String viewerId = principal.getName();
 
-        statusBroadcastService.sendSingleSnapshot(
-                principal.getName(),
-                req.getTargetUserId()
-        );
+        String targetId = req.targetUserId();
+
+        statusBroadcastService.requestSnapshot(viewerId, targetId);
     }
-
     @MessageMapping("/user-status")
     public void updateStatus(
             Principal principal,

@@ -14,4 +14,5 @@ import java.util.List;
 public class RelationshipSyncEvent {
     private String userId;
     private List<String> relatedUserIds;
+    private List<String> outgoingContactIds;
 }

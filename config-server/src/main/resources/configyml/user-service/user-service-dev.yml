@@ -41,7 +41,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
@@ -76,6 +76,8 @@ services:
 # Development logging
 logging:
   level:
+    org.springframework.amqp: DEBUG
+    com.rabbitmq.client: DEBUG
     com.vky: DEBUG
 
 # Development actuator endpoints

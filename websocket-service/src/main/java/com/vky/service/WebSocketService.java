@@ -1,6 +1,8 @@
 package com.vky.service;
 
-import com.vky.dto.*;
+import com.vky.dto.MessageRequestDTO;
+import com.vky.dto.TypingMessage;
+import com.vky.dto.UnreadMessageCountDTO;
 import com.vky.rabbitmq.RabbitMQProducer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -26,20 +28,16 @@ public class WebSocketService {
         rabbitMQProducer.sendReadEvent(dto);
     }
 
-//    public void status(UserStatusMessage dto) {
-//        rabbitMQProducer.sendStatusEvent(dto); // bunu da eklemelisin
-//    }
-
     public void setTyping(TypingMessage msg) {
-        String key = "typing:" + msg.getUserId();
+        String key = "typing:" + msg.userId();
 
         redisTemplate.opsForHash().put(key, "isTyping", msg.isTyping());
-        redisTemplate.opsForHash().put(key, "chatRoomId", msg.getChatRoomId());
-        redisTemplate.opsForHash().put(key, "contactId", msg.getFriendId());
+        redisTemplate.opsForHash().put(key, "chatRoomId", msg.chatRoomId());
+        redisTemplate.opsForHash().put(key, "contactId", msg.friendId());
         redisTemplate.expire(key, 10, TimeUnit.SECONDS);
 
-        messagingTemplate.convertAndSendToUser(msg.getFriendId(), "/queue/typing", msg);
-        messagingTemplate.convertAndSendToUser(msg.getFriendId(), "/queue/message-box-typing", msg);
+        messagingTemplate.convertAndSendToUser(msg.friendId(), "/queue/typing", msg);
+        messagingTemplate.convertAndSendToUser(msg.friendId(), "/queue/message-box-typing", msg);
     }
 
     public TypingMessage isTyping(String contactId, String userId) {
@@ -56,8 +54,7 @@ public class WebSocketService {
         }
 
         boolean isTyping = Boolean.parseBoolean(
-                String.valueOf(typingHash.getOrDefault("isTyping", "false"))
-        );
+                String.valueOf(typingHash.getOrDefault("isTyping", "false")));
 
         String chatRoomId = typingHash.get("chatRoomId") != null
                 ? typingHash.get("chatRoomId").toString()
@@ -79,11 +76,11 @@ public class WebSocketService {
         redisTemplate.expire(redisKey, Duration.ofSeconds(15));
     }
 
-    public void sendUpdatedPrivacy(UpdatePrivacySettingsRequestDTO dto) {
-        rabbitMQProducer.publishPrivacyToContacts(dto);
-    }
-
-    public void sendUpdatedProfile(UpdatedProfilePhotoRequestDTO dto) {
-        rabbitMQProducer.publishProfileToContacts(dto);
-    }
+    // public void sendUpdatedPrivacy(UpdateSettingsRequestDTO dto) {
+    // rabbitMQProducer.publishPrivacyToContacts(dto);
+    // }
+    //
+    // public void sendUpdatedProfile(UpdatedProfilePhotoRequestDTO dto) {
+    // rabbitMQProducer.publishProfileToContacts(dto);
+    // }
 }

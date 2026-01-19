@@ -9,13 +9,16 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
+
 @Component
 @RequiredArgsConstructor
 public class RabbitMQConsumer {
 
     private final SimpMessagingTemplate ws;
     private final RedisTemplate<String, Object> redisTemplate;
-    private static final String REL_KEY_PREFIX = "rel:";
+
+    private static final Duration REL_TTL = Duration.ofDays(1);
 
     @RabbitListener(queues = RabbitMQConfig.WS_DELIVERY_QUEUE)
     public void handle(WsEvent<?> event) {
@@ -23,22 +26,22 @@ public class RabbitMQConsumer {
         String destination = switch (event.getType()) {
 
             // CONTACTS
-            case "privacy-updated" -> "/queue/updated-privacy-response";
+            // case "privacy-updated" -> "/queue/updated-privacy-response";
             case "profile-updated" -> "/queue/updated-user-profile-message";
-            case "online-status"   -> "/queue/online-status";
-            case "disconnect"      -> "/queue/disconnect";
-            case "contact-added"   -> "/queue/add-contact";
+            case "online-status" -> "/queue/online-status";
+            case "disconnect" -> "/queue/disconnect";
+            case "contact-added" -> "/queue/add-contact";
             case "contact-added-user" -> "/queue/add-contact-user";
             case "invited-user-joined" -> "/queue/invited-user-joined";
             case "add-invitation" -> "/queue/add-invitation";
 
             // CHAT
             case "delivery" -> "/queue/received-message";
-            case "read-recipient"     -> "/queue/read-confirmation-recipient";
+            case "read-recipient" -> "/queue/read-confirmation-recipient";
             case "read-messages" -> "/queue/read-messages";
-            case "block"    -> "/queue/block";
-            case "unblock"  -> "/queue/unblock";
-            case "error"    -> "/queue/error-message";
+            case "block" -> "/queue/block";
+            case "unblock" -> "/queue/unblock";
+            case "error" -> "/queue/error-message";
 
             default -> "/queue/unknown";
         };
@@ -46,22 +49,28 @@ public class RabbitMQConsumer {
         ws.convertAndSendToUser(
                 event.getTargetUserId(),
                 destination,
-                event.getPayload()
-        );
+                event.getPayload());
     }
+
     @RabbitListener(queues = RabbitMQConfig.WS_REL_SYNC_QUEUE)
     public void handleRelationshipSync(RelationshipSyncEvent event) {
 
-        String key = REL_KEY_PREFIX + event.getUserId();
+        String anyKey = "rel:any:" + event.userId();
+        redisTemplate.delete(anyKey);
 
-        redisTemplate.delete(key);
-
-        for (String relatedUserId : event.getRelatedUserIds()) {
-            redisTemplate.opsForSet().add(key, relatedUserId);
+        for (String id : event.relatedUserIds()) {
+            redisTemplate.opsForSet().add(anyKey, id);
         }
 
-        // İsteğe bağlı TTL
-        // redisTemplate.expire(key, Duration.ofHours(24));
+        redisTemplate.expire(anyKey, REL_TTL);
+
+        String outKey = "rel:out:" + event.userId();
+        redisTemplate.delete(outKey);
+
+        for (String id : event.outgoingContactIds()) {
+            redisTemplate.opsForSet().add(outKey, id);
+        }
+
+        redisTemplate.expire(outKey, REL_TTL);
     }
 }
-

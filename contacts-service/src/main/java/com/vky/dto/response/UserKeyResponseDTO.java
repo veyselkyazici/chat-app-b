@@ -1,17 +1,11 @@
 package com.vky.dto.response;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
-@AllArgsConstructor
-@NoArgsConstructor
-@Data
-@Builder
-public class UserKeyResponseDTO {
-    private String publicKey;
-    private String encryptedPrivateKey;
-    private String salt;
-    private String iv;
+@Builder(toBuilder = true)
+public record UserKeyResponseDTO(
+        String publicKey,
+        String encryptedPrivateKey,
+        String salt,
+        String iv) {
 }

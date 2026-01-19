@@ -1,5 +1,6 @@
 package com.vky.config;
 
+import com.vky.dto.PrivacySettingsResponseDTO;
 import com.vky.service.RedisKeyExpirationListener;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -22,6 +23,24 @@ public class RedisConfig {
     public RedisTemplate<String, Object> redisTemplate() {
 
         RedisTemplate<String, Object> template = new RedisTemplate<>();
+        template.setConnectionFactory(connectionFactory);
+
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
+
+        template.setHashKeySerializer(new StringRedisSerializer());
+        template.setHashValueSerializer(new GenericJackson2JsonRedisSerializer());
+
+        template.afterPropertiesSet();
+        return template;
+    }
+
+    @Bean(name = "privacyRedisTemplate")
+    public RedisTemplate<String, PrivacySettingsResponseDTO> privacyRedisTemplate() {
+
+        RedisTemplate<String, PrivacySettingsResponseDTO> template =
+                new RedisTemplate<>();
+
         template.setConnectionFactory(connectionFactory);
 
         template.setKeySerializer(new StringRedisSerializer());

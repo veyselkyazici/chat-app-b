@@ -1,12 +1,11 @@
 package com.vky.service;
 
-import com.vky.expcetion.ErrorType;
 import com.vky.expcetion.ChatServiceException;
+import com.vky.expcetion.ErrorType;
 import com.vky.repository.IUserChatSettingsRepository;
 import com.vky.repository.entity.UserChatSettings;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;

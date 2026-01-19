@@ -6,7 +6,6 @@ import com.vky.dto.request.UnreadMessageCountDTO;
 import com.vky.dto.response.MessageDTO;
 import com.vky.dto.response.MessageFriendResponseDTO;
 import com.vky.expcetion.ErrorMessage;
-import com.vky.repository.entity.ChatMessage;
 import com.vky.repository.entity.UserChatSettings;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -18,72 +17,60 @@ import java.util.List;
 @RequiredArgsConstructor
 public class RabbitMQProducer {
 
-    private final RabbitTemplate rabbitTemplate;
+        private final RabbitTemplate rabbitTemplate;
 
-    public void publishDeliverEvent(MessageFriendResponseDTO dto) {
-        WsEvent<MessageFriendResponseDTO> event =
-                WsEvent.delivery(dto.getRecipientId(), dto);
+        public void publishDeliverEvent(MessageFriendResponseDTO dto) {
+                WsEvent<MessageFriendResponseDTO> event = WsEvent.delivery(dto.recipientId(), dto);
 
-        rabbitTemplate.convertAndSend(
-                RabbitMQConfig.WS_DELIVERY_EXCHANGE,
-                RabbitMQConfig.WS_DELIVERY_ROUTING,
-                event
-        );
-    }
+                rabbitTemplate.convertAndSend(
+                                RabbitMQConfig.WS_DELIVERY_EXCHANGE,
+                                RabbitMQConfig.WS_DELIVERY_ROUTING,
+                                event);
+        }
 
-    public void publishReadConfirmation(UnreadMessageCountDTO dto) {
-        WsEvent<UnreadMessageCountDTO> event =
-                WsEvent.readRecipient(dto.getRecipientId(), dto);
+        public void publishReadConfirmation(UnreadMessageCountDTO dto) {
+                WsEvent<UnreadMessageCountDTO> event = WsEvent.readRecipient(dto.recipientId(), dto);
 
-        rabbitTemplate.convertAndSend(
-                RabbitMQConfig.WS_DELIVERY_EXCHANGE,
-                RabbitMQConfig.WS_DELIVERY_ROUTING,
-                event
-        );
-    }
-    public void publishReadMessages(List<MessageDTO> dto, String targetUserId) {
-        WsEvent<List<MessageDTO>> event =
-                WsEvent.readMessages(targetUserId, dto);
+                rabbitTemplate.convertAndSend(
+                                RabbitMQConfig.WS_DELIVERY_EXCHANGE,
+                                RabbitMQConfig.WS_DELIVERY_ROUTING,
+                                event);
+        }
 
-        rabbitTemplate.convertAndSend(
-                RabbitMQConfig.WS_DELIVERY_EXCHANGE,
-                RabbitMQConfig.WS_DELIVERY_ROUTING,
-                event
-        );
-    }
-    public void publishBlockEvent(String targetUserId, UserChatSettings settings) {
-        WsEvent<UserChatSettings> event =
-                WsEvent.block(targetUserId, settings);
+        public void publishReadMessages(List<MessageDTO> dto, String targetUserId) {
+                WsEvent<List<MessageDTO>> event = WsEvent.readMessages(targetUserId, dto);
 
-        rabbitTemplate.convertAndSend(
-                RabbitMQConfig.WS_DELIVERY_EXCHANGE,
-                RabbitMQConfig.WS_DELIVERY_ROUTING,
-                event
-        );
-    }
+                rabbitTemplate.convertAndSend(
+                                RabbitMQConfig.WS_DELIVERY_EXCHANGE,
+                                RabbitMQConfig.WS_DELIVERY_ROUTING,
+                                event);
+        }
 
-    public void publishUnblockEvent(String targetUserId, UserChatSettings settings) {
-        WsEvent<UserChatSettings> event =
-                WsEvent.unblock(targetUserId, settings);
+        public void publishBlockEvent(String targetUserId, UserChatSettings settings) {
+                WsEvent<UserChatSettings> event = WsEvent.block(targetUserId, settings);
 
-        rabbitTemplate.convertAndSend(
-                RabbitMQConfig.WS_DELIVERY_EXCHANGE,
-                RabbitMQConfig.WS_DELIVERY_ROUTING,
-                event
-        );
-    }
+                rabbitTemplate.convertAndSend(
+                                RabbitMQConfig.WS_DELIVERY_EXCHANGE,
+                                RabbitMQConfig.WS_DELIVERY_ROUTING,
+                                event);
+        }
 
-    public void publishErrorEvent(String userId, ErrorMessage error) {
-        WsEvent<ErrorMessage> event =
-                WsEvent.error(userId, error);
+        public void publishUnblockEvent(String targetUserId, UserChatSettings settings) {
+                WsEvent<UserChatSettings> event = WsEvent.unblock(targetUserId, settings);
 
-        rabbitTemplate.convertAndSend(
-                RabbitMQConfig.WS_DELIVERY_EXCHANGE,
-                RabbitMQConfig.WS_DELIVERY_ROUTING,
-                event
-        );
-    }
+                rabbitTemplate.convertAndSend(
+                                RabbitMQConfig.WS_DELIVERY_EXCHANGE,
+                                RabbitMQConfig.WS_DELIVERY_ROUTING,
+                                event);
+        }
 
+        public void publishErrorEvent(String userId, ErrorMessage error) {
+                WsEvent<ErrorMessage> event = WsEvent.error(userId, error);
+
+                rabbitTemplate.convertAndSend(
+                                RabbitMQConfig.WS_DELIVERY_EXCHANGE,
+                                RabbitMQConfig.WS_DELIVERY_ROUTING,
+                                event);
+        }
 
 }
-

@@ -1,7 +1,6 @@
 package com.vky.config;
 
 import com.vky.security.JwtTokenProvider;
-import com.vky.service.StatusBroadcastService;
 import com.vky.service.UserStatusEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -16,7 +15,6 @@ import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
-import java.time.Instant;
 
 @Component
 @RequiredArgsConstructor

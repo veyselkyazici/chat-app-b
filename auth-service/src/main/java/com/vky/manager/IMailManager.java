@@ -1,10 +1,7 @@
 package com.vky.manager;
 
 import com.vky.dto.request.CreateConfirmationRequestDTO;
-import com.vky.dto.request.ForgotPasswordCheckOtpRequestDTO;
 import com.vky.dto.request.ForgotPasswordRequestDTO;
-import com.vky.dto.request.ForgotPasswordResetPasswordRequestDTO;
-import com.vky.dto.response.HttpResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;

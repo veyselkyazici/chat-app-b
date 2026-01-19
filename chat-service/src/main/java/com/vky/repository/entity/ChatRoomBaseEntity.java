@@ -8,7 +8,6 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 
 @SuperBuilder
 @NoArgsConstructor

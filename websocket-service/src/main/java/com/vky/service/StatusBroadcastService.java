@@ -1,16 +1,17 @@
 package com.vky.service;
 
+import com.vky.dto.LastSeenDTO;
 import com.vky.dto.UserStatusMessage;
+import com.vky.manager.IUserManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -18,24 +19,34 @@ public class StatusBroadcastService {
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final SimpMessagingTemplate messagingTemplate;
+    private final VisibilityPolicy visibilityPolicy;
+    private final IUserManager userManager;
+    private final RelationshipCache relationshipCache;
+    private static final Duration STATUS_TTL = Duration.ofDays(1);
 
     @EventListener
     public void onUserStatus(UserStatusEvent event) {
-        String userId = event.userId();
 
-        redisTemplate.opsForHash()
-                .put("status:" + userId, "status", event.status());
+        String userId = event.userId();
+        String statusKey = "status:" + userId;
+
+        redisTemplate.opsForHash().put(statusKey, "status", event.status());
 
         if (!"online".equals(event.status()) && event.lastSeen() != null) {
-            redisTemplate.opsForHash()
-                    .put("status:" + userId, "lastSeen", event.lastSeen().toString());
+
+            String lastSeen = event.lastSeen().toString();
+
+            redisTemplate.opsForHash().put(statusKey, "lastSeen", lastSeen);
+
+            try {
+                userManager.updateLastSeen(userId, new LastSeenDTO(lastSeen));
+            } catch (Exception ignored) {
+            }
         }
+
+        redisTemplate.expire(statusKey, STATUS_TTL);
 
         List<String> relatedUsers = getRelatedUsers(userId);
-
-        if (event.initial()) {
-            sendSnapshotToUser(userId, relatedUsers);
-        }
 
         UserStatusMessage msg = UserStatusMessage.builder()
                 .userId(userId)
@@ -43,51 +54,93 @@ public class StatusBroadcastService {
                 .lastSeen(event.lastSeen())
                 .build();
 
-        relatedUsers.forEach(target -> {
+        for (String viewerId : relatedUsers) {
+
+            boolean allowed = "online".equals(event.status())
+                    ? visibilityPolicy.canSeeOnline(viewerId, userId)
+                    : visibilityPolicy.canSeeLastSeen(viewerId, userId);
+
+            if (!allowed) {
                 messagingTemplate.convertAndSendToUser(
-                        target,
+                        viewerId,
                         "/queue/online-status",
-                        msg
-                );
-        });
-    }
+                        UserStatusMessage.builder()
+                                .userId(userId)
+                                .status("hidden")
+                                .lastSeen(null)
+                                .build());
+                continue;
+            }
 
-    public void sendSnapshotToUser(String requesterId, List<String> relatedUsers) {
-
-        for (String targetId : relatedUsers) {
-            sendSingleSnapshot(requesterId, targetId);
+            messagingTemplate.convertAndSendToUser(viewerId, "/queue/online-status", msg);
         }
     }
 
-    public void sendSingleSnapshot(String requesterId, String targetUserId) {
+    public List<String> getRelatedUsers(String userId) {
+        return relationshipCache.getRelatedUsersAny(userId);
+    }
 
-        Map<Object, Object> state =
-                redisTemplate.opsForHash().entries("status:" + targetUserId);
+    public void requestSnapshot(String viewerId, String targetId) {
 
-        UserStatusMessage snapshot = UserStatusMessage.builder()
-                .userId(targetUserId)
-                .status((String) state.getOrDefault("status", "offline"))
-                .lastSeen(
-                        state.get("lastSeen") != null
-                                ? Instant.parse(state.get("lastSeen").toString())
-                                : null
-                )
-                .build();
+        boolean isOnline = Boolean.TRUE.equals(redisTemplate.hasKey("session:" + targetId));
+        String statusKey = "status:" + targetId;
+
+        if (isOnline) {
+            if (!visibilityPolicy.canSeeOnline(viewerId, targetId)) {
+                messagingTemplate.convertAndSendToUser(
+                        viewerId,
+                        "/queue/online-status",
+                        UserStatusMessage.builder().userId(targetId).status("hidden").lastSeen(null).build());
+                return;
+            }
+
+            messagingTemplate.convertAndSendToUser(
+                    viewerId,
+                    "/queue/online-status",
+                    UserStatusMessage.builder().userId(targetId).status("online").lastSeen(null).build());
+            return;
+        }
+
+        // offline => lastSeen policy
+        if (!visibilityPolicy.canSeeLastSeen(viewerId, targetId)) {
+            messagingTemplate.convertAndSendToUser(
+                    viewerId,
+                    "/queue/online-status",
+                    UserStatusMessage.builder().userId(targetId).status("hidden").lastSeen(null).build());
+            return;
+        }
+
+        Instant lastSeenInstant = null;
+
+        Object lastSeenObj = redisTemplate.opsForHash().get(statusKey, "lastSeen");
+        if (lastSeenObj != null) {
+            try {
+                lastSeenInstant = Instant.parse(lastSeenObj.toString());
+            } catch (Exception ignored) {
+            }
+        }
+
+        if (lastSeenInstant == null) {
+            try {
+                LastSeenDTO dto = userManager.getLastSeen(targetId);
+                if (dto != null && dto.lastSeen() != null) {
+                    lastSeenInstant = Instant.parse(dto.lastSeen());
+
+                    redisTemplate.opsForHash().put(statusKey, "lastSeen", dto.lastSeen());
+                    redisTemplate.expire(statusKey, STATUS_TTL);
+                }
+            } catch (Exception ignored) {
+            }
+        }
 
         messagingTemplate.convertAndSendToUser(
-                requesterId,
+                viewerId,
                 "/queue/online-status",
-                snapshot
-        );
+                UserStatusMessage.builder()
+                        .userId(targetId)
+                        .status("offline")
+                        .lastSeen(lastSeenInstant)
+                        .build());
     }
 
-    private List<String> getRelatedUsers(String userId) {
-        Set<Object> members = redisTemplate.opsForSet().members("rel:" + userId);
-        if (members == null || members.isEmpty()) return List.of();
-        return members.stream().map(Object::toString).toList();
-    }
 }
-
-
-
-

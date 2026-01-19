@@ -32,4 +32,6 @@ public interface IUserRelationshipRepository extends JpaRepository<UserRelations
             @Param("userId") UUID userId,
             @Param("chatIds") List<UUID> chatIds
     );
+
+    List<UserRelationship> findByUserId(UUID userId);
 }

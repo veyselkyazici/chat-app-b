@@ -1,7 +1,6 @@
 package com.vky.service;
 
 import com.vky.dto.request.UnreadMessageCountDTO;
-import com.vky.rabbitmq.RabbitMQProducer;
 import com.vky.repository.entity.UserChatSettings;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -21,11 +20,11 @@ public class UnreadMessageCountService {
 
     public int incrementUnreadCount(UnreadMessageCountDTO dto) {
 
-        String key = generateUnreadKey(dto.getChatRoomId(), dto.getRecipientId());
+        String key = generateUnreadKey(dto.chatRoomId(), dto.recipientId());
 
         Integer current = (Integer) redisTemplate.opsForValue().get(key);
         if (current == null) {
-            current = loadUnreadFromMongo(dto.getChatRoomId(), dto.getRecipientId());
+            current = loadUnreadFromMongo(dto.chatRoomId(), dto.recipientId());
         }
 
         // Redis'te arttır
@@ -33,10 +32,9 @@ public class UnreadMessageCountService {
 
         // Mongo'da unread güncelle (senkron, basit çözüm)
         userChatSettingsService.setUnreadCount(
-                dto.getChatRoomId(),
-                dto.getRecipientId(),
-                updated
-        );
+                dto.chatRoomId(),
+                dto.recipientId(),
+                updated);
 
         return updated;
     }
@@ -61,8 +59,8 @@ public class UnreadMessageCountService {
 
     private int loadUnreadFromMongo(String chatRoomId, String userId) {
 
-        Optional<UserChatSettings> settings =
-                userChatSettingsService.findUserChatSettingsByChatRoomIdAndUserId(chatRoomId, userId);
+        Optional<UserChatSettings> settings = userChatSettingsService
+                .findUserChatSettingsByChatRoomIdAndUserId(chatRoomId, userId);
 
         int unread = settings.map(UserChatSettings::getUnreadMessageCount).orElse(0);
 
@@ -93,6 +91,3 @@ public class UnreadMessageCountService {
         redisTemplate.delete(redisKey);
     }
 }
-
-
-

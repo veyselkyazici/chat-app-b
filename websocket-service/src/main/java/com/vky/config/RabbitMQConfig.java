@@ -18,6 +18,27 @@ public class RabbitMQConfig {
     public static final String WS_REL_SYNC_QUEUE    = "ws.relationship.sync.queue";
     public static final String WS_REL_SYNC_ROUTING  = "ws.relationship.sync";
 
+    public static final String WS_PRIVACY_EXCHANGE = "ws.privacy.exchange";
+    public static final String WS_PRIVACY_QUEUE    = "ws.privacy.queue";
+    public static final String WS_PRIVACY_ROUTING  = "ws.privacy.routing";
+
+    @Bean
+    public TopicExchange wsPrivacyExchange() {
+        return new TopicExchange(WS_PRIVACY_EXCHANGE, true, false);
+    }
+
+    @Bean
+    public Queue wsPrivacyQueue() {
+        return QueueBuilder.durable(WS_PRIVACY_QUEUE).build();
+    }
+
+    @Bean
+    public Binding bindWsPrivacy() {
+        return BindingBuilder.bind(wsPrivacyQueue())
+                .to(wsPrivacyExchange())
+                .with(WS_PRIVACY_ROUTING);
+    }
+
 
     @Bean
     public TopicExchange wsDeliveryExchange() {
@@ -35,6 +56,7 @@ public class RabbitMQConfig {
                 .to(wsDeliveryExchange())
                 .with(WS_DELIVERY_ROUTING);
     }
+
 
     @Bean
     public TopicExchange wsRelationshipSyncExchange() {
@@ -61,11 +83,11 @@ public class RabbitMQConfig {
     public static final String CHAT_READ_ROUTING  = "chat.read";
 
     // CONTACTS
-    public static final String CONTACTS_PRIVACY_EXCHANGE = "contacts.privacy.exchange";
-    public static final String CONTACTS_PRIVACY_ROUTING   = "contacts.privacy";
-
-    public static final String CONTACTS_PROFILE_EXCHANGE = "contacts.profile.exchange";
-    public static final String CONTACTS_PROFILE_ROUTING   = "contacts.profile";
+//    public static final String CONTACTS_PRIVACY_EXCHANGE = "contacts.privacy.exchange";
+//    public static final String CONTACTS_PRIVACY_ROUTING   = "contacts.privacy";
+//
+//    public static final String CONTACTS_PROFILE_EXCHANGE = "contacts.profile.exchange";
+//    public static final String CONTACTS_PROFILE_ROUTING   = "contacts.profile";
 
     @Bean
     public TopicExchange chatIncomingExchange() {
@@ -77,15 +99,15 @@ public class RabbitMQConfig {
         return new TopicExchange(CHAT_READ_EXCHANGE);
     }
 
-    @Bean
-    public TopicExchange contactsPrivacyExchange() {
-        return new TopicExchange(CONTACTS_PRIVACY_EXCHANGE);
-    }
-
-    @Bean
-    public TopicExchange contactsProfileExchange() {
-        return new TopicExchange(CONTACTS_PROFILE_EXCHANGE);
-    }
+//    @Bean
+//    public TopicExchange contactsPrivacyExchange() {
+//        return new TopicExchange(CONTACTS_PRIVACY_EXCHANGE);
+//    }
+//
+//    @Bean
+//    public TopicExchange contactsProfileExchange() {
+//        return new TopicExchange(CONTACTS_PROFILE_EXCHANGE);
+//    }
 
     @Bean
     public MessageConverter jsonConverter(ObjectMapper mapper) {

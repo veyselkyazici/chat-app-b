@@ -4,7 +4,6 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.exceptions.TokenExpiredException;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import com.vky.util.JwtTokenManager;
 import com.vky.dto.request.*;
 import com.vky.dto.response.*;
 import com.vky.exception.AuthManagerException;
@@ -17,6 +16,7 @@ import com.vky.rabbitmq.producer.RabbitMQProducer;
 import com.vky.repository.IAuthRepository;
 import com.vky.repository.entity.Auth;
 import com.vky.repository.entity.enums.Role;
+import com.vky.util.JwtTokenManager;
 import feign.FeignException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -43,8 +43,9 @@ public class AuthService {
     private final RedisTemplate<String, Object> redisTemplate;
     private final ReCaptchaService reCaptchaService;
 
-
-    public AuthService(IAuthRepository authRepository, JwtTokenManager jwtTokenManager, PasswordEncoder passwordEncoder,  RabbitMQProducer rabbitMQProducer, IMailManager mailManager, IUserManager iUserManager, RedisTemplate<String, Object> redisTemplate, ReCaptchaService reCaptchaService) {
+    public AuthService(IAuthRepository authRepository, JwtTokenManager jwtTokenManager, PasswordEncoder passwordEncoder,
+            RabbitMQProducer rabbitMQProducer, IMailManager mailManager, IUserManager iUserManager,
+            RedisTemplate<String, Object> redisTemplate, ReCaptchaService reCaptchaService) {
         this.authRepository = authRepository;
         this.jwtTokenManager = jwtTokenManager;
         this.passwordEncoder = passwordEncoder;
@@ -54,17 +55,18 @@ public class AuthService {
         this.redisTemplate = redisTemplate;
         this.reCaptchaService = reCaptchaService;
     }
-    public LoginResponseDTO login(LoginRequestDTO loginRequestDTO) {
-        captcha(loginRequestDTO.getRecaptchaToken(),"login");
 
-        Auth authUser = authRepository.findByEmailIgnoreCase(loginRequestDTO.getEmail())
+    public LoginResponseDTO login(LoginRequestDTO loginRequestDTO) {
+        captcha(loginRequestDTO.recaptchaToken(), "login");
+
+        Auth authUser = authRepository.findByEmailIgnoreCase(loginRequestDTO.email())
                 .orElseThrow(() -> new AuthManagerException(ErrorType.INVALID_CREDENTIALS));
 
         if (!authUser.isApproved()) {
             throw new AuthManagerException(ErrorType.EMAIL_NEEDS_VERIFICATION);
         }
 
-        if (!passwordEncoder.matches(loginRequestDTO.getPassword(), authUser.getPassword())) {
+        if (!passwordEncoder.matches(loginRequestDTO.password(), authUser.getPassword())) {
             throw new AuthManagerException(ErrorType.INVALID_CREDENTIALS);
         }
 
@@ -107,9 +109,7 @@ public class AuthService {
                     redisKey,
                     newRefreshToken,
                     jwtTokenManager.getRefreshExpiration(),
-                    TimeUnit.MILLISECONDS
-            );
-
+                    TimeUnit.MILLISECONDS);
 
             return LoginResponseDTO.builder()
                     .accessToken(newAccessToken)
@@ -123,22 +123,24 @@ public class AuthService {
             throw new AuthManagerException(ErrorType.INVALID_TOKEN);
         }
     }
+
     @Transactional
     public void register(RegisterRequestDTO registerRequestDTO) {
-        captcha(registerRequestDTO.getRecaptchaToken(), "signup");
+        captcha(registerRequestDTO.recaptchaToken(), "signup");
 
-        Optional<Auth> optionalAuth = authRepository.findAuthByAndEmailIgnoreCase(registerRequestDTO.getEmail());
+        Optional<Auth> optionalAuth = authRepository.findAuthByAndEmailIgnoreCase(registerRequestDTO.email());
 
         if (optionalAuth.isPresent()) {
             Auth existingAuth = optionalAuth.get();
             if (existingAuth.isApproved()) {
                 throw new AuthManagerException(ErrorType.EMAIL_ALREADY_EXISTS);
             } else {
-                existingAuth.setPassword(passwordEncoder.encode(registerRequestDTO.getPassword()));
+                existingAuth.setPassword(passwordEncoder.encode(registerRequestDTO.password()));
                 authRepository.save(existingAuth);
-                //authRepository.flush();
-                iUserManager.resetUserKey(ResetUserKeyDTO.builder().publicKey(registerRequestDTO.getPublicKey()).salt(registerRequestDTO.getSalt()).encryptedPrivateKey(registerRequestDTO.getEncryptedPrivateKey())
-                        .iv(registerRequestDTO.getIv()).userId(existingAuth.getId()).build());
+                // authRepository.flush();
+                iUserManager.resetUserKey(ResetUserKeyDTO.builder().publicKey(registerRequestDTO.publicKey())
+                        .salt(registerRequestDTO.salt()).encryptedPrivateKey(registerRequestDTO.encryptedPrivateKey())
+                        .iv(registerRequestDTO.iv()).userId(existingAuth.getId()).build());
                 CreateConfirmationRequestDTO confirmationDTO = IAuthMapper.INSTANCE.toAuthDTOO(existingAuth);
                 mailManager.resendConfirmation(confirmationDTO);
             }
@@ -148,27 +150,26 @@ public class AuthService {
         }
     }
 
-    private void captcha(String recaptchaToken,String action) {
+    private void captcha(String recaptchaToken, String action) {
         ReCaptchaResponseDTO captchaResponse = reCaptchaService.verify(recaptchaToken);
 
-        if (captchaResponse == null || !captchaResponse.isSuccess()) {
+        if (captchaResponse == null || !captchaResponse.success()) {
             throw new AuthManagerException(ErrorType.RECAPTCHA_FAILED);
         }
 
-        if (!action.equals(captchaResponse.getAction())) {
+        if (!action.equals(captchaResponse.action())) {
             throw new AuthManagerException(ErrorType.RECAPTCHA_FAILED);
         }
 
-        if (captchaResponse.getScore() < 0.5) {
+        if (captchaResponse.score() < 0.5) {
             throw new AuthManagerException(ErrorType.RECAPTCHA_FAILED);
         }
     }
 
-
     private Auth createNewAuth(RegisterRequestDTO registerRequestDTO) {
         Auth auth = Auth.builder()
-                .email(registerRequestDTO.getEmail())
-                .password(passwordEncoder.encode(registerRequestDTO.getPassword()))
+                .email(registerRequestDTO.email())
+                .password(passwordEncoder.encode(registerRequestDTO.password()))
                 .role(Role.USER)
                 .isApproved(false)
                 .build();
@@ -179,13 +180,13 @@ public class AuthService {
         CreateConfirmationRequestDTO confirmationDTO = IAuthMapper.INSTANCE.toAuthDTOO(auth);
         mailManager.createConfirmation(confirmationDTO);
         rabbitMQProducer.sendCreateUserMessage(CreateUser.builder()
-                    .authId(auth.getId())
-                    .email(auth.getEmail())
-                    .encryptedPrivateKey(registerRequestDTO.getEncryptedPrivateKey())
-                    .iv(registerRequestDTO.getIv())
-                    .salt(registerRequestDTO.getSalt())
-                    .publicKey(registerRequestDTO.getPublicKey())
-                    .build());
+                .authId(auth.getId())
+                .email(auth.getEmail())
+                .encryptedPrivateKey(registerRequestDTO.encryptedPrivateKey())
+                .iv(registerRequestDTO.iv())
+                .salt(registerRequestDTO.salt())
+                .publicKey(registerRequestDTO.publicKey())
+                .build());
 
     }
 
@@ -224,11 +225,10 @@ public class AuthService {
 
     public CheckOtpResponseDTO checkOtp(CheckOtpRequestDTO checkOtpRequestDTO) {
 
-        Auth auth = this.authRepository.findByEmailIgnoreCase(checkOtpRequestDTO.getEmail())
+        Auth auth = this.authRepository.findByEmailIgnoreCase(checkOtpRequestDTO.email())
                 .orElseThrow(() -> new AuthManagerException(ErrorType.EMAIL_NOT_FOUND));
 
         String redisKey = "reset_password:" + auth.getId();
-
 
         Map<Object, Object> resetData = redisTemplate.opsForHash().entries(redisKey);
         if (resetData.isEmpty()) {
@@ -239,7 +239,7 @@ public class AuthService {
         String storedEmail = (String) resetData.get("email");
         int attempts = Integer.parseInt(resetData.get("attempts").toString());
         int attemptsLimit = Integer.valueOf(resetData.get("attempts_limit").toString());
-        if (!storedEmail.equals(checkOtpRequestDTO.getEmail())) {
+        if (!storedEmail.equals(checkOtpRequestDTO.email())) {
             throw new AuthManagerException(ErrorType.EMAIL_MISMATCH);
         }
 
@@ -248,7 +248,7 @@ public class AuthService {
             throw new AuthManagerException(ErrorType.TOO_MANY_ATTEMPTS);
         }
 
-        if (storedOtp != null && storedOtp.equals(checkOtpRequestDTO.getOtp())) {
+        if (storedOtp != null && storedOtp.equals(checkOtpRequestDTO.otp())) {
             String passwordResetToken = generateSecureToken();
 
             resetData.put("reset_token", passwordResetToken);
@@ -260,7 +260,8 @@ public class AuthService {
             Long expirySeconds = redisTemplate.getExpire("reset_password:" + auth.getId(), TimeUnit.SECONDS);
             Instant expiryTime = Instant.now().plusSeconds(expirySeconds);
 
-            return CheckOtpResponseDTO.builder().resetToken(passwordResetToken).email(auth.getEmail()).expiryTime(expiryTime).success(true).build();
+            return CheckOtpResponseDTO.builder().resetToken(passwordResetToken).email(auth.getEmail())
+                    .expiryTime(expiryTime).success(true).build();
         } else {
             redisTemplate.opsForHash().put(redisKey, "attempts", String.valueOf(attempts + 1));
 
@@ -268,13 +269,15 @@ public class AuthService {
                 redisTemplate.delete(redisKey);
             }
             int remainingAttempts = attemptsLimit - (attempts + 1);
-            return CheckOtpResponseDTO.builder().email(auth.getEmail()).remainingAttempts(remainingAttempts).success(false).message("Invalid OTP Code. Remaining attempts: " + remainingAttempts).build();
+            return CheckOtpResponseDTO.builder().email(auth.getEmail()).remainingAttempts(remainingAttempts)
+                    .success(false).message("Invalid OTP Code. Remaining attempts: " + remainingAttempts).build();
         }
     }
+
     @Transactional
     public void resetPassword(ForgotPasswordResetPasswordRequestDTO forgotPasswordResetPasswordRequestDTO) {
-        captcha(forgotPasswordResetPasswordRequestDTO.getRecaptchaToken(),"password_reset");
-        Auth auth = this.authRepository.findAuthByAndEmailIgnoreCase(forgotPasswordResetPasswordRequestDTO.getEmail())
+        captcha(forgotPasswordResetPasswordRequestDTO.recaptchaToken(), "password_reset");
+        Auth auth = this.authRepository.findAuthByAndEmailIgnoreCase(forgotPasswordResetPasswordRequestDTO.email())
                 .orElseThrow(() -> new AuthManagerException(ErrorType.EMAIL_NOT_FOUND));
 
         String redisKey = "reset_password:" + auth.getId();
@@ -288,18 +291,18 @@ public class AuthService {
         String resetToken = (String) resetData.get("reset_token");
         String otpVerified = (String) resetData.get("otp_verified");
 
-        if (!storedEmail.equals(forgotPasswordResetPasswordRequestDTO.getEmail())) {
+        if (!storedEmail.equals(forgotPasswordResetPasswordRequestDTO.email())) {
             throw new AuthManagerException(ErrorType.EMAIL_MISMATCH);
         }
 
-        if (!resetToken.equals(forgotPasswordResetPasswordRequestDTO.getResetToken())) {
+        if (!resetToken.equals(forgotPasswordResetPasswordRequestDTO.resetToken())) {
             throw new AuthManagerException(ErrorType.INVALID_RESET_TOKEN);
         }
 
         if (!"true".equals(otpVerified)) {
             throw new AuthManagerException(ErrorType.OTP_NOT_VERIFIED);
         }
-        String newPassword = this.passwordEncoder.encode(forgotPasswordResetPasswordRequestDTO.getNewPassword());
+        String newPassword = this.passwordEncoder.encode(forgotPasswordResetPasswordRequestDTO.newPassword());
 
         auth.setPassword(newPassword);
         this.authRepository.save(auth);
@@ -308,10 +311,10 @@ public class AuthService {
 
             iUserManager.resetUserKey(ResetUserKeyDTO.builder()
                     .userId(auth.getId())
-                    .iv(forgotPasswordResetPasswordRequestDTO.getIv())
-                    .encryptedPrivateKey(forgotPasswordResetPasswordRequestDTO.getEncryptedPrivateKey())
-                    .salt(forgotPasswordResetPasswordRequestDTO.getSalt())
-                    .publicKey(forgotPasswordResetPasswordRequestDTO.getPublicKey())
+                    .iv(forgotPasswordResetPasswordRequestDTO.iv())
+                    .encryptedPrivateKey(forgotPasswordResetPasswordRequestDTO.encryptedPrivateKey())
+                    .salt(forgotPasswordResetPasswordRequestDTO.salt())
+                    .publicKey(forgotPasswordResetPasswordRequestDTO.publicKey())
                     .build());
         } catch (FeignException e) {
             throw new AuthManagerException(ErrorType.USER_KEY_RESET_FAILED);
@@ -329,14 +332,14 @@ public class AuthService {
     public void changePassword(ChangePasswordRequestDTO changePasswordRequestDTO, String userId) {
         Auth auth = this.authRepository.findById(UUID.fromString(userId))
                 .orElseThrow(() -> new AuthManagerException(ErrorType.EMAIL_NOT_FOUND));
-        String newPassword = this.passwordEncoder.encode(changePasswordRequestDTO.getNewPassword());
+        String newPassword = this.passwordEncoder.encode(changePasswordRequestDTO.newPassword());
         auth.setPassword(newPassword);
         this.authRepository.save(auth);
         iUserManager.resetUserKey(ResetUserKeyDTO.builder()
                 .userId(auth.getId())
-                .iv(changePasswordRequestDTO.getIv())
-                .encryptedPrivateKey(changePasswordRequestDTO.getEncryptedPrivateKey())
-                .salt(changePasswordRequestDTO.getSalt())
+                .iv(changePasswordRequestDTO.iv())
+                .encryptedPrivateKey(changePasswordRequestDTO.encryptedPrivateKey())
+                .salt(changePasswordRequestDTO.salt())
                 .build());
     }
 }

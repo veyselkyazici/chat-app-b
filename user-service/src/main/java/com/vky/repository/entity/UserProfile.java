@@ -4,10 +4,8 @@ import com.vky.repository.entity.enums.Status;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
-import org.hibernate.annotations.Where;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 

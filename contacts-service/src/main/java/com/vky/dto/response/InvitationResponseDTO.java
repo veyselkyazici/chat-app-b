@@ -1,20 +1,13 @@
 package com.vky.dto.response;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.util.UUID;
 
-@AllArgsConstructor
-@NoArgsConstructor
-@Data
-@Builder
-public class InvitationResponseDTO {
-    private UUID id;
-    private boolean isInvited;
-    private String contactName;
-    private UUID inviterUserId;
-    private String inviteeEmail;
+@Builder(toBuilder = true)
+public record InvitationResponseDTO(
+        UUID id,
+        boolean isInvited,
+        String contactName,
+        UUID inviterUserId,
+        String inviteeEmail) {
 }

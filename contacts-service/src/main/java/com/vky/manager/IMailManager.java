@@ -1,7 +1,6 @@
 package com.vky.manager;
 
 import com.vky.dto.request.SendInvitationDTO;
-import com.vky.dto.request.SendInvitationEmailDTO;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;

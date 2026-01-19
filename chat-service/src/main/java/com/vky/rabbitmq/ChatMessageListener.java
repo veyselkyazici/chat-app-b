@@ -3,16 +3,12 @@ package com.vky.rabbitmq;
 import com.vky.dto.request.MessageRequestDTO;
 import com.vky.dto.request.UnreadMessageCountDTO;
 import com.vky.dto.response.MessageFriendResponseDTO;
-import com.vky.expcetion.ErrorMessage;
 import com.vky.mapper.IChatMapper;
 import com.vky.repository.entity.ChatMessage;
 import com.vky.service.ChatMessageService;
 import com.vky.service.UnreadMessageCountService;
-import com.vky.service.UserChatSettingsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -29,15 +25,15 @@ public class ChatMessageListener {
             ChatMessage saved = chatMessageService.sendMessage(dto);
 
             UnreadMessageCountDTO unreadDto = UnreadMessageCountDTO.builder()
-                    .chatRoomId(dto.getChatRoomId())
-                    .recipientId(dto.getRecipientId())
-                    .senderId(dto.getSenderId())
+                    .chatRoomId(dto.chatRoomId())
+                    .recipientId(dto.recipientId())
+                    .senderId(dto.senderId())
                     .build();
 
             int currentCount = unreadMessageCountService.incrementUnreadCount(unreadDto);
 
             MessageFriendResponseDTO resp = IChatMapper.INSTANCE.toResponseDTO(saved);
-            resp.setUnreadMessageCount(currentCount);
+            resp = resp.toBuilder().unreadMessageCount(currentCount).build();
 
             producer.publishDeliverEvent(resp);
 

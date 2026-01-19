@@ -1,33 +1,9 @@
 package com.vky;
 
-import com.vky.repository.IPrivacySettingsRepository;
-import com.vky.repository.IUserKeyRepository;
-import com.vky.repository.IUserProfileRepository;
-import com.vky.repository.entity.PrivacySettings;
-import com.vky.repository.entity.UserKey;
-import com.vky.repository.entity.UserProfile;
-import com.vky.repository.entity.enums.VisibilityOption;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.openfeign.EnableFeignClients;
-import org.springframework.context.annotation.Bean;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
-
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.GCMParameterSpec;
-import javax.crypto.spec.PBEKeySpec;
-import javax.crypto.spec.SecretKeySpec;
-import java.io.ByteArrayOutputStream;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.SecureRandom;
-import java.security.spec.KeySpec;
-import java.time.Instant;
-import java.util.Base64;
-import java.util.UUID;
 
 @SpringBootApplication
 @EnableFeignClients

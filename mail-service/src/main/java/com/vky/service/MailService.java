@@ -53,8 +53,7 @@ public class MailService {
             Context context = new Context();
             context.setVariables(Map.of(
                     "name", email,
-                    "url", getVerificationUrl(host, token)
-            ));
+                    "url", getVerificationUrl(host, token)));
             String htmlContent = templateEngine.process(EMAIL_TEMPLATE, context);
 
             String plainText = "Hello " + email + ",\n"
@@ -122,8 +121,8 @@ public class MailService {
 
             MimeMultipart mimeMultipart = new MimeMultipart("alternative");
 
-            String plainText = "Hello " + sendInvitationDTO.getInviteeEmail() + ",\n"
-                    + sendInvitationDTO.getInviterEmail() + " has invited you to join vkychatapp.\n"
+            String plainText = "Hello " + sendInvitationDTO.inviteeEmail() + ",\n"
+                    + sendInvitationDTO.inviterEmail() + " has invited you to join vkychatapp.\n"
                     + "Please visit: " + host;
             BodyPart textPart = new MimeBodyPart();
             textPart.setText(plainText);
@@ -131,10 +130,9 @@ public class MailService {
 
             Context context = new Context();
             context.setVariables(Map.of(
-                    "name", sendInvitationDTO.getInviteeEmail(),
-                    "inviterEmail", sendInvitationDTO.getInviterEmail(),
-                    "url", host
-            ));
+                    "name", sendInvitationDTO.inviteeEmail(),
+                    "inviterEmail", sendInvitationDTO.inviterEmail(),
+                    "url", host));
             String htmlContent = templateEngine.process(INVITATION_TEMPLATE, context);
 
             BodyPart htmlPart = new MimeBodyPart();
@@ -145,7 +143,7 @@ public class MailService {
             helper.setPriority(3);
             helper.setSubject(INVITATION);
             helper.setFrom(fromEmail);
-            helper.setTo(sendInvitationDTO.getInviteeEmail());
+            helper.setTo(sendInvitationDTO.inviteeEmail());
 
             message.setContent(mimeMultipart);
 

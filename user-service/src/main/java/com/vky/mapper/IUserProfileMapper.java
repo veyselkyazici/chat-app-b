@@ -1,5 +1,6 @@
 package com.vky.mapper;
 
+import com.vky.dto.request.UpdateSettingsRequestDTO;
 import com.vky.dto.response.*;
 import com.vky.repository.entity.PrivacySettings;
 import com.vky.repository.entity.UserKey;
@@ -26,6 +27,10 @@ public interface IUserProfileMapper {
     @Mapping(target = "salt", expression = "java(mapByteArrayToBase64(userKey.getSalt()))")
     @Mapping(target = "iv", expression = "java(mapByteArrayToBase64(userKey.getIv()))")
     UserKeyResponseDTO toUserKeyResponseDTO(UserKey userKey);
+
+
+    UpdateSettingsRequestDTO toUserProfileWithoutKeyDTO(UserProfile userProfile);
+
 
     @Mapping(target = "userProfileResponseDTO", source = "userProfile")
     ContactResponseDTO toFeignClientResponse(UserProfile userProfile);

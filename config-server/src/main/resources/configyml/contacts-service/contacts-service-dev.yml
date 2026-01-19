@@ -89,9 +89,17 @@ logging:
     org.springframework.cloud.openfeign: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    com.vky.feign.IUserManager: DEBUG
   pattern:
     console: "%clr(%d{HH:mm:ss.SSS}){faint} %clr(%-5level) %clr([%thread]){magenta} %clr(%logger{36}){cyan} - %msg%n"
 
+feign:
+  client:
+    config:
+      default:
+        loggerLevel: FULL
+        connectTimeout: 5000
+        readTimeout: 10000
 # Development actuator endpoints
 management:
   endpoints:

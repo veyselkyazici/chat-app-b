@@ -7,12 +7,9 @@ import com.vky.manager.IAuthManager;
 import com.vky.repository.ConfirmationRepository;
 import com.vky.repository.entity.Confirmation;
 import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.UUID;
@@ -24,7 +21,8 @@ public class ConfirmationService {
     private final MailService mailService;
     private final RedisService redisService;
 
-    public ConfirmationService(ConfirmationRepository confirmationRepository, IAuthManager authManager, MailService mailService, RedisService redisService) {
+    public ConfirmationService(ConfirmationRepository confirmationRepository, IAuthManager authManager,
+            MailService mailService, RedisService redisService) {
         this.confirmationRepository = confirmationRepository;
         this.authManager = authManager;
         this.mailService = mailService;
@@ -35,21 +33,23 @@ public class ConfirmationService {
     public void createConfirmation(CreateConfirmationRequestDTO createConfirmationRequestDTO) {
         Confirmation confirmation = Confirmation.builder()
                 .verificationToken(UUID.randomUUID().toString())
-                .authId(createConfirmationRequestDTO.getId() != null ? createConfirmationRequestDTO.getId() : null)
-                .email(createConfirmationRequestDTO.getEmail())
+                .authId(createConfirmationRequestDTO.id() != null ? createConfirmationRequestDTO.id() : null)
+                .email(createConfirmationRequestDTO.email())
                 .expiresAt(Instant.now().plus(1, ChronoUnit.HOURS))
                 .isUsed(false)
                 .build();
-
 
         this.confirmationRepository.save(confirmation);
         redisService.saveConfirmation(confirmation);
         this.sendEMailVerification(createConfirmationRequestDTO, confirmation);
     }
 
-    public void sendEMailVerification(CreateConfirmationRequestDTO createConfirmationRequestDTO, Confirmation confirmation) {
-        this.mailService.sendHtmlEmailWithEmbeddedFiles(createConfirmationRequestDTO.getEmail(), confirmation.getVerificationToken());
+    public void sendEMailVerification(CreateConfirmationRequestDTO createConfirmationRequestDTO,
+            Confirmation confirmation) {
+        this.mailService.sendHtmlEmailWithEmbeddedFiles(createConfirmationRequestDTO.email(),
+                confirmation.getVerificationToken());
     }
+
     public void verifyToken(String verificationToken) {
         Map<Object, Object> redisData = redisService.getConfirmation(verificationToken);
         if (redisData.isEmpty()) {
@@ -95,8 +95,7 @@ public class ConfirmationService {
                             .email(email)
                             .id(confirmation.getAuthId())
                             .build(),
-                    confirmation
-            );
+                    confirmation);
             return;
         }
 
@@ -111,9 +110,7 @@ public class ConfirmationService {
                         .email(email)
                         .id(confirmation.getAuthId())
                         .build(),
-                confirmation
-        );
+                confirmation);
     }
-
 
 }

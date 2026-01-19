@@ -3,7 +3,6 @@ package com.vky.service.privacy;
 import com.vky.repository.IUserRelationshipRepository;
 import com.vky.repository.entity.UserRelationship;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
