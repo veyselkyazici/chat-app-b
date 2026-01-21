@@ -32,17 +32,24 @@ public class RedisService {
 
     public void saveConfirmation(Confirmation confirmation) {
         String redisKey = "confirmation:" + confirmation.getVerificationToken();
-        Map<String, String> confirmationData = Map.of(
+
+        long secondsToExpire = Duration.between(Instant.now(), confirmation.getExpiresAt()).getSeconds();
+        if (secondsToExpire <= 0) {
+            redisTemplate.delete(redisKey);
+            return;
+        }
+
+        Map<String, String> data = Map.of(
                 "authId", confirmation.getAuthId() != null ? confirmation.getAuthId().toString() : "",
                 "email", confirmation.getEmail(),
                 "isUsed", String.valueOf(confirmation.isUsed()),
-                "expiresAt", confirmation.getExpiresAt().toString());
+                "expiresAt", confirmation.getExpiresAt().toString()
+        );
 
-        redisTemplate.opsForHash().putAll(redisKey, confirmationData);
-
-        long secondsToExpire = Duration.between(Instant.now(), confirmation.getExpiresAt()).getSeconds();
+        redisTemplate.opsForHash().putAll(redisKey, data);
         redisTemplate.expire(redisKey, Duration.ofSeconds(secondsToExpire));
     }
+
 
     public Map<Object, Object> getConfirmation(String token) {
         String redisKey = "confirmation:" + token;

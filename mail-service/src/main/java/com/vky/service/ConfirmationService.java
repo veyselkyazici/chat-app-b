@@ -50,67 +50,98 @@ public class ConfirmationService {
                 confirmation.getVerificationToken());
     }
 
-    public void verifyToken(String verificationToken) {
-        Map<Object, Object> redisData = redisService.getConfirmation(verificationToken);
-        if (redisData.isEmpty()) {
-            throw new MailServiceException(ErrorType.TOKEN_NOT_FOUND);
-        }
-
-        boolean isUsed = Boolean.parseBoolean((String) redisData.get("isUsed"));
-
-        Instant expiresAt = Instant.parse((String) redisData.get("expiresAt"));
-
-        if (isUsed) {
-            throw new MailServiceException(ErrorType.TOKEN_ALREADY_USER);
-        }
-        if (expiresAt.isBefore(Instant.now())) {
-            throw new MailServiceException(ErrorType.TOKEN_EXPIRED);
-        }
-
-        Confirmation confirmation = confirmationRepository
-                .findByVerificationToken(verificationToken);
-        confirmation.setUsed(true);
-        confirmationRepository.save(confirmation);
-
-        redisService.deleteConfirmation(verificationToken);
-
-        authManager.saveVerifiedAccountId(confirmation.getAuthId());
-    }
-
     @Transactional
-    public void resendConfirmation(String email) {
-        Confirmation confirmation = confirmationRepository.findTopByEmailOrderByCreatedAtDesc(email);
+    public void verifyToken(String token) {
+        // 1) Redis first
+        Map<Object, Object> redisData = redisService.getConfirmation(token);
 
-        if (confirmation == null) {
-            throw new MailServiceException(ErrorType.TOKEN_NOT_FOUND);
-        }
+        if (!redisData.isEmpty()) {
+            boolean isUsed = Boolean.parseBoolean(String.valueOf(redisData.get("isUsed")));
+            Instant expiresAt = Instant.parse(String.valueOf(redisData.get("expiresAt")));
 
-        if (confirmation.isUsed()) {
-            throw new MailServiceException(ErrorType.TOKEN_ALREADY_USER);
-        }
+            if (isUsed) {
+                throw new MailServiceException(ErrorType.TOKEN_ALREADY_USED);
+            }
+            if (expiresAt.isBefore(Instant.now())) {
+                redisService.deleteConfirmation(token);
+                throw new MailServiceException(ErrorType.TOKEN_EXPIRED);
+            }
 
-        if (confirmation.getExpiresAt().isAfter(Instant.now())) {
-            sendEMailVerification(
-                    CreateConfirmationRequestDTO.builder()
-                            .email(email)
-                            .id(confirmation.getAuthId())
-                            .build(),
-                    confirmation);
+            Confirmation c = confirmationRepository.findByVerificationToken(token)
+                    .orElseThrow(() -> new MailServiceException(ErrorType.TOKEN_NOT_FOUND));
+
+            if (c.isUsed()) {
+                redisService.deleteConfirmation(token);
+                throw new MailServiceException(ErrorType.TOKEN_ALREADY_USED);
+            }
+            if (c.getExpiresAt().isBefore(Instant.now())) {
+                redisService.deleteConfirmation(token);
+                throw new MailServiceException(ErrorType.TOKEN_EXPIRED);
+            }
+
+            c.setUsed(true);
+            confirmationRepository.save(c);
+
+            redisService.deleteConfirmation(token);
+
+            if (c.getAuthId() == null) {
+                throw new MailServiceException(ErrorType.AUTH_ID_MISSING);
+            }
+            authManager.saveVerifiedAccountId(c.getAuthId());
             return;
         }
 
-        confirmation.setVerificationToken(UUID.randomUUID().toString());
-        confirmation.setExpiresAt(Instant.now().plus(1, ChronoUnit.HOURS));
+        Confirmation c = confirmationRepository.findByVerificationToken(token)
+                .orElseThrow(() -> new MailServiceException(ErrorType.TOKEN_NOT_FOUND));
 
-        confirmationRepository.save(confirmation);
-        redisService.saveConfirmation(confirmation);
+        if (c.isUsed()) {
+            throw new MailServiceException(ErrorType.TOKEN_ALREADY_USED);
+        }
+        if (c.getExpiresAt().isBefore(Instant.now())) {
+            throw new MailServiceException(ErrorType.TOKEN_EXPIRED);
+        }
+
+        c.setUsed(true);
+        confirmationRepository.save(c);
+        redisService.deleteConfirmation(token);
+
+        if (c.getAuthId() == null) {
+            throw new MailServiceException(ErrorType.AUTH_ID_MISSING);
+        }
+        authManager.saveVerifiedAccountId(c.getAuthId());
+    }
+
+
+    @Transactional
+    public void resendConfirmation(String email) {
+        Confirmation last = confirmationRepository.findTopByEmailOrderByCreatedAtDesc(email);
+        if (last == null) throw new MailServiceException(ErrorType.TOKEN_NOT_FOUND);
+        if (last.isUsed()) throw new MailServiceException(ErrorType.TOKEN_ALREADY_USED);
+
+        last.setUsed(true);
+        confirmationRepository.save(last);
+        redisService.deleteConfirmation(last.getVerificationToken());
+
+        Confirmation fresh = Confirmation.builder()
+                .verificationToken(UUID.randomUUID().toString())
+                .authId(last.getAuthId())
+                .email(email)
+                .expiresAt(Instant.now().plus(1, ChronoUnit.HOURS))
+                .isUsed(false)
+                .build();
+
+        confirmationRepository.save(fresh);
+        redisService.saveConfirmation(fresh);
 
         sendEMailVerification(
                 CreateConfirmationRequestDTO.builder()
                         .email(email)
-                        .id(confirmation.getAuthId())
+                        .id(fresh.getAuthId())
                         .build(),
-                confirmation);
+                fresh
+        );
     }
+
+
 
 }

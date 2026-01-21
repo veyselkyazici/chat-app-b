@@ -2,6 +2,7 @@ package com.vky.manager;
 
 import com.vky.dto.request.CreateConfirmationRequestDTO;
 import com.vky.dto.request.ForgotPasswordRequestDTO;
+import com.vky.dto.request.ResendConfirmationRequestDTO;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,5 +16,5 @@ public interface IMailManager {
     void createConfirmation(CreateConfirmationRequestDTO createConfirmationRequestDTO);
 
     @PostMapping("/resend-confirmation")
-    ResponseEntity<Void> resendConfirmation(CreateConfirmationRequestDTO createConfirmationRequestDTO);
+    ResponseEntity<Void> resendConfirmation(ResendConfirmationRequestDTO resendConfirmationRequestDTO);
 }

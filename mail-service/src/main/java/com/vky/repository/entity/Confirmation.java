@@ -1,5 +1,6 @@
 package com.vky.repository.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import lombok.Data;
@@ -17,7 +18,7 @@ import java.util.UUID;
 @Table(name  = "confirmations")
 @EqualsAndHashCode(callSuper = true)
 public class Confirmation extends BaseEntityEmail{
-
+    @Column(unique = true, nullable = false)
     private String verificationToken;
     private UUID authId;
     private boolean isUsed;

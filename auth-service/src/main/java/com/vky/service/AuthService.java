@@ -141,7 +141,8 @@ public class AuthService {
                 iUserManager.resetUserKey(ResetUserKeyDTO.builder().publicKey(registerRequestDTO.publicKey())
                         .salt(registerRequestDTO.salt()).encryptedPrivateKey(registerRequestDTO.encryptedPrivateKey())
                         .iv(registerRequestDTO.iv()).userId(existingAuth.getId()).build());
-                CreateConfirmationRequestDTO confirmationDTO = IAuthMapper.INSTANCE.toAuthDTOO(existingAuth);
+                ResendConfirmationRequestDTO confirmationDTO =
+                        new ResendConfirmationRequestDTO(existingAuth.getEmail());
                 mailManager.resendConfirmation(confirmationDTO);
             }
         } else {
@@ -212,7 +213,10 @@ public class AuthService {
                     .authId(auth.getId())
                     .build());
 
-            Long expirySeconds = redisTemplate.getExpire("reset_password:" + auth.getId(), TimeUnit.SECONDS);
+            Long expirySeconds = redisTemplate.getExpire("reset_password:", TimeUnit.SECONDS);
+            if (expirySeconds == null || expirySeconds <= 0) {
+                expirySeconds = 180L;
+            }
             Instant expiryTime = Instant.now().plusSeconds(expirySeconds);
 
             return ForgotPasswordResponseDTO.builder().email(auth.getEmail()).expiryTime(expiryTime).build();
