@@ -1,12 +1,14 @@
-package com.vky.service;
+package com.vky.rabbitmq;
 
 import com.vky.config.RabbitMQConfig;
 import com.vky.dto.PrivacySettingsResponseDTO;
 import com.vky.dto.UpdateSettingsRequestDTO;
+import com.vky.service.PrivacyCache;
+import com.vky.service.StatusBroadcastService;
+import com.vky.service.WebSocketService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -16,21 +18,16 @@ import java.util.List;
 public class PrivacyUpdatedListener {
 
     private final PrivacyCache privacyCache;
-    private final SimpMessagingTemplate messaging;
     private final RedisTemplate<String, Object> redisTemplate;
-    private final StatusBroadcastService rel;
+    private final StatusBroadcastService statusBroadcastService;
+    private final WebSocketService webSocketService;
 
     @RabbitListener(queues = RabbitMQConfig.WS_PRIVACY_QUEUE)
     public void onPrivacyUpdated(UpdateSettingsRequestDTO event) {
 
         privacyCache.put(event.id().toString(), event.privacySettings());
 
-        messaging.convertAndSendToUser(
-                event.id().toString(),
-                "/queue/updated-privacy-response",
-                eventAsUserProfile(event));
-
-        List<String> relatedUsers = rel.getRelatedUsers(event.id().toString());
+        List<String> relatedUsers = statusBroadcastService.getRelatedUsers(event.id().toString());
         if (relatedUsers == null || relatedUsers.isEmpty())
             return;
 
@@ -44,10 +41,12 @@ public class PrivacyUpdatedListener {
             if (!viewerOnline)
                 continue;
 
-            messaging.convertAndSendToUser(
+            webSocketService.deliver(
                     viewerId,
                     "/queue/updated-privacy-response",
-                    eventAsUserProfile(event));
+                    "privacy-updated",
+                    eventAsUserProfile(event)
+            );
         }
     }
 

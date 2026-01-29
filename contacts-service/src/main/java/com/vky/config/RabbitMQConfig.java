@@ -31,40 +31,6 @@ public class RabbitMQConfig {
                 .to(contactCheckExchange())
                 .with(CONTACT_CHECK_ROUTING);
     }
-    // INBOUND FROM WS → CONTACTS
-//    public static final String CONTACTS_EXCHANGE = "contacts.exchange";
-//    public static final String CONTACTS_PROFILE_QUEUE = "contacts.profile.queue";
-//    public static final String CONTACTS_PROFILE_ROUTING = "contacts.profile";
-//
-//    public static final String CONTACTS_PRIVACY_QUEUE = "contacts.privacy.queue";
-//    public static final String CONTACTS_PRIVACY_ROUTING = "contacts.privacy";
-//
-//    @Bean
-//    public TopicExchange contactsExchange() { return new TopicExchange(CONTACTS_EXCHANGE); }
-//
-//    @Bean
-//    public Queue contactsProfileQueue() {
-//        return QueueBuilder.durable(CONTACTS_PROFILE_QUEUE).build();
-//    }
-//
-//    @Bean
-//    public Binding bindContactsProfile() {
-//        return BindingBuilder.bind(contactsProfileQueue())
-//                .to(contactsExchange())
-//                .with(CONTACTS_PROFILE_ROUTING);
-//    }
-//
-//    @Bean
-//    public Queue contactsPrivacyQueue() {
-//        return QueueBuilder.durable(CONTACTS_PRIVACY_QUEUE).build();
-//    }
-//
-//    @Bean
-//    public Binding bindContactsPrivacy() {
-//        return BindingBuilder.bind(contactsPrivacyQueue())
-//                .to(contactsExchange())
-//                .with(CONTACTS_PRIVACY_ROUTING);
-//    }
     @Bean
     public MessageConverter jsonMessageConverter(ObjectMapper objectMapper) {
         return new Jackson2JsonMessageConverter(objectMapper);

@@ -10,7 +10,7 @@ public record UpdateSettingsRequestDTO(
         String email,
         String firstName,
         String lastName,
-        String imagee,
+        String image,
         String about,
         String updatedAt,
         PrivacySettingsResponseDTO privacySettings,

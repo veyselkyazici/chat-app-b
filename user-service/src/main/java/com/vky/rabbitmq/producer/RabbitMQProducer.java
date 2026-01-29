@@ -20,14 +20,6 @@ public class RabbitMQProducer {
         );
     }
 
-    public void publishPrivacyUpdated(UpdateSettingsRequestDTO dto) {
-        rabbitTemplate.convertAndSend(
-                RabbitConfig.WS_PRIVACY_EXCHANGE,
-                RabbitConfig.WS_PRIVACY_ROUTING,
-                dto
-        );
-    }
-
     public void publishProfileUpdated(UpdateSettingsRequestDTO dto) {
         rabbitTemplate.convertAndSend(
                 RabbitConfig.WS_PRIVACY_EXCHANGE,

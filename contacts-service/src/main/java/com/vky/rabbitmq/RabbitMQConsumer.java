@@ -17,15 +17,5 @@ public class RabbitMQConsumer {
     public void checkContactUser(UserProfileResponseDTO dto) {
         contactsService.checkUsersWhoInvited(dto);
     }
-
-//    @RabbitListener(queues = RabbitMQConfig.CONTACTS_PROFILE_QUEUE)
-//    public void handleProfileUpdate(UpdateSettingsRequestDTO dto) {
-//        contactsService.sendUpdatedUserProfile(dto);
-//    }
-//
-//    @RabbitListener(queues = RabbitMQConfig.CONTACTS_PRIVACY_QUEUE)
-//    public void handlePrivacyProfileUpdate(UpdateSettingsRequestDTO dto) {
-//        contactsService.sendUpdatedUserPrivacy(dto);
-//    }
 }
 

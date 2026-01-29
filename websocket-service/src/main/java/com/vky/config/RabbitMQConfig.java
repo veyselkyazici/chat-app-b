@@ -22,6 +22,12 @@ public class RabbitMQConfig {
     public static final String WS_PRIVACY_QUEUE    = "ws.privacy.queue";
     public static final String WS_PRIVACY_ROUTING  = "ws.privacy.routing";
 
+    public static final String WS_PROFILE_ROUTING   = "ws.profile.routing";
+    public static final String WS_PROFILE_QUEUE    = "ws.profile.queue";
+
+
+
+
     @Bean
     public TopicExchange wsPrivacyExchange() {
         return new TopicExchange(WS_PRIVACY_EXCHANGE, true, false);
@@ -37,6 +43,18 @@ public class RabbitMQConfig {
         return BindingBuilder.bind(wsPrivacyQueue())
                 .to(wsPrivacyExchange())
                 .with(WS_PRIVACY_ROUTING);
+    }
+
+    @Bean
+    public Queue wsProfileQueue() {
+        return QueueBuilder.durable(WS_PROFILE_QUEUE).build();
+    }
+
+    @Bean
+    public Binding bindWsProfile() {
+        return BindingBuilder.bind(wsProfileQueue())
+                .to(wsPrivacyExchange())
+                .with(WS_PROFILE_ROUTING);
     }
 
 
@@ -82,13 +100,6 @@ public class RabbitMQConfig {
     public static final String CHAT_READ_EXCHANGE = "chat.read.exchange";
     public static final String CHAT_READ_ROUTING  = "chat.read";
 
-    // CONTACTS
-//    public static final String CONTACTS_PRIVACY_EXCHANGE = "contacts.privacy.exchange";
-//    public static final String CONTACTS_PRIVACY_ROUTING   = "contacts.privacy";
-//
-//    public static final String CONTACTS_PROFILE_EXCHANGE = "contacts.profile.exchange";
-//    public static final String CONTACTS_PROFILE_ROUTING   = "contacts.profile";
-
     @Bean
     public TopicExchange chatIncomingExchange() {
         return new TopicExchange(CHAT_INCOMING_EXCHANGE);
@@ -98,16 +109,6 @@ public class RabbitMQConfig {
     public TopicExchange chatReadExchange() {
         return new TopicExchange(CHAT_READ_EXCHANGE);
     }
-
-//    @Bean
-//    public TopicExchange contactsPrivacyExchange() {
-//        return new TopicExchange(CONTACTS_PRIVACY_EXCHANGE);
-//    }
-//
-//    @Bean
-//    public TopicExchange contactsProfileExchange() {
-//        return new TopicExchange(CONTACTS_PROFILE_EXCHANGE);
-//    }
 
     @Bean
     public MessageConverter jsonConverter(ObjectMapper mapper) {

@@ -2,8 +2,6 @@ package com.vky.service;
 
 import com.vky.dto.RelationshipSyncEvent;
 import com.vky.dto.request.ContactInformationOfExistingChatsRequestDTO;
-import com.vky.dto.request.UpdateSettingsRequestDTO;
-import com.vky.dto.response.PrivacySettingsResponseDTO;
 import com.vky.dto.response.UserProfileResponseDTO;
 import com.vky.exception.ContactsServiceException;
 import com.vky.exception.ErrorType;
@@ -11,13 +9,9 @@ import com.vky.rabbitmq.RabbitMQProducer;
 import com.vky.repository.IUserRelationshipRepository;
 import com.vky.repository.entity.Contacts;
 import com.vky.repository.entity.UserRelationship;
-import com.vky.service.privacy.PrivacyEvaluator;
-import com.vky.service.privacy.RelationshipContext;
-import com.vky.service.privacy.RelationshipContextBuilder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -27,8 +21,6 @@ import java.util.UUID;
 public class UserRelationshipService {
     private final IUserRelationshipRepository userRelationshipRepository;
     private final RabbitMQProducer rabbitMQProducer;
-    private final PrivacyEvaluator privacyEvaluator;
-    private final RelationshipContextBuilder relationshipContextBuilder;
 
     public void updateUserRelationship(UUID userId, UUID userContactId, Contacts contact) {
         UserRelationship userRelationship = userRelationshipRepository
@@ -114,7 +106,7 @@ public class UserRelationshipService {
         List<UserRelationship> outgoing = userRelationshipRepository.findByUserId(userId);
 
         List<String> outgoingContactIds = outgoing.stream()
-                .filter(UserRelationship::isUserHasAddedRelatedUser) // ✅ kritik
+                .filter(UserRelationship::isUserHasAddedRelatedUser)
                 .map(rel -> rel.getRelatedUserId().toString())
                 .distinct()
                 .toList();
@@ -126,28 +118,6 @@ public class UserRelationshipService {
                 .build();
 
         rabbitMQProducer.publishRelationshipSync(event);
-    }
-
-    public List<UUID> filterTargetsForProfileUpdate(
-            UpdateSettingsRequestDTO dto,
-            List<UserRelationship> rels) {
-        PrivacySettingsResponseDTO settings = dto.privacySettings();
-
-        List<UUID> targets = new ArrayList<>();
-
-        for (UserRelationship rel : rels) {
-
-            UUID targetId = rel.getUserId().equals(dto.id())
-                    ? rel.getRelatedUserId()
-                    : rel.getUserId();
-
-            RelationshipContext ctx = relationshipContextBuilder.build(dto.id(), targetId);
-
-            if (privacyEvaluator.canSee(settings, ctx, dto.privacy())) {
-                targets.add(targetId);
-            }
-        }
-        return targets;
     }
 
     public List<UserRelationship> findByUserId(UUID userId) {

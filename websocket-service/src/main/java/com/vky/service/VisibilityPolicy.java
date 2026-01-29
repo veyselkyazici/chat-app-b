@@ -43,4 +43,15 @@ public class VisibilityPolicy {
             case NOBODY -> false;
         };
     }
+
+    public boolean canSeeProfilePhoto(String viewerId, String targetId) {
+        PrivacySettingsResponseDTO target = privacyCache.getOrLoad(targetId);
+        if (target == null) return false;
+
+        return switch (target.profilePhotoVisibility()) {
+            case EVERYONE -> true;
+            case MY_CONTACTS -> relationshipCache.isOutgoingContact(targetId, viewerId);
+            case NOBODY -> false;
+        };
+    }
 }

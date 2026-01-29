@@ -46,7 +46,7 @@ public interface IUserProfileMapper {
                 .about(userProfile.getAbout())
                 .firstName(userProfile.getFirstName())
                 .lastName(userProfile.getLastName())
-                .imagee(userProfile.getImage())
+                .image(userProfile.getImage())
                 .updatedAt(userProfile.getUpdatedAt())
                 .privacySettings(toPrivacySettingsResponseDTO(userProfile.getPrivacySettings() != null ? userProfile.getPrivacySettings() : null))
                 .userKey(userProfile.getUserKey() != null ? toUserKeyResponseDTO(userProfile.getUserKey()) : null)

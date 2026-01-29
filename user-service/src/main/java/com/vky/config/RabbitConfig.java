@@ -18,7 +18,7 @@ public class RabbitConfig {
 
     public static final String WS_PRIVACY_EXCHANGE = "ws.privacy.exchange";
     public static final String WS_PRIVACY_ROUTING   = "ws.privacy.routing";
-    public static final String WS_PROFILE_ROUTING   = "contacts.profile";
+    public static final String WS_PROFILE_ROUTING   = "ws.profile.routing";
 
 
     @Bean

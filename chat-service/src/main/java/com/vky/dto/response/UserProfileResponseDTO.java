@@ -9,7 +9,7 @@ public record UserProfileResponseDTO(
         String email,
         String firstName,
         String lastName,
-        String imagee,
+        String image,
         String about,
         PrivacySettingsResponseDTO privacySettings,
         UserKeyResponseDTO userKey) {

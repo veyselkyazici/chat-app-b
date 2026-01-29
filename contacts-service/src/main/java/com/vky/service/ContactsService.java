@@ -113,7 +113,7 @@ public class ContactsService {
                 userProfileResponseDTO);
         rabbitMQProducer.publishContactAdded(contactResponseDTO, contact.getUserId().toString());
 
-        UserProfileResponseDTO updatedProfile = userProfileResponseDTO.toBuilder().imagee(contactRequestDTO.imagee())
+        UserProfileResponseDTO updatedProfile = userProfileResponseDTO.toBuilder().image(contactRequestDTO.image())
                 .build();
         ContactResponseDTO updatedContactResponseDTO = contactResponseDTO.toBuilder()
                 .userProfileResponseDTO(updatedProfile).build();
@@ -191,14 +191,14 @@ public class ContactsService {
                 ContactWithRelationshipDTO correspondingContact = contactMap.get(orderedId);
 
                 // Privacy logic
-                if (userResponse.userProfileResponseDTO().imagee() != null) {
+                if (userResponse.userProfileResponseDTO().image() != null) {
                     if (userResponse.userProfileResponseDTO().privacySettings()
                             .profilePhotoVisibility() == VisibilityOption.NOBODY ||
                             (userResponse.userProfileResponseDTO().privacySettings()
                                     .profilePhotoVisibility() == VisibilityOption.MY_CONTACTS &&
                                     !correspondingContact.getRelatedUserHasAddedUser())) {
                         UserProfileResponseDTO updatedProfile = userResponse.userProfileResponseDTO().toBuilder()
-                                .imagee(null).build();
+                                .image(null).build();
                         userResponse = userResponse.toBuilder().userProfileResponseDTO(updatedProfile).build();
                     }
                 }
@@ -285,7 +285,7 @@ public class ContactsService {
                                     .id(user.userProfileResponseDTO().id())
                                     .email(user.userProfileResponseDTO().email())
                                     .about(user.userProfileResponseDTO().about())
-                                    .imagee(image)
+                                    .image(image)
                                     .firstName(user.userProfileResponseDTO().firstName())
                                     .lastName(user.userProfileResponseDTO().lastName())
                                     .privacySettings(PrivacySettingsResponseDTO.builder()
@@ -326,7 +326,7 @@ public class ContactsService {
     private static String getImage(ContactResponseDTO user, ContactWithRelationshipDTO contact) {
 
         String image = null;
-        if (user.userProfileResponseDTO().imagee() != null) {
+        if (user.userProfileResponseDTO().image() != null) {
             if (user.userProfileResponseDTO().privacySettings()
                     .profilePhotoVisibility() == VisibilityOption.NOBODY ||
                     (user.userProfileResponseDTO().privacySettings()
@@ -334,7 +334,7 @@ public class ContactsService {
                             && !contact.getRelatedUserHasAddedUser())) {
                 image = null;
             } else {
-                image = user.userProfileResponseDTO().imagee();
+                image = user.userProfileResponseDTO().image();
             }
         }
         return image;

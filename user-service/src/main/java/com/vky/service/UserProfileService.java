@@ -62,7 +62,7 @@ public class UserProfileService {
                 .email(savedUserProfile.getEmail())
                 .firstName(savedUserProfile.getFirstName())
                 .id(savedUserProfile.getId())
-                .imagee(savedUserProfile.getImage())
+                .image(savedUserProfile.getImage())
                 .userKey(UserKeyResponseDTO.builder()
                         .publicKey(Base64.getEncoder().encodeToString(savedUserProfile.getUserKey().getPublicKey()))
                         .salt(Base64.getEncoder().encodeToString(savedUserProfile.getUserKey().getSalt()))
@@ -132,7 +132,7 @@ public class UserProfileService {
                             .firstName(userProfile.getFirstName())
                             .lastName(userProfile.getLastName())
                             .about(userProfile.getAbout())
-                            .imagee(userProfile.getImage() != null ? userProfile.getImage() : null)
+                            .image(userProfile.getImage() != null ? userProfile.getImage() : null)
                             .privacySettings(
                                     PrivacySettingsResponseDTO.builder()
                                             .id(userProfile.getPrivacySettings().getId())
@@ -227,6 +227,7 @@ public class UserProfileService {
             user.setUpdatedAt(Instant.now());
             userProfileRepository.save(user);
             UpdateSettingsRequestDTO dto = IUserProfileMapper.INSTANCE.toUserProfileWithoutKeyDTO(user);
+
             rabbitMQProducer.publishProfileUpdated(dto);
             return UserProfilePhotoURLResponseDTO.builder().url(user.getImage()).build();
         } catch (IOException e) {
@@ -269,6 +270,8 @@ public class UserProfileService {
         user.setImage(null);
         user.setUpdatedAt(Instant.now());
         userProfileRepository.save(user);
+        UpdateSettingsRequestDTO dto = IUserProfileMapper.INSTANCE.toUserProfileWithoutKeyDTO(user);
+        rabbitMQProducer.publishProfileUpdated(dto);
     }
 
     public UpdateSettingsRequestDTO getFeignUserByIdWithOutUserKey(UUID userId) {

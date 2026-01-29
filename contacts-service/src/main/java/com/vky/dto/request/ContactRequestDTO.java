@@ -7,7 +7,7 @@ import lombok.Builder;
 
 @Builder(toBuilder = true)
 public record ContactRequestDTO(
-        String imagee,
+        String image,
 
         @NotBlank(message = "Email cannot be empty") @Size(min = 2, max = 32, message = "Name must be 2-32 characters long") String userContactName,
 

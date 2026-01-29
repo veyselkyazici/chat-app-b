@@ -55,6 +55,20 @@ public class WebSocketController {
         webSocketService.ping(redisKey);
     }
 
+    @MessageMapping("/sync")
+    public void sync(Principal principal) {
+        if (principal == null) return;
+        webSocketService.syncToUser(principal.getName());
+    }
+
+    public record AckRequest(String eventId) {}
+
+    @MessageMapping("/ack")
+    public void ack(AckRequest req, Principal principal) {
+        if (principal == null || req == null) return;
+        webSocketService.ack(principal.getName(), req.eventId());
+    }
+
     // @MessageMapping("/updated-privacy-send-message")
     // public void sendPrivacyUpdate(@Payload UpdateSettingsRequestDTO dto,
     // Principal principal) {

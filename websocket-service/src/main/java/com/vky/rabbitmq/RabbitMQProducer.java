@@ -28,20 +28,4 @@ public class RabbitMQProducer {
                 dto
         );
     }
-
-//    public void publishPrivacyToContacts(UpdateSettingsRequestDTO dto) {
-//        rabbitTemplate.convertAndSend(
-//                RabbitMQConfig.CONTACTS_PRIVACY_EXCHANGE,
-//                RabbitMQConfig.CONTACTS_PRIVACY_ROUTING,
-//                dto
-//        );
-//    }
-//
-//    public void publishProfileToContacts(UpdatedProfilePhotoRequestDTO dto) {
-//        rabbitTemplate.convertAndSend(
-//                RabbitMQConfig.CONTACTS_PROFILE_EXCHANGE,
-//                RabbitMQConfig.CONTACTS_PROFILE_ROUTING,
-//                dto
-//        );
-//    }
 }
