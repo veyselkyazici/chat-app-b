@@ -7,7 +7,6 @@ import com.vky.service.WebSocketService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -16,7 +15,6 @@ import java.time.Duration;
 @RequiredArgsConstructor
 public class RabbitMQConsumer {
 
-    private final SimpMessagingTemplate ws;
     private final RedisTemplate<String, Object> redisTemplate;
 
     private static final Duration REL_TTL = Duration.ofDays(1);

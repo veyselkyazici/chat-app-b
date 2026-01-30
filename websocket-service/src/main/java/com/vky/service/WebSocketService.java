@@ -122,7 +122,7 @@ public class WebSocketService {
         String key = inboxKey(userId);
 
         Boolean exists = redisTemplate.hasKey(key);
-        if (Boolean.FALSE.equals(exists)) {
+        if (!exists) {
             sendSnapshotRequired(userId);
             return;
         }

@@ -52,11 +52,21 @@ public class JwtTokenManager {
 
 
     public String generateToken(String email, UUID authId) {
-        return buildToken(email, authId, jwtExpiration);
+        String jti = UUID.randomUUID().toString();
+
+        // ✅ aktif session'ın jti'siı redis'e yaz
+        redisTemplate.opsForValue().set(
+                "auth:active:" + authId,   // authId ile tut (öneri)
+                jti,
+                jwtExpiration,
+                TimeUnit.MILLISECONDS
+        );
+
+        return buildAccessToken(email, authId, jwtExpiration, jti);
     }
 
     public String generateRefreshToken(String email, UUID authId) {
-        String refreshToken = buildToken(email, authId, refreshExpiration);
+        String refreshToken = buildRefreshToken(email, authId, refreshExpiration);
 
         redisTemplate.opsForValue().set(
                 "refreshToken:" + authId,
@@ -68,18 +78,34 @@ public class JwtTokenManager {
         return refreshToken;
     }
 
-    private String buildToken(String email, UUID authId, long expirationMs) {
+    private String buildAccessToken(String email, UUID authId, long expirationMs, String jti) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expirationMs);
 
         return JWT.create()
                 .withSubject(email)
                 .withClaim("id", authId.toString())
+                .withJWTId(jti)                 // ✅ jti eklendi
                 .withIssuer(issuer)
                 .withIssuedAt(now)
                 .withExpiresAt(expiry)
                 .sign(algorithm());
     }
+
+    private String buildRefreshToken(String email, UUID authId, long expirationMs) {
+        Date now = new Date();
+        Date expiry = new Date(now.getTime() + expirationMs);
+
+        return JWT.create()
+                .withSubject(email)
+                .withClaim("id", authId.toString())
+                // refresh token'a jti koymak zorunda değilsin
+                .withIssuer(issuer)
+                .withIssuedAt(now)
+                .withExpiresAt(expiry)
+                .sign(algorithm());
+    }
+
 
     public <T> T extractClaim(String token, Function<DecodedJWT, T> resolver) {
         DecodedJWT jwt = validateAndGet(token);

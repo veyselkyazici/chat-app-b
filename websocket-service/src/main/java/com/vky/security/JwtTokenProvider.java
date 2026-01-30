@@ -6,6 +6,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.exceptions.TokenExpiredException;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.vky.dto.AuthSession;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -29,7 +30,14 @@ public class JwtTokenProvider {
                 .withIssuer(issuer)
                 .build();
     }
+    public AuthSession extractSession(String token) {
+        DecodedJWT jwt = validateAndGet(token);
 
+        String userId = jwt.getClaim("id").asString();
+        String jti = jwt.getId();
+
+        return new AuthSession(userId, jti);
+    }
 
     public DecodedJWT validateAndGet(String token) {
         return verifier().verify(token);
@@ -51,7 +59,10 @@ public class JwtTokenProvider {
         DecodedJWT jwt = validateAndGet(token);
         return UUID.fromString(jwt.getClaim("id").asString());
     }
-
+    public String extractJti(String token) {
+        DecodedJWT jwt = validateAndGet(token);
+        return jwt.getId();
+    }
     public <T> T extractClaim(String token, Function<DecodedJWT, T> resolver) {
         DecodedJWT jwt = validateAndGet(token);
         return resolver.apply(jwt);

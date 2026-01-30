@@ -103,14 +103,6 @@ public class AuthService {
             String newAccessToken = jwtTokenManager.generateToken(authUser.getEmail(), authUser.getId());
             String newRefreshToken = jwtTokenManager.generateRefreshToken(authUser.getEmail(), authUser.getId());
 
-            redisTemplate.delete(redisKey);
-
-            redisTemplate.opsForValue().set(
-                    redisKey,
-                    newRefreshToken,
-                    jwtTokenManager.getRefreshExpiration(),
-                    TimeUnit.MILLISECONDS);
-
             return LoginResponseDTO.builder()
                     .accessToken(newAccessToken)
                     .refreshToken(newRefreshToken)

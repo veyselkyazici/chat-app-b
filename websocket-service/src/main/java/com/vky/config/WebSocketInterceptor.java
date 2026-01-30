@@ -1,5 +1,9 @@
 package com.vky.config;
 
+import com.auth0.jwt.exceptions.JWTVerificationException;
+import com.auth0.jwt.exceptions.TokenExpiredException;
+import com.vky.WsAuthException;
+import com.vky.dto.AuthSession;
 import com.vky.security.JwtTokenProvider;
 import com.vky.service.UserStatusEvent;
 import lombok.RequiredArgsConstructor;
@@ -7,10 +11,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
-import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
-import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.stereotype.Component;
 
@@ -48,76 +50,73 @@ public class WebSocketInterceptor implements ChannelInterceptor {
 
         String authHeader = accessor.getFirstNativeHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return error("INVALID_TOKEN", accessor);
+            throw new WsAuthException("INVALID_TOKEN");
         }
 
         String token = authHeader.substring(7);
-        String userId = jwtTokenProvider.extractAuthId(token).toString();
+
+        final AuthSession session;
+        try {
+            session = jwtTokenProvider.extractSession(token);
+        } catch (TokenExpiredException e) {
+            throw new WsAuthException("TOKEN_EXPIRED");
+        } catch (JWTVerificationException e) {
+            throw new WsAuthException("INVALID_TOKEN");
+        }
+
+        String userId = session.userId();
+        String jti = session.jti();
+
+        String activeJtiKey = "auth:active:" + userId;
+        String activeJti = (String) redisTemplate.opsForValue().get(activeJtiKey);
+
+        if (activeJti == null || !activeJti.equals(jti)) {
+            throw new WsAuthException("INVALID_SESSION");
+        }
 
         accessor.setUser(() -> userId);
 
-        redisTemplate.opsForValue().set(
-                "session:" + userId,
-                accessor.getSessionId(),
-                Duration.ofSeconds(15)
-        );
+        String sessionKey = "session:" + userId;
+        String oldSessionId = (String) redisTemplate.opsForValue().get(sessionKey);
 
-        eventPublisher.publishEvent(
-                new UserStatusEvent(userId, "online", null, false)
-        );
+        String newSessionId = accessor.getSessionId();
+        if (oldSessionId != null && !oldSessionId.equals(newSessionId)) {
+            eventPublisher.publishEvent(new WsKickEvent(userId, oldSessionId, "NEW_LOGIN"));
+        }
 
+        redisTemplate.opsForValue().set(sessionKey, newSessionId, Duration.ofSeconds(15));
+
+        eventPublisher.publishEvent(new UserStatusEvent(userId, "online", null, false));
         return message;
     }
 
+    public record WsKickEvent(String userId, String sessionId, String reason) {}
     private Message<?> onActivity(StompHeaderAccessor accessor, Message<?> message) {
         if (accessor.getUser() == null) return message;
 
         String userId = accessor.getUser().getName();
+
+        String authHeader = accessor.getFirstNativeHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            try {
+                jwtTokenProvider.validateAndGet(token);
+            } catch (TokenExpiredException e) {
+                throw new WsAuthException("TOKEN_EXPIRED");
+            } catch (JWTVerificationException e) {
+                throw new WsAuthException("INVALID_TOKEN");
+            }
+        }
         String key = "session:" + userId;
+        boolean wasOnline = Boolean.TRUE.equals(redisTemplate.hasKey(key));
 
-        Boolean existed = redisTemplate.hasKey(key);
+        redisTemplate.opsForValue().set(key, accessor.getSessionId(), Duration.ofSeconds(15));
 
-        redisTemplate.opsForValue().set(
-                key,
-                accessor.getSessionId(),
-                Duration.ofSeconds(15)
-        );
-
-        if (!existed) {
-            eventPublisher.publishEvent(
-                    new UserStatusEvent(userId, "online", null, false)
-            );
+        if (!wasOnline) {
+            eventPublisher.publishEvent(new UserStatusEvent(userId, "online", null, false));
         }
 
         return message;
-    }
-
-//    private void onDisconnect(StompHeaderAccessor accessor) {
-//        if (accessor.getUser() == null) return;
-//
-//        String userId = accessor.getUser().getName();
-//
-//        redisTemplate.delete("session:" + userId);
-//
-//        eventPublisher.publishEvent(
-//                new UserStatusEvent(
-//                        userId,
-//                        "offline",
-//                        Instant.now(),
-//                        false
-//                )
-//        );
-//    }
-
-    private Message<?> error(String code, StompHeaderAccessor accessor) {
-        StompHeaderAccessor errorAcc =
-                StompHeaderAccessor.create(StompCommand.ERROR);
-        errorAcc.setSessionId(accessor.getSessionId());
-        errorAcc.setMessage(code);
-        return MessageBuilder.createMessage(
-                new byte[0],
-                errorAcc.getMessageHeaders()
-        );
     }
 }
 
