@@ -43,6 +43,7 @@ public class ChatMessageService {
 
         List<ChatMessage> chatMessages = chatMessageRepository
                 .findTop30ByChatRoomIdAfterDeletedTime(chatRoomId, effectiveDeletedTime, pageable);
+        Collections.reverse(chatMessages);
         return getChatDTO(pageable, chatMessages);
     }
 

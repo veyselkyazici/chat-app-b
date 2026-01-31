@@ -212,6 +212,9 @@ public class ChatRoomService {
                 if (lastMessageInfo == null) {
                         return null;
                 }
+                if (userChatSettings.getDeletedTime() != null && !lastMessageInfo.getLastMessageTime().isAfter(userChatSettings.getDeletedTime())) {
+                        return null;
+                }
                 UUID senderOrRecipientId = UUID.fromString(
                                 lastMessageInfo.getSenderId().equals(userId) ? lastMessageInfo.getRecipientId()
                                                 : lastMessageInfo.getSenderId());
@@ -274,7 +277,7 @@ public class ChatRoomService {
         public ChatDTO getLast30Messages(String chatRoomId, int limit, String userId) {
                 UserChatSettings userChatSettings = userChatSettingsService.findByUserIdAndChatRoomId(userId,
                                 chatRoomId);
-                Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.ASC, "fullDateTime"));
+                Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "fullDateTime"));
                 return chatMessageService.getLast30Messages(chatRoomId, pageable, userChatSettings.getDeletedTime());
         }
 
