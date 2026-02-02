@@ -19,6 +19,7 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 public class ChatMessageService {
+
     private final IChatMessageRepository chatMessageRepository;
 
     public ChatMessage sendMessage(MessageRequestDTO messageRequestDTO) {
