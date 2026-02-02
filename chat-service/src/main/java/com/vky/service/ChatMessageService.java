@@ -120,6 +120,7 @@ public class ChatMessageService {
         chatMessageRepository.saveAll(chatMessages);
         return IChatMapper.INSTANCE.chatMessagesToDTO(chatMessages);
     }
+
     // public void markUnreadMessagesAsSeen(String chatRoomId, String recipientId,
     // int unreadMessageCount) {
     // if (unreadMessageCount <= 0) return;
