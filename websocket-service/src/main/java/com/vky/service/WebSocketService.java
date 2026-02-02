@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 @Service
 @RequiredArgsConstructor
 public class WebSocketService {
+
     private final RedisTemplate<String, Object> redisTemplate;
     private final SimpMessagingTemplate messagingTemplate;
     private final RabbitMQProducer rabbitMQProducer;

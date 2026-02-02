@@ -103,6 +103,7 @@ public class ChatMessageService {
         return chatMessageRepository.findLatestMessageByChatRoomId(chatRoomId);
     }
 
+
     public List<MessageDTO> setMessagesAsSeen(String chatRoomId, String recipientId, int unreadCount) {
 
         if (unreadCount <= 0) {
@@ -120,7 +121,6 @@ public class ChatMessageService {
         chatMessageRepository.saveAll(chatMessages);
         return IChatMapper.INSTANCE.chatMessagesToDTO(chatMessages);
     }
-
 
     // public void markUnreadMessagesAsSeen(String chatRoomId, String recipientId,
     // int unreadMessageCount) {
