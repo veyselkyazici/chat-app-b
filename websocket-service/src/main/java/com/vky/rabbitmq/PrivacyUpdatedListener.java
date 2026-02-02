@@ -3,8 +3,10 @@ package com.vky.rabbitmq;
 import com.vky.config.RabbitMQConfig;
 import com.vky.dto.PrivacySettingsResponseDTO;
 import com.vky.dto.UpdateSettingsRequestDTO;
+import com.vky.dto.enums.PrivacyField;
 import com.vky.service.PrivacyCache;
 import com.vky.service.StatusBroadcastService;
+import com.vky.service.VisibilityPolicy;
 import com.vky.service.WebSocketService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -21,6 +23,7 @@ public class PrivacyUpdatedListener {
     private final RedisTemplate<String, Object> redisTemplate;
     private final StatusBroadcastService statusBroadcastService;
     private final WebSocketService webSocketService;
+    private final VisibilityPolicy visibilityPolicy;
 
     @RabbitListener(queues = RabbitMQConfig.WS_PRIVACY_QUEUE)
     public void onPrivacyUpdated(UpdateSettingsRequestDTO event) {
@@ -35,8 +38,7 @@ public class PrivacyUpdatedListener {
             if (viewerId == null || viewerId.equals(event.id().toString()))
                 continue;
 
-            boolean viewerOnline = Boolean.TRUE.equals(
-                    redisTemplate.hasKey("session:" + viewerId));
+            boolean viewerOnline = redisTemplate.hasKey("session:" + viewerId);
 
             if (!viewerOnline)
                 continue;
@@ -45,8 +47,18 @@ public class PrivacyUpdatedListener {
                     viewerId,
                     "/queue/updated-privacy-response",
                     "privacy-updated",
-                    eventAsUserProfile(event)
-            );
+                    eventAsUserProfile(event));
+
+            if (event.privacy() == PrivacyField.PROFILE_PHOTO) {
+                boolean allowed = visibilityPolicy.canSeeProfilePhoto(viewerId, event.id().toString());
+                webSocketService.deliver(
+                        viewerId,
+                        "/queue/updated-user-profile-message",
+                        "profile-updated",
+                        new ProfilePhotoUpdatedListener.UpdatedUserProfileMessage(
+                                event.id().toString(),
+                                allowed ? event.image() : null));
+            }
         }
     }
 

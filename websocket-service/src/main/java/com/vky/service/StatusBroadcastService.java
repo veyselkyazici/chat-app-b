@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import com.vky.service.WebSocketService;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -22,6 +23,7 @@ public class StatusBroadcastService {
     private final VisibilityPolicy visibilityPolicy;
     private final IUserManager userManager;
     private final RelationshipCache relationshipCache;
+    private final WebSocketService webSocketService;
     private static final Duration STATUS_TTL = Duration.ofDays(1);
 
     @EventListener
@@ -143,4 +145,31 @@ public class StatusBroadcastService {
                         .build());
     }
 
+    public void broadcastProfilePhotoChange(String targetId, String newImageUrl) {
+        List<String> relatedUsers = getRelatedUsers(targetId);
+        if (relatedUsers == null || relatedUsers.isEmpty())
+            return;
+
+        for (String viewerId : relatedUsers) {
+            if (viewerId == null || viewerId.equals(targetId))
+                continue;
+
+            boolean viewerOnline = Boolean.TRUE.equals(redisTemplate.hasKey("session:" + viewerId));
+            if (!viewerOnline)
+                continue;
+
+            boolean allowed = visibilityPolicy.canSeeProfilePhoto(viewerId, targetId);
+
+            webSocketService.deliver(
+                    viewerId,
+                    "/queue/updated-user-profile-message",
+                    "profile-updated",
+                    new ProfilePhotoUpdateMessage(
+                            targetId,
+                            allowed ? newImageUrl : null));
+        }
+    }
+
+    public record ProfilePhotoUpdateMessage(String userId, String url) {
+    }
 }
