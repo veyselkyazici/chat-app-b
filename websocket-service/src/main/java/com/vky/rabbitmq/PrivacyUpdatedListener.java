@@ -2,7 +2,7 @@ package com.vky.rabbitmq;
 
 import com.vky.config.RabbitMQConfig;
 import com.vky.dto.PrivacySettingsResponseDTO;
-import com.vky.dto.UpdateSettingsRequestDTO;
+import com.vky.dto.UpdateSettingsDTO;
 import com.vky.dto.enums.PrivacyField;
 import com.vky.service.PrivacyCache;
 import com.vky.service.StatusBroadcastService;
@@ -26,7 +26,7 @@ public class PrivacyUpdatedListener {
     private final VisibilityPolicy visibilityPolicy;
 
     @RabbitListener(queues = RabbitMQConfig.WS_PRIVACY_QUEUE)
-    public void onPrivacyUpdated(UpdateSettingsRequestDTO event) {
+    public void onPrivacyUpdated(UpdateSettingsDTO event) {
 
         privacyCache.put(event.id().toString(), event.privacySettings());
 
@@ -62,7 +62,7 @@ public class PrivacyUpdatedListener {
         }
     }
 
-    private UpdatedPrivacyResponse eventAsUserProfile(UpdateSettingsRequestDTO event) {
+    private UpdatedPrivacyResponse eventAsUserProfile(UpdateSettingsDTO event) {
         return new UpdatedPrivacyResponse(event.id().toString(), event.privacySettings());
     }
 

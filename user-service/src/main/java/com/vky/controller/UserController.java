@@ -1,8 +1,9 @@
 package com.vky.controller;
 
 import com.vky.dto.request.PrivacySettingsRequestDTO;
-import com.vky.dto.request.UpdateSettingsRequestDTO;
+import com.vky.dto.request.UpdateSettingsDTO;
 import com.vky.dto.request.UpdateUserDTO;
+import com.vky.dto.request.UpdateUserProfileDTO;
 import com.vky.dto.response.*;
 import com.vky.service.UserProfileService;
 import jakarta.validation.Valid;
@@ -48,6 +49,14 @@ public class UserController {
                 .ok(new ApiResponse<>(true, "success", userProfileService.updateUserAbout(dto, tokenUserId)));
     }
 
+    @PutMapping("/update-profile")
+    public ResponseEntity<ApiResponse<UpdateUserProfileDTO>> updateProfile(
+            @RequestBody @Valid UpdateUserProfileDTO dto,
+            @RequestHeader("X-Id") String tokenUserId) {
+        return ResponseEntity
+                .ok(new ApiResponse<>(true, "success", userProfileService.updateUserProfile(dto, tokenUserId)));
+    }
+
     @PostMapping("/get-user-by-id")
     public UserProfileResponseDTO getFeignUserById(@RequestBody UUID userId) {
         return this.userProfileService.getUserById(userId);
@@ -65,16 +74,16 @@ public class UserController {
     }
 
     @PostMapping("/get-user-by-id-with-out-user-key")
-    public UpdateSettingsRequestDTO getFeignUserByIdWithOutUserKey(@RequestBody UUID userId) {
+    public UpdateSettingsDTO getFeignUserByIdWithOutUserKey(@RequestBody UUID userId) {
         return this.userProfileService.getFeignUserByIdWithOutUserKey(userId);
     }
 
     @PutMapping("/privacy-settings")
-    public ResponseEntity<ApiResponse<UpdateSettingsRequestDTO>> updatePrivacySettings(
+    public ResponseEntity<ApiResponse<UpdateSettingsDTO>> updatePrivacySettings(
             @RequestBody PrivacySettingsRequestDTO privacySettingsRequestDTO,
             @RequestHeader("X-Id") String tokenUserId) {
 
-        UpdateSettingsRequestDTO response = userProfileService.updatePrivacySettings(privacySettingsRequestDTO,
+        UpdateSettingsDTO response = userProfileService.updatePrivacySettings(privacySettingsRequestDTO,
                 tokenUserId);
         return ResponseEntity.ok(new ApiResponse<>(true, "success", response));
     }

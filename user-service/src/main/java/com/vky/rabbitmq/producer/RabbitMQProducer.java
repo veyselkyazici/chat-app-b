@@ -1,7 +1,7 @@
 package com.vky.rabbitmq.producer;
 
 import com.vky.config.RabbitConfig;
-import com.vky.dto.request.UpdateSettingsRequestDTO;
+import com.vky.dto.request.UpdateSettingsDTO;
 import com.vky.dto.response.UserProfileResponseDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -20,7 +20,7 @@ public class RabbitMQProducer {
         );
     }
 
-    public void publishProfileUpdated(UpdateSettingsRequestDTO dto) {
+    public void publishProfileUpdated(UpdateSettingsDTO dto) {
         rabbitTemplate.convertAndSend(
                 RabbitConfig.WS_PRIVACY_EXCHANGE,
                 RabbitConfig.WS_PROFILE_ROUTING,
@@ -28,7 +28,7 @@ public class RabbitMQProducer {
         );
     }
 
-    public void privacyUpdated(UpdateSettingsRequestDTO dto) {
+    public void privacyUpdated(UpdateSettingsDTO dto) {
         rabbitTemplate.convertAndSend(
                 RabbitConfig.WS_PRIVACY_EXCHANGE,
                 RabbitConfig.WS_PRIVACY_ROUTING,

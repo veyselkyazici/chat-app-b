@@ -6,7 +6,7 @@ import lombok.Builder;
 import java.util.UUID;
 
 @Builder(toBuilder = true)
-public record UpdateSettingsRequestDTO(
+public record UpdateSettingsDTO(
         UUID id,
         String email,
         String firstName,

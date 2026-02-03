@@ -3,8 +3,9 @@ package com.vky.service;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import com.vky.dto.request.PrivacySettingsRequestDTO;
-import com.vky.dto.request.UpdateSettingsRequestDTO;
+import com.vky.dto.request.UpdateSettingsDTO;
 import com.vky.dto.request.UpdateUserDTO;
+import com.vky.dto.request.UpdateUserProfileDTO;
 import com.vky.dto.response.*;
 import com.vky.exception.ErrorType;
 import com.vky.exception.UserServiceException;
@@ -113,6 +114,33 @@ public class UserProfileService {
         return dto;
     }
 
+    public UpdateUserProfileDTO updateUserProfile(UpdateUserProfileDTO dto, String tokenUserId) {
+        UUID userId = UUID.fromString(tokenUserId);
+        UserProfile userProfile = userProfileRepository.findById(userId)
+                .orElseThrow(() -> new UserServiceException(ErrorType.USER_NOT_FOUND));
+
+        boolean updated = false;
+
+        if (dto.firstName() != null && !dto.firstName().equals(userProfile.getFirstName())) {
+            userProfile.setFirstName(dto.firstName());
+            updated = true;
+        }
+
+        if (dto.about() != null && !dto.about().equals(userProfile.getAbout())) {
+            userProfile.setAbout(dto.about());
+            updated = true;
+        }
+
+        if (updated) {
+            userProfile.setUpdatedAt(Instant.now());
+            userProfileRepository.save(userProfile);
+            UpdateSettingsDTO updateSettingsDTO = IUserProfileMapper.INSTANCE.toUserProfileWithoutKeyDTO(userProfile);
+            rabbitMQProducer.publishProfileUpdated(updateSettingsDTO);
+        }
+
+        return dto;
+    }
+
     @Transactional(readOnly = true)
     // LAZY alanlar için ya servis katmanında Transactional(Hibernate session açık
     // tutar) veya repositoryde EntityGraph kullanılmalı (UserKey de @Lob alanlar
@@ -182,7 +210,7 @@ public class UserProfileService {
     }
 
     @Transactional
-    public UpdateSettingsRequestDTO updatePrivacySettings(PrivacySettingsRequestDTO privacySettingsRequestDTO,
+    public UpdateSettingsDTO updatePrivacySettings(PrivacySettingsRequestDTO privacySettingsRequestDTO,
             String tokenUserId) {
         UUID userId = UUID.fromString(tokenUserId);
         UserProfile userProfile = userProfileRepository.findById(userId)
@@ -202,7 +230,7 @@ public class UserProfileService {
         userProfile.setPrivacySettings(privacySettings);
         userProfileRepository.save(userProfile);
 
-        UpdateSettingsRequestDTO dto = IUserProfileMapper.INSTANCE.toUserProfileWithoutKeyDTO(userProfile);
+        UpdateSettingsDTO dto = IUserProfileMapper.INSTANCE.toUserProfileWithoutKeyDTO(userProfile);
         dto = dto.toBuilder().privacy(privacySettingsRequestDTO.privacy()).build();
         rabbitMQProducer.privacyUpdated(dto);
         return dto;
@@ -226,7 +254,7 @@ public class UserProfileService {
             user.setImage(profilePictureUrl);
             user.setUpdatedAt(Instant.now());
             userProfileRepository.save(user);
-            UpdateSettingsRequestDTO dto = IUserProfileMapper.INSTANCE.toUserProfileWithoutKeyDTO(user);
+            UpdateSettingsDTO dto = IUserProfileMapper.INSTANCE.toUserProfileWithoutKeyDTO(user);
 
             rabbitMQProducer.publishProfileUpdated(dto);
             return UserProfilePhotoURLResponseDTO.builder().url(user.getImage()).build();
@@ -270,11 +298,11 @@ public class UserProfileService {
         user.setImage(null);
         user.setUpdatedAt(Instant.now());
         userProfileRepository.save(user);
-        UpdateSettingsRequestDTO dto = IUserProfileMapper.INSTANCE.toUserProfileWithoutKeyDTO(user);
+        UpdateSettingsDTO dto = IUserProfileMapper.INSTANCE.toUserProfileWithoutKeyDTO(user);
         rabbitMQProducer.publishProfileUpdated(dto);
     }
 
-    public UpdateSettingsRequestDTO getFeignUserByIdWithOutUserKey(UUID userId) {
+    public UpdateSettingsDTO getFeignUserByIdWithOutUserKey(UUID userId) {
         UserProfile userProfile = this.userProfileRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("User not found witdh ID: " + userId));
         return IUserProfileMapper.INSTANCE.toUserProfileWithoutKeyDTO(userProfile);

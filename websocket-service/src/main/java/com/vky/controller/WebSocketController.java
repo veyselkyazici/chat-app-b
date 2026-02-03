@@ -61,7 +61,7 @@ public class WebSocketController {
     }
 
     // @MessageMapping("/updated-privacy-send-message")
-    // public void sendPrivacyUpdate(@Payload UpdateSettingsRequestDTO dto,
+    // public void sendPrivacyUpdate(@Payload UpdateSettingsDTO dto,
     // Principal principal) {
     //
     // dto.setId(UUID.fromString(principal.getName()));

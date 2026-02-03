@@ -2,7 +2,7 @@ package com.vky.rabbitmq;
 
 import com.vky.dto.RelationshipSyncEvent;
 import com.vky.dto.WsEvent;
-import com.vky.dto.request.UpdateSettingsRequestDTO;
+import com.vky.dto.request.UpdateSettingsDTO;
 import com.vky.dto.response.ContactResponseDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -27,11 +27,11 @@ public class RabbitMQProducer {
         );
     }
 
-    public void publishPrivacy(UpdateSettingsRequestDTO dto, UUID targetUserId) {
+    public void publishPrivacy(UpdateSettingsDTO dto, UUID targetUserId) {
         publish("privacy-updated", targetUserId.toString(), dto);
     }
 
-    public void publishProfile(UpdateSettingsRequestDTO dto, UUID targetUserId) {
+    public void publishProfile(UpdateSettingsDTO dto, UUID targetUserId) {
         publish("profile-updated", targetUserId.toString(), dto);
     }
 

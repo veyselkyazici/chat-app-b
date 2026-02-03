@@ -1,6 +1,6 @@
 package com.vky.mapper;
 
-import com.vky.dto.request.UpdateSettingsRequestDTO;
+import com.vky.dto.request.UpdateSettingsDTO;
 import com.vky.dto.response.*;
 import com.vky.repository.entity.PrivacySettings;
 import com.vky.repository.entity.UserKey;
@@ -29,7 +29,7 @@ public interface IUserProfileMapper {
     UserKeyResponseDTO toUserKeyResponseDTO(UserKey userKey);
 
 
-    UpdateSettingsRequestDTO toUserProfileWithoutKeyDTO(UserProfile userProfile);
+    UpdateSettingsDTO toUserProfileWithoutKeyDTO(UserProfile userProfile);
 
 
     @Mapping(target = "userProfileResponseDTO", source = "userProfile")
