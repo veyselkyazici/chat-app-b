@@ -87,4 +87,5 @@ public class ChatController {
                 this.chatRoomService.deleteChat(userChatSettingsDTO, tokenUserId);
                 return ResponseEntity.ok(new ApiResponse<>(true, "success", null));
         }
+
 }

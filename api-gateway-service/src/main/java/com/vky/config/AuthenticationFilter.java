@@ -34,6 +34,7 @@ public class AuthenticationFilter implements GatewayFilter {
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
             return errorResponse(exchange);
         }
+
         return isAuthenticated(authorizationHeader)
                 .flatMap(isAuthenticated -> {
                     if (isAuthenticated) {

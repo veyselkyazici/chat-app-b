@@ -26,8 +26,6 @@ public class RabbitMQConfig {
     public static final String WS_PROFILE_QUEUE    = "ws.profile.queue";
 
 
-
-
     @Bean
     public TopicExchange wsPrivacyExchange() {
         return new TopicExchange(WS_PRIVACY_EXCHANGE, true, false);
