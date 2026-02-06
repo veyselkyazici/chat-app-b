@@ -104,7 +104,6 @@ public class ChatMessageService {
         return chatMessageRepository.findLatestMessageByChatRoomId(chatRoomId);
     }
 
-
     public List<MessageDTO> setMessagesAsSeen(String chatRoomId, String recipientId, int unreadCount) {
 
         if (unreadCount <= 0) {

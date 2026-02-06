@@ -4,8 +4,9 @@ import lombok.Builder;
 
 @Builder(toBuilder = true)
 public record UnreadMessageCountDTO(
-        String chatRoomId,
-        String recipientId,
-        String senderId,
-        int unreadMessageCount) {
+                String chatRoomId,
+                String recipientId,
+                String senderId,
+                int unreadMessageCount,
+                boolean isReadReceiptEnabled) {
 }

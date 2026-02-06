@@ -1,5 +1,6 @@
 package com.vky.controller;
 
+import com.vky.dto.RelationshipSnapshotDTO;
 import com.vky.dto.request.ContactInformationOfExistingChatRequestDTO;
 import com.vky.dto.request.ContactInformationOfExistingChatsRequestDTO;
 import com.vky.dto.request.ContactRequestDTO;
@@ -45,7 +46,7 @@ public class ContactsController {
         return contactsService.snapshot(userId);
     }
 
-    public record RelationshipSnapshotDTO(String userId, List<String> relatedUserIds, List<String> outgoingContactIds) {}
+
 
     @PostMapping("/get-contact-information-of-existing-chats")
     public CompletableFuture<List<ContactResponseDTO>>  getContactInformationOfExistingChats(@RequestBody ContactInformationOfExistingChatsRequestDTO contactInformationOfExistingChatsRequestDTO) {

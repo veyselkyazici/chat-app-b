@@ -33,6 +33,8 @@ public class UserRelationshipService {
             userRelationship.setRelatedUserHasAddedUser(false);
         }
         userRelationshipRepository.save(userRelationship);
+//        publishRelationshipSyncForUser(userId);
+//        rabbitMQProducer.publishSyncRequired(userContactId.toString());
     }
 
     public UserRelationship handleUserRelationship(UserProfileResponseDTO userProfileResponseDTO, UUID uuiDuserId) {
@@ -102,12 +104,18 @@ public class UserRelationshipService {
                 .distinct()
                 .toList();
 
-        // 2) OUTGOING (userId tarafı) -> rel:out
-        List<UserRelationship> outgoing = userRelationshipRepository.findByUserId(userId);
-
-        List<String> outgoingContactIds = outgoing.stream()
-                .filter(UserRelationship::isUserHasAddedRelatedUser)
-                .map(rel -> rel.getRelatedUserId().toString())
+        // 2) OUTGOING (userId tarafı eklemişse) -> rel:out
+        List<String> outgoingContactIds = relations.stream()
+                .filter(rel -> {
+                    if (rel.getUserId().equals(userId)) {
+                        return rel.isUserHasAddedRelatedUser();
+                    } else {
+                        return rel.isRelatedUserHasAddedUser();
+                    }
+                })
+                .map(rel -> rel.getUserId().equals(userId)
+                        ? rel.getRelatedUserId().toString()
+                        : rel.getUserId().toString())
                 .distinct()
                 .toList();
 

@@ -33,14 +33,17 @@ public class RabbitMQConsumer {
                 dto.chatRoomId(),
                 dto.recipientId());
 
-        List<MessageDTO> messages = chatMessageService.setMessagesAsSeen(
-                dto.chatRoomId(),
-                dto.recipientId(),
-                previousCount);
+        if (dto.isReadReceiptEnabled()) {
+            List<MessageDTO> messages = chatMessageService.setMessagesAsSeen(
+                    dto.chatRoomId(),
+                    dto.recipientId(),
+                    previousCount);
+
+            producer.publishReadMessages(messages, dto.senderId());
+        }
 
         dto = dto.toBuilder().unreadMessageCount(0).build();
 
         producer.publishReadConfirmation(dto);
-        producer.publishReadMessages(messages, dto.senderId());
     }
 }

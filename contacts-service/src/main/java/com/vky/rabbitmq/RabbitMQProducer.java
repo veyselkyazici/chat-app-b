@@ -23,8 +23,7 @@ public class RabbitMQProducer {
         rabbitTemplate.convertAndSend(
                 "ws.delivery.exchange",
                 "ws.delivery",
-                event
-        );
+                event);
     }
 
     public void publishPrivacy(UpdateSettingsDTO dto, UUID targetUserId) {
@@ -46,6 +45,7 @@ public class RabbitMQProducer {
     public void publishInvitedUserJoined(ContactResponseDTO dto, String targetUserId) {
         publish("invited-user-joined", targetUserId, dto);
     }
+
     public void publishAddInvitation(ContactResponseDTO dto, String targetUserId) {
         publish("add-invitation", targetUserId, dto);
     }
@@ -54,8 +54,6 @@ public class RabbitMQProducer {
         rabbitTemplate.convertAndSend(
                 "ws.relationship.sync.exchange",
                 "ws.relationship.sync",
-                event
-        );
+                event);
     }
 }
-
