@@ -16,6 +16,8 @@ import com.vky.repository.IUserProfileRepository;
 import com.vky.repository.entity.PrivacySettings;
 import com.vky.repository.entity.UserKey;
 import com.vky.repository.entity.UserProfile;
+import com.vky.repository.entity.enums.VisibilityOption;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -30,12 +32,14 @@ public class UserProfileService {
     private final IUserProfileRepository userProfileRepository;
     private final RabbitMQProducer rabbitMQProducer;
     private final Cloudinary cloudinary;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     public UserProfileService(IUserProfileRepository userProfileRepository, RabbitMQProducer rabbitMQProducer,
-            Cloudinary cloudinary) {
+            Cloudinary cloudinary, RedisTemplate<String, Object> redisTemplate) {
         this.userProfileRepository = userProfileRepository;
         this.rabbitMQProducer = rabbitMQProducer;
         this.cloudinary = cloudinary;
+        this.redisTemplate = redisTemplate;
     }
 
     @Transactional
@@ -146,46 +150,88 @@ public class UserProfileService {
     // tutar) veya repositoryde EntityGraph kullanılmalı (UserKey de @Lob alanlar
     // bulunduğu için varsayılan olarak LAZY davranırlar ve EntityGraph burada
     // çalışamaz)
-    public List<ContactResponseDTO> getUsers(List<UUID> ids) {
+    public List<ContactResponseDTO> getUsers(List<UUID> ids, String requesterId) {
 
         List<UserProfile> userProfiles = this.userProfileRepository.findUsersByIdList(ids);
 
         return userProfiles.stream()
                 .filter(Objects::nonNull)
                 .map(userProfile -> {
-
-                    UserProfileResponseDTO userProfileResponseDTO = UserProfileResponseDTO.builder()
-                            .id(userProfile.getId())
-                            .email(userProfile.getEmail())
-                            .firstName(userProfile.getFirstName())
-                            .lastName(userProfile.getLastName())
-                            .about(userProfile.getAbout())
-                            .image(userProfile.getImage() != null ? userProfile.getImage() : null)
-                            .privacySettings(
-                                    PrivacySettingsResponseDTO.builder()
-                                            .id(userProfile.getPrivacySettings().getId())
-                                            .aboutVisibility(userProfile.getPrivacySettings().getAboutVisibility())
-                                            .lastSeenVisibility(
-                                                    userProfile.getPrivacySettings().getLastSeenVisibility())
-                                            .profilePhotoVisibility(
-                                                    userProfile.getPrivacySettings().getProfilePhotoVisibility())
-                                            .onlineStatusVisibility(
-                                                    userProfile.getPrivacySettings().getOnlineStatusVisibility())
-                                            .readReceipts(userProfile.getPrivacySettings().isReadReceipts())
-                                            .build())
-                            .userKey(UserKeyResponseDTO.builder()
-                                    .iv(Base64.getEncoder().encodeToString(userProfile.getUserKey().getIv()))
-                                    .publicKey(
-                                            Base64.getEncoder().encodeToString(userProfile.getUserKey().getPublicKey()))
-                                    .salt(Base64.getEncoder().encodeToString(userProfile.getUserKey().getSalt()))
-                                    .build())
-                            .build();
-                    System.out.println(userProfileResponseDTO);
+                    UserProfileResponseDTO dto = mapToResponseDTO(userProfile);
+                    if (requesterId != null) {
+                        dto = applyPrivacyFiltering(dto, requesterId);
+                    }
                     return ContactResponseDTO.builder()
-                            .userProfileResponseDTO(userProfileResponseDTO)
+                            .userProfileResponseDTO(dto)
                             .build();
                 })
                 .collect(Collectors.toList());
+    }
+
+    public UserProfileResponseDTO getUserById(UUID userId, String requesterId) {
+        UserProfile userProfile = userProfileRepository.findById(userId)
+                .orElseThrow(() -> new UserServiceException(ErrorType.USER_NOT_FOUND));
+        UserProfileResponseDTO dto = mapToResponseDTO(userProfile);
+        if (requesterId != null) {
+            dto = applyPrivacyFiltering(dto, requesterId);
+        }
+        return dto;
+    }
+
+    private UserProfileResponseDTO mapToResponseDTO(UserProfile userProfile) {
+        return UserProfileResponseDTO.builder()
+                .id(userProfile.getId())
+                .email(userProfile.getEmail())
+                .firstName(userProfile.getFirstName())
+                .lastName(userProfile.getLastName())
+                .about(userProfile.getAbout())
+                .image(userProfile.getImage())
+                .privacySettings(PrivacySettingsResponseDTO.builder()
+                        .id(userProfile.getPrivacySettings().getId())
+                        .aboutVisibility(userProfile.getPrivacySettings().getAboutVisibility())
+                        .lastSeenVisibility(userProfile.getPrivacySettings().getLastSeenVisibility())
+                        .profilePhotoVisibility(userProfile.getPrivacySettings().getProfilePhotoVisibility())
+                        .onlineStatusVisibility(userProfile.getPrivacySettings().getOnlineStatusVisibility())
+                        .readReceipts(userProfile.getPrivacySettings().isReadReceipts())
+                        .build())
+                .userKey(userProfile.getUserKey() != null ? UserKeyResponseDTO.builder()
+                        .iv(Base64.getEncoder().encodeToString(userProfile.getUserKey().getIv()))
+                        .publicKey(Base64.getEncoder().encodeToString(userProfile.getUserKey().getPublicKey()))
+                        .encryptedPrivateKey(
+                                Base64.getEncoder().encodeToString(userProfile.getUserKey().getEncryptedPrivateKey()))
+                        .salt(Base64.getEncoder().encodeToString(userProfile.getUserKey().getSalt()))
+                        .build() : null)
+                .build();
+    }
+
+    private UserProfileResponseDTO applyPrivacyFiltering(UserProfileResponseDTO target, String requesterId) {
+        if (target.id().toString().equals(requesterId)) {
+            return target;
+        }
+
+        UserProfileResponseDTO.UserProfileResponseDTOBuilder builder = target.toBuilder();
+        PrivacySettingsResponseDTO privacy = target.privacySettings();
+
+        if (!isActionAllowed(target.id().toString(), requesterId, privacy.aboutVisibility())) {
+            builder.about(null);
+        }
+
+        if (!isActionAllowed(target.id().toString(), requesterId, privacy.profilePhotoVisibility())) {
+            builder.image(null);
+        }
+
+        return builder.build();
+    }
+
+    private boolean isActionAllowed(String targetId, String requesterId, VisibilityOption visibility) {
+        return switch (visibility) {
+            case EVERYONE -> true;
+            case NOBODY -> false;
+            case MY_CONTACTS -> {
+                String outKey = "rel:out:" + targetId;
+                yield Boolean.TRUE.equals(redisTemplate.opsForSet().isMember(outKey, requesterId));
+            }
+        };
     }
 
     @Transactional(readOnly = true)
@@ -196,9 +242,15 @@ public class UserProfileService {
     }
 
     @Transactional(readOnly = true)
-    public UserProfileResponseDTO getUserByEmail(String contactEmail) {
+    public UserProfileResponseDTO getUserByEmail(String contactEmail, String requesterId) {
         return userProfileRepository.findUserProfileByEmailIgnoreCaseAndIsDeletedFalse(contactEmail)
-                .map(IUserProfileMapper.INSTANCE::toUserProfileDTO).orElse(null);
+                .map(userProfile -> {
+                    UserProfileResponseDTO dto = mapToResponseDTO(userProfile);
+                    if (requesterId != null) {
+                        dto = applyPrivacyFiltering(dto, requesterId);
+                    }
+                    return dto;
+                }).orElse(null);
     }
 
     public void updateUserLastSeen(UUID userId, String lastSeen) {
@@ -302,12 +354,6 @@ public class UserProfileService {
         rabbitMQProducer.publishProfileUpdated(dto);
     }
 
-    public UpdateSettingsDTO getFeignUserByIdWithOutUserKey(UUID userId) {
-        UserProfile userProfile = this.userProfileRepository.findById(userId)
-                .orElseThrow(() -> new NoSuchElementException("User not found witdh ID: " + userId));
-        return IUserProfileMapper.INSTANCE.toUserProfileWithoutKeyDTO(userProfile);
-    }
-
     @Transactional(readOnly = true)
     public PrivacySettingsResponseDTO getPrivacySettings(String userId) {
         UserProfile user = userProfileRepository.findById(UUID.fromString(userId))
@@ -324,9 +370,37 @@ public class UserProfileService {
                 .build();
     }
 
-    public LastSeenDTO getLastSeen(String userId) {
-        UserProfile user = userProfileRepository.findById(UUID.fromString(userId))
+    public LastSeenDTO getLastSeen(String targetUserId, String requesterId) {
+        if (targetUserId.equals(requesterId)) {
+            UserProfile user = userProfileRepository.findById(UUID.fromString(targetUserId))
+                    .orElseThrow(() -> new RuntimeException("USER_NOT_FOUND"));
+            return LastSeenDTO.builder().lastSeen(user.getLastSeen().toString()).build();
+        }
+
+        UserProfile targetUser = userProfileRepository.findById(UUID.fromString(targetUserId))
                 .orElseThrow(() -> new RuntimeException("USER_NOT_FOUND"));
-        return LastSeenDTO.builder().lastSeen(user.getLastSeen().toString()).build();
+        UserProfile requesterUser = userProfileRepository.findById(UUID.fromString(requesterId))
+                .orElseThrow(() -> new RuntimeException("USER_NOT_FOUND"));
+
+        if (requesterUser.getPrivacySettings().getLastSeenVisibility() == VisibilityOption.NOBODY) {
+            return LastSeenDTO.builder().lastSeen(null).build();
+        }
+
+        VisibilityOption visibility = targetUser.getPrivacySettings().getLastSeenVisibility();
+
+        boolean allowed = switch (visibility) {
+            case EVERYONE -> true;
+            case NOBODY -> false;
+            case MY_CONTACTS -> {
+                String outKey = "rel:out:" + targetUserId;
+                yield Boolean.TRUE.equals(redisTemplate.opsForSet().isMember(outKey, requesterId));
+            }
+        };
+
+        if (!allowed) {
+            return LastSeenDTO.builder().lastSeen(null).build();
+        }
+
+        return LastSeenDTO.builder().lastSeen(targetUser.getLastSeen().toString()).build();
     }
 }

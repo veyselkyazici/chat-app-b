@@ -32,36 +32,35 @@ public class ContactsController {
     }
 
     @GetMapping("/get-contact-list")
-    public CompletableFuture<ResponseEntity<ApiResponse<List<ContactResponseDTO>>>> getFriendListAsync(@RequestHeader("X-Id") String tokenUserId) {
+    public CompletableFuture<ResponseEntity<ApiResponse<List<ContactResponseDTO>>>> getFriendListAsync(
+            @RequestHeader("X-Id") String tokenUserId) {
         return contactsService.getContactList(tokenUserId)
                 .thenApply(dto -> ResponseEntity.ok(new ApiResponse<>(true, "success", dto)))
                 .completeOnTimeout(
                         ResponseEntity.status(408).body(new ApiResponse<>(false, "Request timeout", null)),
-                        60, TimeUnit.SECONDS
-                );
+                        60, TimeUnit.SECONDS);
     }
 
-    @GetMapping("/{userId}/snapshot")
-    public RelationshipSnapshotDTO snapshot(@PathVariable UUID userId) {
-        return contactsService.snapshot(userId);
+    @GetMapping("/relationships/{userId}/snapshot")
+    public RelationshipSnapshotDTO snapshot(@PathVariable String userId) {
+        return contactsService.snapshot(UUID.fromString(userId));
     }
-
-
 
     @PostMapping("/get-contact-information-of-existing-chats")
-    public CompletableFuture<List<ContactResponseDTO>>  getContactInformationOfExistingChats(@RequestBody ContactInformationOfExistingChatsRequestDTO contactInformationOfExistingChatsRequestDTO) {
+    public CompletableFuture<List<ContactResponseDTO>> getContactInformationOfExistingChats(
+            @RequestBody ContactInformationOfExistingChatsRequestDTO contactInformationOfExistingChatsRequestDTO) {
         return contactsService.getContactInformationOfExistingChats(contactInformationOfExistingChatsRequestDTO);
     }
 
     @PostMapping("/get-contact-information-of-existing-chat")
-    public CompletableFuture<ContactResponseDTO>  getContactInformationOfExistingChat(@RequestBody ContactInformationOfExistingChatRequestDTO contactInformationOfExistingChatRequestDTO) {
-        System.out.println("USERID 123>> " + contactInformationOfExistingChatRequestDTO);
+    public CompletableFuture<ContactResponseDTO> getContactInformationOfExistingChat(
+            @RequestBody ContactInformationOfExistingChatRequestDTO contactInformationOfExistingChatRequestDTO) {
         return contactsService.getContactInformationOfSingleChat(contactInformationOfExistingChatRequestDTO);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteContact(@PathVariable("id") UUID id, @RequestHeader("X-Id") String tokenUserId) {
-        contactsService.deleteContact(id,tokenUserId);
+        contactsService.deleteContact(id, tokenUserId);
         return ResponseEntity.ok().build();
     }
 }

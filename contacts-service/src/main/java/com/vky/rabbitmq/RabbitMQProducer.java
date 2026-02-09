@@ -56,4 +56,8 @@ public class RabbitMQProducer {
                 "ws.relationship.sync",
                 event);
     }
+
+    public void publishContactDeleted(String targetUserId, String deleterUserId) {
+        publish("contact-deleted", targetUserId, deleterUserId);
+    }
 }

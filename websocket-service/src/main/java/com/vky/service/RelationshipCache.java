@@ -1,5 +1,6 @@
 package com.vky.service;
 
+import com.vky.dto.RelationshipListDTO;
 import com.vky.manager.IContactsManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -25,7 +26,7 @@ public class RelationshipCache {
             return members.stream().map(Object::toString).toList();
         }
 
-        IContactsManager.RelationshipListDTO snap = safeSnapshot(userId);
+        RelationshipListDTO snap = safeSnapshot(userId);
         if (snap == null) return List.of();
 
         repopulate(anyKey, snap.relatedUserIds());
@@ -37,7 +38,7 @@ public class RelationshipCache {
 
         Boolean exists = redisTemplate.hasKey(outKey);
         if (Boolean.FALSE.equals(exists)) {
-            IContactsManager.RelationshipListDTO snap = safeSnapshot(targetId);
+            RelationshipListDTO snap = safeSnapshot(targetId);
             if (snap != null) repopulate(outKey, snap.outgoingContactIds());
         }
 
@@ -52,7 +53,7 @@ public class RelationshipCache {
         redisTemplate.expire(key, REL_TTL);
     }
 
-    private IContactsManager.RelationshipListDTO safeSnapshot(String userId) {
+    private RelationshipListDTO safeSnapshot(String userId) {
         try {
             return contactsClient.snapshot(userId);
         } catch (Exception ignored) {

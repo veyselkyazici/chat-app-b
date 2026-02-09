@@ -22,15 +22,15 @@ public class UserController {
     private final UserProfileService userProfileService;
 
     @GetMapping("/get-user")
-    public ResponseEntity<UserProfileResponseDTO> getUserByEmail(@RequestParam String contactEmail) {
-        return ResponseEntity.ok(userProfileService.getUserByEmail(contactEmail));
+    public ResponseEntity<UserProfileResponseDTO> getUserByEmail(@RequestParam String contactEmail,
+            @RequestHeader(value = "X-Id", required = false) String requesterId) {
+        return ResponseEntity.ok(userProfileService.getUserByEmail(contactEmail, requesterId));
     }
 
     @PostMapping("/get-user-with-user-key-by-auth-id")
     public ResponseEntity<ApiResponse<UserProfileResponseDTO>> getUserWithUserKeyByAuthId(
             @RequestHeader("X-Id") String tokenUserId) {
         UserProfileResponseDTO responseDTO = userProfileService.findWithUserKeyByAuthId(tokenUserId);
-        System.out.println(responseDTO.userKey());
         return ResponseEntity.ok(new ApiResponse<>(true, "success", responseDTO));
     }
 
@@ -58,8 +58,9 @@ public class UserController {
     }
 
     @PostMapping("/get-user-by-id")
-    public UserProfileResponseDTO getFeignUserById(@RequestBody UUID userId) {
-        return this.userProfileService.getUserById(userId);
+    public UserProfileResponseDTO getFeignUserById(@RequestBody UUID userId,
+            @RequestHeader(value = "X-Id", required = false) String requesterId) {
+        return this.userProfileService.getUserById(userId, requesterId);
     }
 
     @GetMapping("/get-user-email-by-id")
@@ -69,13 +70,9 @@ public class UserController {
     }
 
     @PostMapping("/get-users")
-    public List<ContactResponseDTO> getUsersOfContacts(@RequestBody List<UUID> ids) {
-        return this.userProfileService.getUsers(ids);
-    }
-
-    @PostMapping("/get-user-by-id-with-out-user-key")
-    public UpdateSettingsDTO getFeignUserByIdWithOutUserKey(@RequestBody UUID userId) {
-        return this.userProfileService.getFeignUserByIdWithOutUserKey(userId);
+    public List<ContactResponseDTO> getUsersOfContacts(@RequestBody List<UUID> ids,
+            @RequestHeader(value = "X-Id", required = false) String requesterId) {
+        return this.userProfileService.getUsers(ids, requesterId);
     }
 
     @PutMapping("/privacy-settings")
@@ -93,9 +90,9 @@ public class UserController {
         userProfileService.updateUserLastSeen(UUID.fromString(userId), req.lastSeen());
     }
 
-    @GetMapping("/api/v1/users/{userId}/last-seen")
-    LastSeenDTO getLastSeen(@PathVariable String userId) {
-        return userProfileService.getLastSeen(userId);
+    @GetMapping("/{userId}/last-seen")
+    public LastSeenDTO getLastSeen(@PathVariable String userId, @RequestHeader("X-Id") String requesterId) {
+        return userProfileService.getLastSeen(userId, requesterId);
     }
 
     @GetMapping("/{userId}/privacy")

@@ -25,7 +25,7 @@ public class RabbitMQConsumer {
     public void handle(WsEvent<?> event) {
 
         String destination = switch (event.getType()) {
-            //case "profile-updated" -> "/queue/updated-user-profile-message";
+            // case "profile-updated" -> "/queue/updated-user-profile-message";
             case "online-status" -> "/queue/online-status";
             case "disconnect" -> "/queue/disconnect";
             case "contact-added" -> "/queue/add-contact";
@@ -38,6 +38,7 @@ public class RabbitMQConsumer {
             case "block" -> "/queue/block";
             case "unblock" -> "/queue/unblock";
             case "error" -> "/queue/error-message";
+            case "contact-deleted" -> "/queue/contact-deleted";
             default -> "/queue/unknown";
         };
 
@@ -45,8 +46,7 @@ public class RabbitMQConsumer {
                 event.getTargetUserId(),
                 destination,
                 event.getType(),
-                event.getPayload()
-        );
+                event.getPayload());
     }
 
     @RabbitListener(queues = RabbitMQConfig.WS_REL_SYNC_QUEUE)

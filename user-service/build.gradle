@@ -13,5 +13,7 @@ dependencies {
     implementation libs.cloudinary
     implementation libs.bounycastle
     implementation libs.springBootWeb
+    implementation libs.redis
 }
+
 

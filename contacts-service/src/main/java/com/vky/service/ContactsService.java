@@ -45,11 +45,13 @@ public class ContactsService {
                 contactsRepository.save(contact);
                 userRelationshipService.updateUserRelationship(UUID.fromString(userId), contact.getUserContactId(),
                                 contact);
+                userRelationshipService.publishRelationshipSyncForUser(UUID.fromString(userId));
+                rabbitMQProducer.publishContactDeleted(contact.getUserContactId().toString(), userId);
         }
 
         public void addContact(ContactRequestDTO dto, String userId) {
 
-                UserProfileResponseDTO profile = userManager.getUserByEmail(dto.userContactEmail());
+                UserProfileResponseDTO profile = userManager.getUserByEmail(dto.userContactEmail(), userId);
                 if (profile == null) {
                         handleInvitationProcess(dto, userId);
                         return;
@@ -188,7 +190,7 @@ public class ContactsService {
 
                 List<UUID> orderedIds = new ArrayList<>(contactMap.keySet());
 
-                List<ContactResponseDTO> userResponseDTOS = userManager.getUsers(orderedIds);
+                List<ContactResponseDTO> userResponseDTOS = userManager.getUsers(orderedIds, tokenUserId);
 
                 Map<UUID, ContactResponseDTO> responseMap = userResponseDTOS.stream()
                                 .collect(Collectors.toMap(
@@ -202,22 +204,7 @@ public class ContactsService {
                         if (userResponse != null) {
                                 ContactWithRelationshipDTO correspondingContact = contactMap.get(orderedId);
 
-                                // Privacy logic
-                                if (userResponse.userProfileResponseDTO().image() != null) {
-                                        if (userResponse.userProfileResponseDTO().privacySettings()
-                                                        .profilePhotoVisibility() == VisibilityOption.NOBODY ||
-                                                        (userResponse.userProfileResponseDTO().privacySettings()
-                                                                        .profilePhotoVisibility() == VisibilityOption.MY_CONTACTS
-                                                                        &&
-                                                                        !correspondingContact
-                                                                                        .getRelatedUserHasAddedUser())) {
-                                                UserProfileResponseDTO updatedProfile = userResponse
-                                                                .userProfileResponseDTO().toBuilder()
-                                                                .image(null).build();
-                                                userResponse = userResponse.toBuilder()
-                                                                .userProfileResponseDTO(updatedProfile).build();
-                                        }
-                                }
+                                // Privacy is now handled server-side in user-service
 
                                 if (correspondingContact != null) {
                                         ContactsDTO contactsDTO = ContactsDTO.builder()
@@ -295,64 +282,15 @@ public class ContactsService {
                 }
 
                 List<ContactResponseDTO> userResponseDTOS = userManager
-                                .getUsers(new ArrayList<>(contactDTOMap.keySet()));
+                                .getUsers(new ArrayList<>(contactDTOMap.keySet()),
+                                                contactInformationOfExistingChatsRequestDTO.userId().toString());
 
-                List<ContactResponseDTO> dto = userResponseDTOS.stream()
+                List<ContactResponseDTO> filteredDtos = userResponseDTOS.stream()
                                 .map(user -> {
                                         ContactWithRelationshipDTO contact = contactDTOMap
                                                         .get(user.userProfileResponseDTO().id());
-                                        String image = getImage(user, contact);
                                         return ContactResponseDTO.builder()
-                                                        .userProfileResponseDTO(UserProfileResponseDTO.builder()
-                                                                        .id(user.userProfileResponseDTO().id())
-                                                                        .email(user.userProfileResponseDTO().email())
-                                                                        .about(user.userProfileResponseDTO().about())
-                                                                        .image(image)
-                                                                        .firstName(user.userProfileResponseDTO()
-                                                                                        .firstName())
-                                                                        .lastName(user.userProfileResponseDTO()
-                                                                                        .lastName())
-                                                                        .privacySettings(PrivacySettingsResponseDTO
-                                                                                        .builder()
-                                                                                        .id(user.userProfileResponseDTO()
-                                                                                                        .privacySettings()
-                                                                                                        .id())
-                                                                                        .onlineStatusVisibility(user
-                                                                                                        .userProfileResponseDTO()
-                                                                                                        .privacySettings()
-                                                                                                        .onlineStatusVisibility())
-                                                                                        .profilePhotoVisibility(user
-                                                                                                        .userProfileResponseDTO()
-                                                                                                        .privacySettings()
-                                                                                                        .profilePhotoVisibility())
-                                                                                        .lastSeenVisibility(user
-                                                                                                        .userProfileResponseDTO()
-                                                                                                        .privacySettings()
-                                                                                                        .lastSeenVisibility())
-                                                                                        .aboutVisibility(user
-                                                                                                        .userProfileResponseDTO()
-                                                                                                        .privacySettings()
-                                                                                                        .aboutVisibility())
-                                                                                        .readReceipts(user
-                                                                                                        .userProfileResponseDTO()
-                                                                                                        .privacySettings()
-                                                                                                        .readReceipts())
-                                                                                        .build())
-                                                                        .userKey(UserKeyResponseDTO.builder()
-                                                                                        .iv(user.userProfileResponseDTO()
-                                                                                                        .userKey().iv())
-                                                                                        .publicKey(user.userProfileResponseDTO()
-                                                                                                        .userKey()
-                                                                                                        .publicKey())
-                                                                                        .encryptedPrivateKey(user
-                                                                                                        .userProfileResponseDTO()
-                                                                                                        .userKey()
-                                                                                                        .encryptedPrivateKey())
-                                                                                        .salt(user.userProfileResponseDTO()
-                                                                                                        .userKey()
-                                                                                                        .salt())
-                                                                                        .build())
-                                                                        .build())
+                                                        .userProfileResponseDTO(user.userProfileResponseDTO())
                                                         .contactsDTO(ContactsDTO.builder()
                                                                         .userContactName(contact.getUserContactName())
                                                                         .id(contact.getId())
@@ -366,41 +304,24 @@ public class ContactsService {
                                                         .build();
                                 })
                                 .collect(Collectors.toList());
-                return CompletableFuture.completedFuture(dto);
-        }
 
-        private static String getImage(ContactResponseDTO user, ContactWithRelationshipDTO contact) {
+                return CompletableFuture.completedFuture(filteredDtos);
 
-                String image = null;
-                if (user.userProfileResponseDTO().image() != null) {
-                        if (user.userProfileResponseDTO().privacySettings()
-                                        .profilePhotoVisibility() == VisibilityOption.NOBODY ||
-                                        (user.userProfileResponseDTO().privacySettings()
-                                                        .profilePhotoVisibility() == VisibilityOption.MY_CONTACTS
-                                                        && !contact.getRelatedUserHasAddedUser())) {
-                                image = null;
-                        } else {
-                                image = user.userProfileResponseDTO().image();
-                        }
-                }
-                return image;
         }
 
         @Async("taskExecutor")
         public CompletableFuture<ContactResponseDTO> getContactInformationOfSingleChat(
                         ContactInformationOfExistingChatRequestDTO contactInformationOfExistingChatRequestDTO) {
-                System.out.println("contactInformationOfExistingChatRequestDTO > "
-                                + contactInformationOfExistingChatRequestDTO.toString());
                 Optional<ContactWithRelationshipDTO> optionalContact = contactsRepository.findContactWithRelationship(
                                 contactInformationOfExistingChatRequestDTO.userId(),
                                 contactInformationOfExistingChatRequestDTO.userContactId());
                 ContactWithRelationshipDTO contact;
                 UserProfileResponseDTO userProfileResponseDTO = this.userManager
-                                .getUserById(contactInformationOfExistingChatRequestDTO.userContactId());
-                System.out.println("userProfileResponseDTO > " + userProfileResponseDTO);
+                                .getUserById(contactInformationOfExistingChatRequestDTO.userContactId(),
+                                                contactInformationOfExistingChatRequestDTO.userId().toString());
+
                 if (optionalContact.isPresent()) {
                         contact = optionalContact.get();
-                        System.out.println("CONTACT > " + contact);
                         if (contact.getUserId().equals(contactInformationOfExistingChatRequestDTO.userId())) {
                                 return CompletableFuture.completedFuture(ContactResponseDTO.builder()
                                                 .userProfileResponseDTO(userProfileResponseDTO)

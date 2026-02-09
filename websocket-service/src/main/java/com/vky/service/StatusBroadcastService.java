@@ -124,7 +124,7 @@ public class StatusBroadcastService {
 
         if (lastSeenInstant == null) {
             try {
-                LastSeenDTO dto = userManager.getLastSeen(targetId);
+                LastSeenDTO dto = userManager.getLastSeen(targetId, viewerId);
                 if (dto != null && dto.lastSeen() != null) {
                     lastSeenInstant = Instant.parse(dto.lastSeen());
 
