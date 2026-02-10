@@ -9,7 +9,6 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class RabbitMQConfig {
-
     public static final String WS_DELIVERY_EXCHANGE = "ws.delivery.exchange";
     public static final String WS_DELIVERY_QUEUE    = "ws.delivery.queue";
     public static final String WS_DELIVERY_ROUTING  = "ws.delivery";

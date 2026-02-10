@@ -71,7 +71,6 @@ public class AuthenticationFilter implements GatewayFilter {
     }
 
     public String extractUserIdFromToken(String authorizationHeader) {
-
         String token = authorizationHeader.replace("Bearer ", "");
 
         try {

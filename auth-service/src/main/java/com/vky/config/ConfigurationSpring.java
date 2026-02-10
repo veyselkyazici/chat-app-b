@@ -10,6 +10,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @Configuration
 @RequiredArgsConstructor
 public class ConfigurationSpring {
+
     private final IAuthRepository authRepository;
 //    @Bean
 //    public UserDetailsService userDetailsService() {
