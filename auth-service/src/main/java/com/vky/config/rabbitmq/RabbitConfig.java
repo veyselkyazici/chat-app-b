@@ -10,7 +10,6 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class RabbitConfig {
-
     /**
      * Exchange türleri > Direct, Fanout, Topic
      * Direct > Routing key ile doğrudan kuyruk yönlendirmesi yapar.

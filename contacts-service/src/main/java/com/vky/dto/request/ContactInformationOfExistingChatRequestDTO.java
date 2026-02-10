@@ -8,3 +8,4 @@ public record ContactInformationOfExistingChatRequestDTO(
         UUID userId,
         UUID userContactId) {
 }
+

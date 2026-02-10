@@ -95,4 +95,5 @@ public class AuthenticationFilter implements GatewayFilter {
             throw new RuntimeException("Failed to parse JWT", e);
         }
     }
+
 }

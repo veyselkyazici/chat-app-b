@@ -18,4 +18,5 @@ public class LastMessageInfo {
     private String senderId;
     private String recipientId;
     private boolean isSeen;
+
 }
