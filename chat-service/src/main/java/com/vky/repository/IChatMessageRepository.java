@@ -16,6 +16,11 @@ public interface IChatMessageRepository extends MongoRepository<ChatMessage, Str
         List<ChatMessage> findTop30ByChatRoomIdAfterDeletedTime(String chatRoomId, Instant deletedTime,
                         Pageable pageable);
 
+
+        @Query("{ 'chatRoomId': ?0, 'fullDateTime': { $lt: ?1, $gt: ?2 } }")
+        List<ChatMessage> findNext30ByChatRoomIdAndFullDateTimeBetween(String chatRoomId, Instant before, Instant after,
+                        Pageable pageable);
+
         @Query("{ 'chatRoomId': ?0, 'fullDateTime': { $lt: ?1 } }")
         List<ChatMessage> findNext30ByChatRoomIdAndFullDateTimeBefore(String chatRoomId, Instant before,
                         Pageable pageable);

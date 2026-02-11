@@ -212,7 +212,8 @@ public class ChatRoomService {
                 if (lastMessageInfo == null) {
                         return null;
                 }
-                if (userChatSettings.getDeletedTime() != null && !lastMessageInfo.getLastMessageTime().isAfter(userChatSettings.getDeletedTime())) {
+                if (userChatSettings.getDeletedTime() != null
+                                && !lastMessageInfo.getLastMessageTime().isAfter(userChatSettings.getDeletedTime())) {
                         return null;
                 }
                 UUID senderOrRecipientId = UUID.fromString(
@@ -282,8 +283,11 @@ public class ChatRoomService {
         }
 
         public ChatDTO getOlderMessages(String chatRoomId, Instant before, int limit, String userId) {
+                UserChatSettings userChatSettings = userChatSettingsService.findByUserIdAndChatRoomId(userId,
+                                chatRoomId);
                 Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "fullDateTime"));
-                return chatMessageService.getOlderMessages(chatRoomId, before, pageable);
+                return chatMessageService.getOlderMessages(chatRoomId, before, pageable,
+                                userChatSettings.getDeletedTime());
         }
 
         public void chatBlock(ChatSummaryDTO chatSummaryDTO, String userId) {
@@ -338,9 +342,6 @@ public class ChatRoomService {
                 userSettings.setDeleted(true);
                 userSettings.setUnreadMessageCount(0);
                 unreadMessageCountService.generateUnreadKey(userSettings.getChatRoomId(), userId);
-                // ToDo Eğer bu chat ten tekrar mesaj gelir veya bu chat e mesaj gönderilirse.
-                // deletedTime dan sonraki mesajlar cekilecek ve tekrar deleted false olarak
-                // güncellenmeli
                 userSettings.setDeletedTime(Instant.now());
                 userChatSettingsService.updateUserChatSettings(userSettings);
                 unreadMessageCountService.deleteUnreadMessageCount(userSettings.getChatRoomId(), userId);

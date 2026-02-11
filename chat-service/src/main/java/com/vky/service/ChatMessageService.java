@@ -48,6 +48,14 @@ public class ChatMessageService {
         return getChatDTO(pageable, chatMessages);
     }
 
+    public ChatDTO getOlderMessages(String chatRoomId, Instant before, Pageable pageable, Instant fullDateTime) {
+        Instant effectiveDeletedTime = fullDateTime == null ? Instant.EPOCH : fullDateTime;
+
+        List<ChatMessage> chatMessages = chatMessageRepository.findNext30ByChatRoomIdAndFullDateTimeBetween(chatRoomId,
+                before, effectiveDeletedTime, pageable);
+        return getChatDTO(pageable, chatMessages);
+    }
+
     public ChatDTO getOlderMessages(String chatRoomId, Instant before, Pageable pageable) {
         List<ChatMessage> chatMessages = chatMessageRepository.findNext30ByChatRoomIdAndFullDateTimeBefore(chatRoomId,
                 before, pageable);
@@ -61,8 +69,7 @@ public class ChatMessageService {
             return ChatDTO.builder()
                     .participantIds(new ArrayList<>())
                     .messages(new ArrayList<>())
-                    .isLastPage(false) // Defaulting to false or true? Original returned new ChatDTO() which has
-                                       // default boolean false.
+                    .isLastPage(true) // If empty, it is definitely the last page
                     .build();
         }
 
@@ -73,7 +80,7 @@ public class ChatMessageService {
         return ChatDTO.builder()
                 .participantIds(participantIds)
                 .messages(IChatMapper.INSTANCE.chatMessagesToDTO(chatMessages))
-                .isLastPage(!isLastPage) // Preserving original logic
+                .isLastPage(isLastPage) // Fixed: now returns true if it IS the last page
                 .id(chatMessages.get(0).getChatRoomId())
                 .build();
     }
