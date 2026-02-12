@@ -56,12 +56,6 @@ public class ChatMessageService {
         return getChatDTO(pageable, chatMessages);
     }
 
-    public ChatDTO getOlderMessages(String chatRoomId, Instant before, Pageable pageable) {
-        List<ChatMessage> chatMessages = chatMessageRepository.findNext30ByChatRoomIdAndFullDateTimeBefore(chatRoomId,
-                before, pageable);
-        return getChatDTO(pageable, chatMessages);
-    }
-
     private ChatDTO getChatDTO(Pageable pageable, List<ChatMessage> chatMessages) {
         boolean isLastPage = chatMessages.size() < pageable.getPageSize();
 
@@ -69,7 +63,7 @@ public class ChatMessageService {
             return ChatDTO.builder()
                     .participantIds(new ArrayList<>())
                     .messages(new ArrayList<>())
-                    .isLastPage(true) // If empty, it is definitely the last page
+                    .isLastPage(true)
                     .build();
         }
 
@@ -80,7 +74,7 @@ public class ChatMessageService {
         return ChatDTO.builder()
                 .participantIds(participantIds)
                 .messages(IChatMapper.INSTANCE.chatMessagesToDTO(chatMessages))
-                .isLastPage(isLastPage) // Fixed: now returns true if it IS the last page
+                .isLastPage(isLastPage)
                 .id(chatMessages.get(0).getChatRoomId())
                 .build();
     }
