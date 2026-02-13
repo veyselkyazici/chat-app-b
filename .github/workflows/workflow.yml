@@ -8,8 +8,11 @@ on:
 jobs:
   detect-changes:
     runs-on: ubuntu-latest
+
     outputs:
       changed: ${{ steps.filter.outputs.changed }}
+      full: ${{ steps.filter.outputs.full }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -19,37 +22,57 @@ jobs:
       - name: Detect changed services
         id: filter
         run: |
-          changed=$(git diff --name-only HEAD^ HEAD | cut -d/ -f1 | sort -u)
-          
+          changed=$(git diff --name-only HEAD^ HEAD)
+
           services=""
-          for dir in $changed; do
-            dir=$(echo "$dir" | xargs)
+          full_deploy=false
+
+          for file in $changed; do
+
+            dir=$(echo "$file" | cut -d/ -f1)
+
+            # Servisleri bul
             case $dir in
               eureka-server|config-server|auth-service|user-service|contacts-service|chat-service|mail-service|api-gateway-service|websocket-service)
                 services="$services $dir"
                 ;;
             esac
+
+            # Kritik dosyalar -> FULL DEPLOY
+            case $file in
+              build.gradle|docker-compose.yml|.env)
+                full_deploy=true
+                ;;
+            esac
+
           done
-          
-          services=$(echo "$services" | xargs)
-          
-          # Eğer ana build.gradle değiştiyse -> tüm servisler deploy edilsin
-          if echo "$changed" | grep -q "build.gradle"; then
-            services="eureka-server config-server auth-service user-service contacts-service chat-service mail-service api-gateway-service websocket-service"
+
+          # Config-server değişirse full deploy
+          if echo "$services" | grep -q "config-server"; then
+            full_deploy=true
           fi
-          
+
+          services=$(echo "$services" | xargs)
+
           echo "Changed services: $services"
-          
-          json_services=$(echo "$services" | tr -s ' ' '\n' | grep -v '^$' | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          echo "Full deploy: $full_deploy"
+
+          json_services=$(echo "$services" | tr ' ' '\n' | jq -R -s -c 'split("\n") | map(select(length>0))')
+
           echo "changed=$json_services" >> $GITHUB_OUTPUT
+          echo "full=$full_deploy" >> $GITHUB_OUTPUT
 
   build-and-push:
     needs: detect-changes
+
     if: needs.detect-changes.outputs.changed != '[]'
+
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
         service: ${{ fromJSON(needs.detect-changes.outputs.changed) }}
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -63,7 +86,9 @@ jobs:
       - name: Build Docker image
         run: |
           service=$(echo "${{ matrix.service }}" | tr -d '[:space:]')
-          echo "Building service: $service"
+
+          echo "Building $service"
+
           docker build . \
             --build-arg SERVICE="$service" \
             -t "${{ secrets.DOCKER_HUB_USERNAME }}/microservices:$service"
@@ -71,37 +96,70 @@ jobs:
       - name: Push Docker image
         run: |
           service=$(echo "${{ matrix.service }}" | tr -d '[:space:]')
-          echo "Pushing service: $service"
+
+          echo "Pushing $service"
+
           docker push "${{ secrets.DOCKER_HUB_USERNAME }}/microservices:$service"
 
   deploy:
-    needs: build-and-push
+    needs: [detect-changes, build-and-push]
+
     runs-on: ubuntu-latest
+
     steps:
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.1.0
+
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
+
           script: |
+
             cd /home/vky/vkychatapp
+
+            full='${{ needs.detect-changes.outputs.full }}'
             changed='${{ needs.detect-changes.outputs.changed }}'
-            
+
+            echo "Full deploy: $full"
+            echo "Changed services: $changed"
+
+            if [ "$full" = "true" ]; then
+
+              echo "Running FULL DEPLOY"
+
+              ./deploy.sh
+
+              exit 0
+
+            fi
+
+            echo "Running PARTIAL DEPLOY"
+
+
             for service in $(echo $changed | jq -r '.[]'); do
-              # Trim whitespace
+
               service=$(echo "$service" | tr -d '[:space:]')
-              echo "Deploying $service ..."
+
               case $service in
-                api-gateway-service) compose_service="api-gateway" ;;
-                *) compose_service=$service ;;
+                api-gateway-service)
+                  compose_service="api-gateway"
+                  ;;
+                *)
+                  compose_service=$service
+                  ;;
               esac
-            
+
+              echo "Deploying $compose_service"
+
+
               docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/microservices:$service
-            
-              docker-compose -f docker-compose.yml stop $compose_service
-              docker-compose -f docker-compose.yml rm -f $compose_service
-            
-              docker-compose -f docker-compose.yml up -d $compose_service
+
+
+              docker-compose stop $compose_service
+              docker-compose rm -f $compose_service
+              docker-compose up -d $compose_service
+
             done

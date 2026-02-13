@@ -167,7 +167,7 @@ public class UserProfileService {
                 })
                 .collect(Collectors.toList());
     }
-
+    @Transactional(readOnly = true)
     public UserProfileResponseDTO getUserById(UUID userId, String requesterId) {
         UserProfile userProfile = userProfileRepository.findById(userId)
                 .orElseThrow(() -> new UserServiceException(ErrorType.USER_NOT_FOUND));
