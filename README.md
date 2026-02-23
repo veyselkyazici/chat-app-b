@@ -1,4 +1,6 @@
-# Güvenli Chat Uygulaması: Backend Mimari ve Detayları
+# vkychatapp: Frontend Mimari ve Geliştirme Detayları
+
+**Canlı Demo:** [vkychatapp.com](https://vkychatapp.com) | **Frontend:** [chat-app-f](https://github.com/veyselkyazici/chat-app-f)
 
 Bu dokümanda, yüksek performanslı ve tam güvenli (Uçtan Uca Şifreli - E2EE) bir gerçek zamanlı mesajlaşma (Chat) uygulamasının backend tarafında kullanılan mikroservis mimarisi, güvenlik önlemleri, veritabanı yapısı ve DevOps süreçleri detaylandırılmıştır.
 
@@ -150,30 +152,30 @@ Modern uygulamalarda "Her şey WebSocket olsun" veya "Her şey REST olsun" yakla
 ```javascript
 // Frontend: Robust WebSocket Manager (websocket.js)
 export default class WebSocketManager {
-  constructor(url) {
-    this.client = new Client({
-      brokerURL: this.url,
-      reconnectDelay: 3000, // Auto-reconnect every 3s
-      
-      beforeConnect: () => {
-        // Inject secure JWT token
-        this.client.connectHeaders = {
-            Authorization: `Bearer ${sessionStorage.getItem("access_token")}`,
-        };
-      },
+    constructor(url) {
+        this.client = new Client({
+            brokerURL: this.url,
+            reconnectDelay: 3000, // Auto-reconnect every 3s
 
-      onWebSocketClose: async (evt) => {
-        // Handle unexpected closures with backoff logic
-        console.warn("WebSocket closed, retrying...");
-        await this.tryRefreshAndReconnect();
-      }
-    });
+            beforeConnect: () => {
+                // Inject secure JWT token
+                this.client.connectHeaders = {
+                    Authorization: `Bearer ${sessionStorage.getItem("access_token")}`,
+                };
+            },
 
-    // Smart Optimization: Reduce ping frequency when tab is hidden
-    document.addEventListener("visibilitychange", () => {
-        !document.hidden ? this.startPing() : this.stopPing();
-    });
-  }
+            onWebSocketClose: async (evt) => {
+                // Handle unexpected closures with backoff logic
+                console.warn("WebSocket closed, retrying...");
+                await this.tryRefreshAndReconnect();
+            }
+        });
+
+        // Smart Optimization: Reduce ping frequency when tab is hidden
+        document.addEventListener("visibilitychange", () => {
+            !document.hidden ? this.startPing() : this.stopPing();
+        });
+    }
 }
 ```
 
@@ -248,7 +250,7 @@ public void syncToUser(String userId) {
 
     // 2. O noktadan sonraki mesajları Stream'den oku
     List records = ops.read(StreamOffset.create("ws:inbox:" + userId, ReadOffset.from(lastAck)));
-    
+
     // 3. Kullanıcıya ilet
     for (var rec : records) {
         messagingTemplate.convertAndSendToUser(userId, dest, payload);
@@ -292,27 +294,27 @@ sequenceDiagram
 ```javascript
 // Frontend: E2EE Encryption Logic (e2ee.js)
 export async function encryptMessage(message, recipientPublicKey, senderPublicKey) {
-  // 1. Generate ephemeral AES Key for this message
-  const aesKey = await window.crypto.subtle.generateKey(
-    { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]
-  );
+    // 1. Generate ephemeral AES Key for this message
+    const aesKey = await window.crypto.subtle.generateKey(
+        { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]
+    );
 
-  // 2. Encrypt the actual message content with AES
-  const iv = window.crypto.getRandomValues(new Uint8Array(12));
-  const encryptedContent = await window.crypto.subtle.encrypt(
-    { name: "AES-GCM", iv }, aesKey, new TextEncoder().encode(message)
-  );
+    // 2. Encrypt the actual message content with AES
+    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+    const encryptedContent = await window.crypto.subtle.encrypt(
+        { name: "AES-GCM", iv }, aesKey, new TextEncoder().encode(message)
+    );
 
-  // 3. Encrypt the AES Key with Recipient's RSA Public Key
-  const encryptedKeyForRecipient = await window.crypto.subtle.encrypt(
-    { name: "RSA-OAEP" }, recipientPublicKey, exportedAesKey
-  );
+    // 3. Encrypt the AES Key with Recipient's RSA Public Key
+    const encryptedKeyForRecipient = await window.crypto.subtle.encrypt(
+        { name: "RSA-OAEP" }, recipientPublicKey, exportedAesKey
+    );
 
-  return {
-    encryptedMessage: base64Encode(encryptedContent),
-    encryptedKeyForRecipient: base64Encode(encryptedKeyForRecipient),
-    iv: base64Encode(iv)
-  };
+    return {
+        encryptedMessage: base64Encode(encryptedContent),
+        encryptedKeyForRecipient: base64Encode(encryptedKeyForRecipient),
+        iv: base64Encode(iv)
+    };
 }
 ```
 
@@ -357,7 +359,7 @@ async resetPassword() {
 
     // 3. Send to Backend (Overwrites old keys)
     const resetRequest = new ResetPasswordRequestDTO(
-        email, newPassword, resetToken, 
+        email, newPassword, resetToken,
         publicKey, encryptedPrivateKey, ...
     );
     await authService.resetPassword(resetRequest);
@@ -383,7 +385,7 @@ public class AuthenticationFilter implements GatewayFilter {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String token = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
-        
+
         // 1. Check if token exists in Redis Blacklist
         if (tokenBlacklistService.isBlacklisted(token)) {
             return errorResponse(exchange, HttpStatus.UNAUTHORIZED);
@@ -446,11 +448,11 @@ private UserProfileResponseDTO applyPrivacyFiltering(UserProfileResponseDTO targ
     if (target.id().toString().equals(requesterId)) return target;
 
     UserProfileResponseDTO.UserProfileResponseDTOBuilder builder = target.toBuilder();
-    
+
     if (!isActionAllowed(target.id().toString(), requesterId, target.privacySettings().lastSeenVisibility())) {
         builder.lastSeen(null);
     }
-    
+
     if (!isActionAllowed(target.id().toString(), requesterId, target.privacySettings().profilePhotoVisibility())) {
         builder.image(null);
     }
