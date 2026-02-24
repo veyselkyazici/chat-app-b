@@ -16,6 +16,7 @@ import java.util.UUID;
 
 @Service
 public class ConfirmationService {
+
     private final ConfirmationRepository confirmationRepository;
     private final IAuthManager authManager;
     private final MailService mailService;

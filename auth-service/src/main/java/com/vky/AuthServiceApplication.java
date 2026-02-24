@@ -1,22 +1,9 @@
 package com.vky;
 
-import com.vky.repository.IAuthRepository;
-import com.vky.repository.entity.Auth;
-import com.vky.repository.entity.enums.Role;
-import com.vky.service.AuthService;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.openfeign.EnableFeignClients;
-import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableAsync;
-import org.springframework.security.crypto.password.PasswordEncoder;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
 
 @SpringBootApplication
 @EnableFeignClients

@@ -19,8 +19,8 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 public class ChatMessageServiceImpl implements IChatMessageService {
-
     private final IChatMessageRepository chatMessageRepository;
+
 
     @Override
     public ChatMessage sendMessage(MessageRequestDTO messageRequestDTO) {

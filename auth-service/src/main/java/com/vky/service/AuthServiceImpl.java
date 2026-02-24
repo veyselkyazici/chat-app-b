@@ -34,6 +34,7 @@ import java.util.concurrent.TimeUnit;
 
 @Service
 public class AuthServiceImpl implements IAuthService {
+
     private final IAuthRepository authRepository;
     private final JwtTokenManager jwtTokenManager;
     private final PasswordEncoder passwordEncoder;

@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface IUserRelationshipService {
+
     void updateUserRelationship(UUID userId, UUID userContactId, Contacts contact);
 
     UserRelationship handleUserRelationship(UserProfileResponseDTO userProfileResponseDTO, UUID uuiDuserId);

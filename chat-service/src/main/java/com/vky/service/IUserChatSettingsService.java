@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Optional;
 
 public interface IUserChatSettingsService {
+
     UserChatSettings findByUserIdAndChatRoomId(String userId, String chatRoomId);
 
     UserChatSettings saveUserChatSettings(String chatId, String userId, String otherUserId);
