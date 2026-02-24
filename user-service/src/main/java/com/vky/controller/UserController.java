@@ -5,7 +5,7 @@ import com.vky.dto.request.UpdateSettingsDTO;
 import com.vky.dto.request.UpdateUserDTO;
 import com.vky.dto.request.UpdateUserProfileDTO;
 import com.vky.dto.response.*;
-import com.vky.service.UserProfileService;
+import com.vky.service.IUserProfileService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +19,7 @@ import java.util.UUID;
 @RequestMapping("/api/v1/user")
 @RequiredArgsConstructor
 public class UserController {
-    private final UserProfileService userProfileService;
+    private final IUserProfileService userProfileService;
 
     @GetMapping("/get-user")
     public ResponseEntity<UserProfileResponseDTO> getUserByEmail(@RequestParam String contactEmail,

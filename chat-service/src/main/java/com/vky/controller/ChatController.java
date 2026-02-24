@@ -2,7 +2,7 @@ package com.vky.controller;
 
 import com.vky.dto.request.CreateChatRoom;
 import com.vky.dto.response.*;
-import com.vky.service.ChatRoomService;
+import com.vky.service.IChatRoomService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 @RequestMapping("/api/v1/chat")
 public class ChatController {
 
-        private final ChatRoomService chatRoomService;
+        private final IChatRoomService chatRoomService;
 
         @PostMapping("/create-chat-room-if-not-exists")
         public ResponseEntity<ApiResponse<ChatRoomWithUserChatSettingsDTO>> createChatRoomIfNotExists(

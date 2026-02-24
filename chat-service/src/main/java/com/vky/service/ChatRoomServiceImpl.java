@@ -31,17 +31,18 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class ChatRoomService {
+public class ChatRoomServiceImpl implements IChatRoomService {
 
         private final IChatRoomRepository chatRoomRepository;
-        private final ChatMessageService chatMessageService;
-        private final UserChatSettingsService userChatSettingsService;
+        private final IChatMessageService chatMessageService;
+        private final IUserChatSettingsService userChatSettingsService;
         private final IContactsManager contactsManager;
         private final RabbitMQProducer rabbitMQProducer;
         private final UnreadMessageCountService unreadMessageCountService;
         private final IUserChatSettingsRepository iUserChatSettingsRepository;
         private final ChatMessageListener chatMessageListener;
 
+        @Override
         public ChatRoom chatRoomSave(String userId, String friendId) {
                 List<String> participantIds = new ArrayList<>();
                 participantIds.add(userId);
@@ -50,6 +51,7 @@ public class ChatRoomService {
                                 .save(ChatRoom.builder().participantIds(new ArrayList<>(participantIds)).build());
         }
 
+        @Override
         public ChatRoomWithUserChatSettingsDTO findByParticipantIds(String userId, String friendId) {
                 List<String> ids = new ArrayList<>();
                 ids.add(userId);
@@ -79,15 +81,18 @@ public class ChatRoomService {
                 }
         }
 
+        @Override
         public List<ChatRoom> getUserChatRoomsAndDeletedFalse(List<String> chatRoomIds) {
                 return chatRoomRepository.findAllByChatRoomIdsIn(chatRoomIds);
         }
 
+        @Override
         public boolean isUserBlocked(String userId, String chatRoomId) {
                 UserChatSettings settings = userChatSettingsService.findByUserIdAndChatRoomId(userId, chatRoomId);
                 return settings != null && settings.isBlocked();
         }
 
+        @Override
         @Async("taskExecutor")
         public void processMessage(MessageRequestDTO dto) {
 
@@ -109,6 +114,7 @@ public class ChatRoomService {
                 chatMessageListener.onMessage(dto);
         }
 
+        @Override
         @Async("taskExecutor")
         public CompletableFuture<List<ChatSummaryDTO>> getUserChatSummaries(String userId) {
                 try {
@@ -154,6 +160,7 @@ public class ChatRoomService {
                 }
         }
 
+        @Override
         public CompletableFuture<ChatSummaryDTO> getUserChatSummary(String userId, String userContactId,
                         String chatRoomId) {
 
@@ -275,6 +282,7 @@ public class ChatRoomService {
                 return IChatMapper.INSTANCE.userChatSettingsToDTO(settings);
         }
 
+        @Override
         public ChatDTO getLast30Messages(String chatRoomId, int limit, String userId) {
                 UserChatSettings userChatSettings = userChatSettingsService.findByUserIdAndChatRoomId(userId,
                                 chatRoomId);
@@ -282,6 +290,7 @@ public class ChatRoomService {
                 return chatMessageService.getLast30Messages(chatRoomId, pageable, userChatSettings.getDeletedTime());
         }
 
+        @Override
         public ChatDTO getOlderMessages(String chatRoomId, Instant before, int limit, String userId) {
                 UserChatSettings userChatSettings = userChatSettingsService.findByUserIdAndChatRoomId(userId,
                                 chatRoomId);
@@ -290,6 +299,7 @@ public class ChatRoomService {
                                 userChatSettings.getDeletedTime());
         }
 
+        @Override
         public void chatBlock(ChatSummaryDTO chatSummaryDTO, String userId) {
                 UserChatSettings[] userChatSettingsArr = new UserChatSettings[2];
 
@@ -317,6 +327,7 @@ public class ChatRoomService {
                                 contactsUserChatSettings);
         }
 
+        @Override
         public void chatUnblock(ChatSummaryDTO chatSummaryDTO, String userId) {
                 UserChatSettings[] userChatSettingsArr = new UserChatSettings[2];
                 UserChatSettings userChatSettings = this.userChatSettingsService.findByUserIdAndChatRoomId(userId,
@@ -336,6 +347,7 @@ public class ChatRoomService {
                                 contactsUserChatSettings);
         }
 
+        @Override
         public void deleteChat(UserChatSettingsDTO userChatSettingsDTO, String userId) {
                 UserChatSettings userSettings = this.userChatSettingsService.findByUserIdAndChatRoomId(userId,
                                 userChatSettingsDTO.chatRoomId());

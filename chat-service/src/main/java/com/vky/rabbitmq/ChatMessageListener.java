@@ -5,7 +5,7 @@ import com.vky.dto.request.UnreadMessageCountDTO;
 import com.vky.dto.response.MessageFriendResponseDTO;
 import com.vky.mapper.IChatMapper;
 import com.vky.repository.entity.ChatMessage;
-import com.vky.service.ChatMessageService;
+import com.vky.service.IChatMessageService;
 import com.vky.service.UnreadMessageCountService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class ChatMessageListener {
 
-    private final ChatMessageService chatMessageService;
+    private final IChatMessageService chatMessageService;
     private final UnreadMessageCountService unreadMessageCountService;
     private final RabbitMQProducer producer;
 

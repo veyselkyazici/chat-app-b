@@ -2,7 +2,7 @@ package com.vky.rabbitmq;
 
 import com.vky.config.RabbitMQConfig;
 import com.vky.dto.response.UserProfileResponseDTO;
-import com.vky.service.ContactsService;
+import com.vky.service.IContactsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
@@ -11,11 +11,10 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class RabbitMQConsumer {
 
-    private final ContactsService contactsService;
+    private final IContactsService contactsService;
 
     @RabbitListener(queues = RabbitMQConfig.CONTACT_CHECK_QUEUE)
     public void checkContactUser(UserProfileResponseDTO dto) {
         contactsService.checkUsersWhoInvited(dto);
     }
 }
-

@@ -4,8 +4,8 @@ import com.vky.config.RabbitMQConfig;
 import com.vky.dto.request.MessageRequestDTO;
 import com.vky.dto.request.UnreadMessageCountDTO;
 import com.vky.dto.response.MessageDTO;
-import com.vky.service.ChatMessageService;
-import com.vky.service.ChatRoomService;
+import com.vky.service.IChatMessageService;
+import com.vky.service.IChatRoomService;
 import com.vky.service.UnreadMessageCountService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -17,9 +17,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class RabbitMQConsumer {
 
-    private final ChatRoomService chatRoomService;
+    private final IChatRoomService chatRoomService;
     private final UnreadMessageCountService unreadMessageCountService;
-    private final ChatMessageService chatMessageService;
+    private final IChatMessageService chatMessageService;
     private final RabbitMQProducer producer;
 
     @RabbitListener(queues = RabbitMQConfig.CHAT_INCOMING_QUEUE)

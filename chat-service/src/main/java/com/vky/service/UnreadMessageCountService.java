@@ -14,7 +14,7 @@ import java.util.Optional;
 public class UnreadMessageCountService {
 
     private final RedisTemplate<String, Object> redisTemplate;
-    private final UserChatSettingsService userChatSettingsService;
+    private final IUserChatSettingsService userChatSettingsService;
 
     private static final Duration REDIS_TTL = Duration.ofHours(24);
 

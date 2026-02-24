@@ -18,10 +18,11 @@ import java.util.*;
 
 @Service
 @RequiredArgsConstructor
-public class ChatMessageService {
+public class ChatMessageServiceImpl implements IChatMessageService {
 
     private final IChatMessageRepository chatMessageRepository;
 
+    @Override
     public ChatMessage sendMessage(MessageRequestDTO messageRequestDTO) {
         Instant fullDateTime = Instant.parse(messageRequestDTO.fullDateTime());
 
@@ -39,6 +40,7 @@ public class ChatMessageService {
 
     }
 
+    @Override
     public ChatDTO getLast30Messages(String chatRoomId, Pageable pageable, Instant fullDateTime) {
         Instant effectiveDeletedTime = fullDateTime == null ? Instant.EPOCH : fullDateTime;
 
@@ -48,6 +50,7 @@ public class ChatMessageService {
         return getChatDTO(pageable, chatMessages);
     }
 
+    @Override
     public ChatDTO getOlderMessages(String chatRoomId, Instant before, Pageable pageable, Instant fullDateTime) {
         Instant effectiveDeletedTime = fullDateTime == null ? Instant.EPOCH : fullDateTime;
 
@@ -79,6 +82,7 @@ public class ChatMessageService {
                 .build();
     }
 
+    @Override
     public Map<String, LastMessageInfo> getLastMessagesForChatRooms(List<String> chatRoomIds) {
         Map<String, LastMessageInfo> lastMessagesMap = new HashMap<>();
 
@@ -101,10 +105,12 @@ public class ChatMessageService {
         return lastMessagesMap;
     }
 
+    @Override
     public ChatMessage getLastMessageForChatRooms(String chatRoomId) {
         return chatMessageRepository.findLatestMessageByChatRoomId(chatRoomId);
     }
 
+    @Override
     public List<MessageDTO> setMessagesAsSeen(String chatRoomId, String recipientId, int unreadCount) {
 
         if (unreadCount <= 0) {
@@ -122,50 +128,4 @@ public class ChatMessageService {
         chatMessageRepository.saveAll(chatMessages);
         return IChatMapper.INSTANCE.chatMessagesToDTO(chatMessages);
     }
-
-    // public void markUnreadMessagesAsSeen(String chatRoomId, String recipientId,
-    // int unreadMessageCount) {
-    // if (unreadMessageCount <= 0) return;
-    //
-    // // MongoDB: okunmamış mesajları sırala ve limit kadar al
-    // Query query = new Query();
-    // query.addCriteria(Criteria.where("chatRoomId").is(chatRoomId)
-    // .and("recipientId").is(recipientId)
-    // .and("isSeen").is(false));
-    // query.with(Sort.by(Sort.Direction.ASC, "fullDateTime")); // eski mesajlar
-    // önce
-    // query.limit(unreadMessageCount);
-    //
-    // List<ChatMessage> messagesToMark = mongoTemplate.find(query,
-    // ChatMessage.class);
-    // if (messagesToMark.isEmpty()) return;
-    //
-    // // MongoDB: seçilen mesajları isSeen=true olarak güncelle
-    // List<String> ids = messagesToMark.stream().map(ChatMessage::getId).toList();
-    // Query updateQuery = new Query(Criteria.where("id").in(ids));
-    // Update update = new Update().set("isSeen", true);
-    // mongoTemplate.updateMulti(updateQuery, update, ChatMessage.class);
-    //
-    // // Redis: unread message count sıfırla
-    // String redisKey = String.format("unread:%s:%s", chatRoomId, recipientId);
-    // redisTemplate.opsForValue().set(redisKey, 0, REDIS_TTL);
-    //
-    // // WebSocket: karşı tarafa okunma bilgisini gönder
-    // if (!messagesToMark.isEmpty()) {
-    // String senderId = messagesToMark.get(0).getSenderId().equals(recipientId)
-    // ? messagesToMark.get(0).getRecipientId()
-    // : messagesToMark.get(0).getSenderId();
-    //
-    // messagingTemplate.convertAndSendToUser( recipientId,
-    // "/queue/read-confirmation-recipient", "Read operation completed for
-    // chatRoomId: ");
-    // messagingTemplate.convertAndSendToUser(
-    // senderId,
-    // "/queue/read-messages",
-    // messagesToMark
-    // );
-    //
-    // }
-    // }
-
 }

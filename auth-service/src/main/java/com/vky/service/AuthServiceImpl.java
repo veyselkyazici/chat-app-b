@@ -33,7 +33,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @Service
-public class AuthService {
+public class AuthServiceImpl implements IAuthService {
     private final IAuthRepository authRepository;
     private final JwtTokenManager jwtTokenManager;
     private final PasswordEncoder passwordEncoder;
@@ -43,7 +43,8 @@ public class AuthService {
     private final RedisTemplate<String, Object> redisTemplate;
     private final ReCaptchaService reCaptchaService;
 
-    public AuthService(IAuthRepository authRepository, JwtTokenManager jwtTokenManager, PasswordEncoder passwordEncoder,
+    public AuthServiceImpl(IAuthRepository authRepository, JwtTokenManager jwtTokenManager,
+            PasswordEncoder passwordEncoder,
             RabbitMQProducer rabbitMQProducer, IMailManager mailManager, IUserManager iUserManager,
             RedisTemplate<String, Object> redisTemplate, ReCaptchaService reCaptchaService) {
         this.authRepository = authRepository;
@@ -56,6 +57,7 @@ public class AuthService {
         this.reCaptchaService = reCaptchaService;
     }
 
+    @Override
     public LoginResponseDTO login(LoginRequestDTO loginRequestDTO) {
         captcha(loginRequestDTO.recaptchaToken(), "login");
 
@@ -70,7 +72,6 @@ public class AuthService {
             throw new AuthManagerException(ErrorType.INVALID_CREDENTIALS);
         }
 
-        // ToDo email koy token claim içine
         String token = jwtTokenManager.generateToken(authUser.getEmail(), authUser.getId());
         String refreshToken = jwtTokenManager.generateRefreshToken(authUser.getEmail(), authUser.getId());
 
@@ -81,6 +82,7 @@ public class AuthService {
                 .build();
     }
 
+    @Override
     public LoginResponseDTO refreshAuthenticationToken(String refreshToken) {
         try {
             DecodedJWT decoded = JWT.decode(refreshToken);
@@ -116,6 +118,7 @@ public class AuthService {
         }
     }
 
+    @Override
     @Transactional
     public void register(RegisterRequestDTO registerRequestDTO) {
         captcha(registerRequestDTO.recaptchaToken(), "signup");
@@ -129,12 +132,11 @@ public class AuthService {
             } else {
                 existingAuth.setPassword(passwordEncoder.encode(registerRequestDTO.password()));
                 authRepository.save(existingAuth);
-                // authRepository.flush();
                 iUserManager.resetUserKey(ResetUserKeyDTO.builder().publicKey(registerRequestDTO.publicKey())
                         .salt(registerRequestDTO.salt()).encryptedPrivateKey(registerRequestDTO.encryptedPrivateKey())
                         .iv(registerRequestDTO.iv()).userId(existingAuth.getId()).build());
-                ResendConfirmationRequestDTO confirmationDTO =
-                        new ResendConfirmationRequestDTO(existingAuth.getEmail());
+                ResendConfirmationRequestDTO confirmationDTO = new ResendConfirmationRequestDTO(
+                        existingAuth.getEmail());
                 mailManager.resendConfirmation(confirmationDTO);
             }
         } else {
@@ -183,6 +185,7 @@ public class AuthService {
 
     }
 
+    @Override
     public boolean saveVerifiedAccountId(UUID id) {
         Auth existingAuth = authRepository.findById(id).orElse(null);
         if (existingAuth != null) {
@@ -195,6 +198,7 @@ public class AuthService {
 
     }
 
+    @Override
     public ForgotPasswordResponseDTO createForgotPassword(String email) {
         try {
             Auth auth = this.authRepository.findByEmailIgnoreCase(email)
@@ -219,6 +223,7 @@ public class AuthService {
         }
     }
 
+    @Override
     public CheckOtpResponseDTO checkOtp(CheckOtpRequestDTO checkOtpRequestDTO) {
 
         Auth auth = this.authRepository.findByEmailIgnoreCase(checkOtpRequestDTO.email())
@@ -270,6 +275,7 @@ public class AuthService {
         }
     }
 
+    @Override
     @Transactional
     public void resetPassword(ForgotPasswordResetPasswordRequestDTO forgotPasswordResetPasswordRequestDTO) {
         captcha(forgotPasswordResetPasswordRequestDTO.recaptchaToken(), "password_reset");
@@ -325,6 +331,7 @@ public class AuthService {
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
+    @Override
     public void changePassword(ChangePasswordRequestDTO changePasswordRequestDTO, String userId) {
         Auth auth = this.authRepository.findById(UUID.fromString(userId))
                 .orElseThrow(() -> new AuthManagerException(ErrorType.EMAIL_NOT_FOUND));

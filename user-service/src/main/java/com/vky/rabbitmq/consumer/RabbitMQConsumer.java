@@ -2,7 +2,7 @@ package com.vky.rabbitmq.consumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vky.rabbitmq.model.CreateUser;
-import com.vky.service.UserProfileService;
+import com.vky.service.IUserProfileService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -13,11 +13,11 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class RabbitMQConsumer {
 
-    private  final UserProfileService userProfileService;
-    private  final ObjectMapper objectMapper;
+    private final IUserProfileService userProfileService;
+    private final ObjectMapper objectMapper;
 
     @RabbitListener(queues = "queue-user-create")
-    public void createUserMessageConsumer(String user){
+    public void createUserMessageConsumer(String user) {
         try {
             CreateUser userObject = objectMapper.readValue(user, CreateUser.class);
             userProfileService.createUserProfile(userObject);

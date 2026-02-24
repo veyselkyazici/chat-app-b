@@ -5,7 +5,7 @@ import com.vky.dto.response.ApiResponse;
 import com.vky.dto.response.CheckOtpResponseDTO;
 import com.vky.dto.response.ForgotPasswordResponseDTO;
 import com.vky.dto.response.LoginResponseDTO;
-import com.vky.service.AuthService;
+import com.vky.service.IAuthService;
 import com.vky.service.TokenBlacklistService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +21,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final AuthService authService;
+    private final IAuthService authService;
     private final TokenBlacklistService tokenBlacklistService;
 
     @PostMapping("/register")
@@ -35,18 +35,19 @@ public class AuthController {
         LoginResponseDTO loginResponseDTO = authService.login(loginRequestDTO);
         return ResponseEntity.ok(new ApiResponse<>(true, "Login successful", loginResponseDTO));
     }
+
     @PostMapping("/refresh-token")
-    public ResponseEntity<ApiResponse<LoginResponseDTO>> refreshAuthenticationToken(@RequestBody RefreshTokenRequest refreshTokenRequest) {
+    public ResponseEntity<ApiResponse<LoginResponseDTO>> refreshAuthenticationToken(
+            @RequestBody RefreshTokenRequest refreshTokenRequest) {
         LoginResponseDTO dto = authService.refreshAuthenticationToken(refreshTokenRequest.getRefreshToken());
 
-        return ResponseEntity.ok(new ApiResponse<>(true,"success", dto));
+        return ResponseEntity.ok(new ApiResponse<>(true, "success", dto));
     }
 
     @GetMapping("/authenticate")
     public ResponseEntity<?> authenticate(@RequestHeader("X-Id") String userId) {
         return ResponseEntity.ok(Map.of("userId", userId, "authenticated", true));
     }
-
 
     @PostMapping("/save-verified-account-id")
     public ResponseEntity<Void> saveVerifiedAccount(@RequestBody UUID id) {
@@ -60,31 +61,32 @@ public class AuthController {
     }
 
     @PostMapping("create-forgot-password")
-    public ResponseEntity<ApiResponse<ForgotPasswordResponseDTO>> createForgotPassword(@RequestBody CreateForgotPasswordRequestDTO createForgotPasswordRequestDTO) {
-        ForgotPasswordResponseDTO forgotPassword = authService.createForgotPassword(createForgotPasswordRequestDTO.getEmail());
+    public ResponseEntity<ApiResponse<ForgotPasswordResponseDTO>> createForgotPassword(
+            @RequestBody CreateForgotPasswordRequestDTO createForgotPasswordRequestDTO) {
+        ForgotPasswordResponseDTO forgotPassword = authService
+                .createForgotPassword(createForgotPasswordRequestDTO.getEmail());
         return ResponseEntity.ok(new ApiResponse<>(true, "Registration successful", forgotPassword));
     }
 
     @PostMapping("/check-otp")
-    public ResponseEntity<ApiResponse<CheckOtpResponseDTO>> checkOtp(@RequestBody CheckOtpRequestDTO checkOtpRequestDTO) {
+    public ResponseEntity<ApiResponse<CheckOtpResponseDTO>> checkOtp(
+            @RequestBody CheckOtpRequestDTO checkOtpRequestDTO) {
 
         CheckOtpResponseDTO dto = this.authService.checkOtp(checkOtpRequestDTO);
         return ResponseEntity.ok(new ApiResponse<>(true, "", dto));
     }
 
     @PostMapping("/reset-password")
-    public ResponseEntity<ApiResponse<?>> resetPassword(@RequestBody ForgotPasswordResetPasswordRequestDTO
-                                                       forgotPasswordResetPasswordRequestDTO) {
+    public ResponseEntity<ApiResponse<?>> resetPassword(
+            @RequestBody ForgotPasswordResetPasswordRequestDTO forgotPasswordResetPasswordRequestDTO) {
         this.authService.resetPassword(forgotPasswordResetPasswordRequestDTO);
         return ResponseEntity.ok(new ApiResponse<>(true, "", ""));
     }
 
-
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
             @RequestHeader(value = "Authorization", required = false) String accessHeader,
-            @RequestBody(required = false) Map<String, String> body
-    ) {
+            @RequestBody(required = false) Map<String, String> body) {
         String token = null;
 
         if (accessHeader != null && accessHeader.startsWith("Bearer ")) {
@@ -103,8 +105,8 @@ public class AuthController {
     }
 
     @PostMapping("/change-password")
-    public ResponseEntity<ApiResponse<?>> changePassword(@RequestHeader("X-Id") String userId, @RequestBody ChangePasswordRequestDTO
-                                                                changePasswordRequestDTO) {
+    public ResponseEntity<ApiResponse<?>> changePassword(@RequestHeader("X-Id") String userId,
+            @RequestBody ChangePasswordRequestDTO changePasswordRequestDTO) {
         this.authService.changePassword(changePasswordRequestDTO, userId);
         return ResponseEntity.ok(new ApiResponse<>(true, "", ""));
     }

@@ -6,7 +6,7 @@ import com.vky.dto.request.ContactInformationOfExistingChatsRequestDTO;
 import com.vky.dto.request.ContactRequestDTO;
 import com.vky.dto.response.ApiResponse;
 import com.vky.dto.response.ContactResponseDTO;
-import com.vky.service.ContactsService;
+import com.vky.service.IContactsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 @RestController
 public class ContactsController {
 
-    private final ContactsService contactsService;
+    private final IContactsService contactsService;
 
     @PostMapping("/add-contact")
     public ResponseEntity<ApiResponse<Void>> addContact(

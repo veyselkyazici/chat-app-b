@@ -28,13 +28,13 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-public class UserProfileService {
+public class UserProfileServiceImpl implements IUserProfileService {
     private final IUserProfileRepository userProfileRepository;
     private final RabbitMQProducer rabbitMQProducer;
     private final Cloudinary cloudinary;
     private final RedisTemplate<String, Object> redisTemplate;
 
-    public UserProfileService(IUserProfileRepository userProfileRepository, RabbitMQProducer rabbitMQProducer,
+    public UserProfileServiceImpl(IUserProfileRepository userProfileRepository, RabbitMQProducer rabbitMQProducer,
             Cloudinary cloudinary, RedisTemplate<String, Object> redisTemplate) {
         this.userProfileRepository = userProfileRepository;
         this.rabbitMQProducer = rabbitMQProducer;
@@ -42,6 +42,7 @@ public class UserProfileService {
         this.redisTemplate = redisTemplate;
     }
 
+    @Override
     @Transactional
     public void createUserProfile(CreateUser createUser) {
         UserProfile userProfile = UserProfile.builder()
@@ -86,6 +87,7 @@ public class UserProfileService {
                 .build());
     }
 
+    @Override
     @Transactional(readOnly = true)
     public UserProfileResponseDTO findWithUserKeyByAuthId(String tokenUserId) {
         UUID userId = UUID.fromString(tokenUserId);
@@ -94,6 +96,7 @@ public class UserProfileService {
                 .orElseThrow(() -> new UserServiceException(ErrorType.USER_NOT_FOUND));
     }
 
+    @Override
     public UpdateUserDTO updateUserName(UpdateUserDTO dto, String tokenUserId) {
         UUID userId = UUID.fromString(tokenUserId);
         UserProfile userProfile = userProfileRepository.findById(userId)
@@ -106,6 +109,7 @@ public class UserProfileService {
         return dto;
     }
 
+    @Override
     public UpdateUserDTO updateUserAbout(UpdateUserDTO dto, String tokenUserId) {
         UUID userId = UUID.fromString(tokenUserId);
         UserProfile userProfile = userProfileRepository.findById(userId)
@@ -118,6 +122,7 @@ public class UserProfileService {
         return dto;
     }
 
+    @Override
     public UpdateUserProfileDTO updateUserProfile(UpdateUserProfileDTO dto, String tokenUserId) {
         UUID userId = UUID.fromString(tokenUserId);
         UserProfile userProfile = userProfileRepository.findById(userId)
@@ -145,11 +150,8 @@ public class UserProfileService {
         return dto;
     }
 
+    @Override
     @Transactional(readOnly = true)
-    // LAZY alanlar için ya servis katmanında Transactional(Hibernate session açık
-    // tutar) veya repositoryde EntityGraph kullanılmalı (UserKey de @Lob alanlar
-    // bulunduğu için varsayılan olarak LAZY davranırlar ve EntityGraph burada
-    // çalışamaz)
     public List<ContactResponseDTO> getUsers(List<UUID> ids, String requesterId) {
 
         List<UserProfile> userProfiles = this.userProfileRepository.findUsersByIdList(ids);
@@ -167,6 +169,8 @@ public class UserProfileService {
                 })
                 .collect(Collectors.toList());
     }
+
+    @Override
     @Transactional(readOnly = true)
     public UserProfileResponseDTO getUserById(UUID userId, String requesterId) {
         UserProfile userProfile = userProfileRepository.findById(userId)
@@ -176,6 +180,186 @@ public class UserProfileService {
             dto = applyPrivacyFiltering(dto, requesterId);
         }
         return dto;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserProfileResponseDTO getUserById(UUID userId) {
+        UserProfile userProfile = this.userProfileRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("User not found witdh ID: " + userId));
+        return IUserProfileMapper.INSTANCE.toUserProfileDTO(userProfile);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserProfileResponseDTO getUserByEmail(String contactEmail, String requesterId) {
+        return userProfileRepository.findUserProfileByEmailIgnoreCaseAndIsDeletedFalse(contactEmail)
+                .map(userProfile -> {
+                    UserProfileResponseDTO dto = mapToResponseDTO(userProfile);
+                    if (requesterId != null) {
+                        dto = applyPrivacyFiltering(dto, requesterId);
+                    }
+                    return dto;
+                }).orElse(null);
+    }
+
+    @Override
+    public void updateUserLastSeen(UUID userId, String lastSeen) {
+        UserProfile userProfile = userProfileRepository.findById(userId)
+                .orElseThrow(() -> new UserServiceException(ErrorType.USER_NOT_FOUND));
+
+        userProfile.setLastSeen(Instant.parse(lastSeen));
+        userProfileRepository.save(userProfile);
+    }
+
+    @Override
+    @Transactional
+    public UpdateSettingsDTO updatePrivacySettings(PrivacySettingsRequestDTO privacySettingsRequestDTO,
+            String tokenUserId) {
+        UUID userId = UUID.fromString(tokenUserId);
+        UserProfile userProfile = userProfileRepository.findById(userId)
+                .orElseThrow(() -> new UserServiceException(ErrorType.USER_NOT_FOUND));
+
+        PrivacySettings privacySettings = userProfile.getPrivacySettings();
+        if (privacySettings == null) {
+            privacySettings = new PrivacySettings();
+        }
+
+        privacySettings.setProfilePhotoVisibility(privacySettingsRequestDTO.profilePhotoVisibility());
+        privacySettings.setLastSeenVisibility(privacySettingsRequestDTO.lastSeenVisibility());
+        privacySettings.setOnlineStatusVisibility(privacySettingsRequestDTO.onlineStatusVisibility());
+        privacySettings.setAboutVisibility(privacySettingsRequestDTO.aboutVisibility());
+        privacySettings.setReadReceipts(privacySettingsRequestDTO.readReceipts());
+        userProfile.setUpdatedAt(Instant.now());
+        userProfile.setPrivacySettings(privacySettings);
+        userProfileRepository.save(userProfile);
+
+        UpdateSettingsDTO dto = IUserProfileMapper.INSTANCE.toUserProfileWithoutKeyDTO(userProfile);
+        dto = dto.toBuilder().privacy(privacySettingsRequestDTO.privacy()).build();
+        rabbitMQProducer.privacyUpdated(dto);
+        return dto;
+    }
+
+    @Override
+    public UserProfilePhotoURLResponseDTO uploadProfilePhoto(MultipartFile file, String tokenUserId) {
+        UUID userId = UUID.fromString(tokenUserId);
+        try {
+            UserProfile user = userProfileRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            if (user.getImage() != null && !user.getImage().isEmpty()) {
+                String publicId = extractPublicIdFromUrl(user.getImage());
+
+                cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
+            }
+
+            Map<String, Object> uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
+            String profilePictureUrl = uploadResult.get("secure_url").toString();
+
+            user.setImage(profilePictureUrl);
+            user.setUpdatedAt(Instant.now());
+            userProfileRepository.save(user);
+            UpdateSettingsDTO dto = IUserProfileMapper.INSTANCE.toUserProfileWithoutKeyDTO(user);
+
+            rabbitMQProducer.publishProfileUpdated(dto);
+            return UserProfilePhotoURLResponseDTO.builder().url(user.getImage()).build();
+        } catch (IOException e) {
+            throw new RuntimeException("Error uploading file", e);
+        }
+    }
+
+    @Override
+    public String extractPublicIdFromUrl(String profilePictureUrl) {
+        String[] parts = profilePictureUrl.split("/");
+        String publicIdWithExtension = parts[parts.length - 1];
+        return publicIdWithExtension.split("\\.")[0];
+    }
+
+    @Override
+    @Transactional
+    public void resetUserKey(ResetUserKeyDTO resetUserKeyDTO) {
+        UserProfile userProfile = userProfileRepository.findById(resetUserKeyDTO.userId())
+                .orElseThrow(() -> new UserServiceException(ErrorType.USER_NOT_FOUND));
+        userProfile.getUserKey().setEncryptedPrivateKey(resetUserKeyDTO.encryptedPrivateKey());
+        userProfile.getUserKey().setIv(resetUserKeyDTO.iv());
+        userProfile.getUserKey().setSalt(resetUserKeyDTO.salt());
+        if (resetUserKeyDTO.publicKey() != null) {
+            userProfile.getUserKey().setPublicKey(resetUserKeyDTO.publicKey());
+        }
+        userProfileRepository.save(userProfile);
+    }
+
+    @Override
+    public void removeProfilePicture(String tokenUserId) {
+        UUID userId = UUID.fromString(tokenUserId);
+
+        UserProfile user = userProfileRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        if (user.getImage() != null && !user.getImage().isEmpty()) {
+            String publicId = extractPublicIdFromUrl(user.getImage());
+            try {
+                cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
+            } catch (IOException e) {
+                throw new RuntimeException("Error deleting image from Cloudinary", e);
+            }
+        }
+        user.setImage(null);
+        user.setUpdatedAt(Instant.now());
+        userProfileRepository.save(user);
+        UpdateSettingsDTO dto = IUserProfileMapper.INSTANCE.toUserProfileWithoutKeyDTO(user);
+        rabbitMQProducer.publishProfileUpdated(dto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PrivacySettingsResponseDTO getPrivacySettings(String userId) {
+        UserProfile user = userProfileRepository.findById(UUID.fromString(userId))
+                .orElseThrow(() -> new RuntimeException("USER_NOT_FOUND"));
+
+        PrivacySettings privacy = user.getPrivacySettings();
+
+        return PrivacySettingsResponseDTO.builder()
+                .onlineStatusVisibility(privacy.getOnlineStatusVisibility())
+                .lastSeenVisibility(privacy.getLastSeenVisibility())
+                .profilePhotoVisibility(privacy.getProfilePhotoVisibility())
+                .aboutVisibility(privacy.getAboutVisibility())
+                .readReceipts(privacy.isReadReceipts())
+                .build();
+    }
+
+    @Override
+    public LastSeenDTO getLastSeen(String targetUserId, String requesterId) {
+        if (targetUserId.equals(requesterId)) {
+            UserProfile user = userProfileRepository.findById(UUID.fromString(targetUserId))
+                    .orElseThrow(() -> new RuntimeException("USER_NOT_FOUND"));
+            return LastSeenDTO.builder().lastSeen(user.getLastSeen().toString()).build();
+        }
+
+        UserProfile targetUser = userProfileRepository.findById(UUID.fromString(targetUserId))
+                .orElseThrow(() -> new RuntimeException("USER_NOT_FOUND"));
+        UserProfile requesterUser = userProfileRepository.findById(UUID.fromString(requesterId))
+                .orElseThrow(() -> new RuntimeException("USER_NOT_FOUND"));
+
+        if (requesterUser.getPrivacySettings().getLastSeenVisibility() == VisibilityOption.NOBODY) {
+            return LastSeenDTO.builder().lastSeen(null).build();
+        }
+
+        VisibilityOption visibility = targetUser.getPrivacySettings().getLastSeenVisibility();
+
+        boolean allowed = switch (visibility) {
+            case EVERYONE -> true;
+            case NOBODY -> false;
+            case MY_CONTACTS -> {
+                String outKey = "rel:out:" + targetUserId;
+                yield Boolean.TRUE.equals(redisTemplate.opsForSet().isMember(outKey, requesterId));
+            }
+        };
+
+        if (!allowed) {
+            return LastSeenDTO.builder().lastSeen(null).build();
+        }
+
+        return LastSeenDTO.builder().lastSeen(targetUser.getLastSeen().toString()).build();
     }
 
     private UserProfileResponseDTO mapToResponseDTO(UserProfile userProfile) {
@@ -232,175 +416,5 @@ public class UserProfileService {
                 yield Boolean.TRUE.equals(redisTemplate.opsForSet().isMember(outKey, requesterId));
             }
         };
-    }
-
-    @Transactional(readOnly = true)
-    public UserProfileResponseDTO getUserById(UUID userId) {
-        UserProfile userProfile = this.userProfileRepository.findById(userId)
-                .orElseThrow(() -> new NoSuchElementException("User not found witdh ID: " + userId));
-        return IUserProfileMapper.INSTANCE.toUserProfileDTO(userProfile);
-    }
-
-    @Transactional(readOnly = true)
-    public UserProfileResponseDTO getUserByEmail(String contactEmail, String requesterId) {
-        return userProfileRepository.findUserProfileByEmailIgnoreCaseAndIsDeletedFalse(contactEmail)
-                .map(userProfile -> {
-                    UserProfileResponseDTO dto = mapToResponseDTO(userProfile);
-                    if (requesterId != null) {
-                        dto = applyPrivacyFiltering(dto, requesterId);
-                    }
-                    return dto;
-                }).orElse(null);
-    }
-
-    public void updateUserLastSeen(UUID userId, String lastSeen) {
-        UserProfile userProfile = userProfileRepository.findById(userId)
-                .orElseThrow(() -> new UserServiceException(ErrorType.USER_NOT_FOUND));
-
-        userProfile.setLastSeen(Instant.parse(lastSeen));
-        userProfileRepository.save(userProfile);
-    }
-
-    @Transactional
-    public UpdateSettingsDTO updatePrivacySettings(PrivacySettingsRequestDTO privacySettingsRequestDTO,
-            String tokenUserId) {
-        UUID userId = UUID.fromString(tokenUserId);
-        UserProfile userProfile = userProfileRepository.findById(userId)
-                .orElseThrow(() -> new UserServiceException(ErrorType.USER_NOT_FOUND));
-
-        PrivacySettings privacySettings = userProfile.getPrivacySettings();
-        if (privacySettings == null) {
-            privacySettings = new PrivacySettings();
-        }
-
-        privacySettings.setProfilePhotoVisibility(privacySettingsRequestDTO.profilePhotoVisibility());
-        privacySettings.setLastSeenVisibility(privacySettingsRequestDTO.lastSeenVisibility());
-        privacySettings.setOnlineStatusVisibility(privacySettingsRequestDTO.onlineStatusVisibility());
-        privacySettings.setAboutVisibility(privacySettingsRequestDTO.aboutVisibility());
-        privacySettings.setReadReceipts(privacySettingsRequestDTO.readReceipts());
-        userProfile.setUpdatedAt(Instant.now());
-        userProfile.setPrivacySettings(privacySettings);
-        userProfileRepository.save(userProfile);
-
-        UpdateSettingsDTO dto = IUserProfileMapper.INSTANCE.toUserProfileWithoutKeyDTO(userProfile);
-        dto = dto.toBuilder().privacy(privacySettingsRequestDTO.privacy()).build();
-        rabbitMQProducer.privacyUpdated(dto);
-        return dto;
-    }
-
-    public UserProfilePhotoURLResponseDTO uploadProfilePhoto(MultipartFile file, String tokenUserId) {
-        UUID userId = UUID.fromString(tokenUserId);
-        try {
-            UserProfile user = userProfileRepository.findById(userId)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
-
-            if (user.getImage() != null && !user.getImage().isEmpty()) {
-                String publicId = extractPublicIdFromUrl(user.getImage());
-
-                cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
-            }
-
-            Map uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
-            String profilePictureUrl = uploadResult.get("secure_url").toString();
-
-            user.setImage(profilePictureUrl);
-            user.setUpdatedAt(Instant.now());
-            userProfileRepository.save(user);
-            UpdateSettingsDTO dto = IUserProfileMapper.INSTANCE.toUserProfileWithoutKeyDTO(user);
-
-            rabbitMQProducer.publishProfileUpdated(dto);
-            return UserProfilePhotoURLResponseDTO.builder().url(user.getImage()).build();
-        } catch (IOException e) {
-            throw new RuntimeException("Error uploading file", e);
-        }
-    }
-
-    public String extractPublicIdFromUrl(String profilePictureUrl) {
-        String[] parts = profilePictureUrl.split("/");
-        String publicIdWithExtension = parts[parts.length - 1];
-        return publicIdWithExtension.split("\\.")[0];
-    }
-
-    @Transactional
-    public void resetUserKey(ResetUserKeyDTO resetUserKeyDTO) {
-        UserProfile userProfile = userProfileRepository.findById(resetUserKeyDTO.userId())
-                .orElseThrow(() -> new UserServiceException(ErrorType.USER_NOT_FOUND));
-        userProfile.getUserKey().setEncryptedPrivateKey(resetUserKeyDTO.encryptedPrivateKey());
-        userProfile.getUserKey().setIv(resetUserKeyDTO.iv());
-        userProfile.getUserKey().setSalt(resetUserKeyDTO.salt());
-        if (resetUserKeyDTO.publicKey() != null) {
-            userProfile.getUserKey().setPublicKey(resetUserKeyDTO.publicKey());
-        }
-        userProfileRepository.save(userProfile);
-    }
-
-    public void removeProfilePicture(String tokenUserId) {
-        UUID userId = UUID.fromString(tokenUserId);
-
-        UserProfile user = userProfileRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        if (user.getImage() != null && !user.getImage().isEmpty()) {
-            String publicId = extractPublicIdFromUrl(user.getImage());
-            try {
-                cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
-            } catch (IOException e) {
-                throw new RuntimeException("Error deleting image from Cloudinary", e);
-            }
-        }
-        user.setImage(null);
-        user.setUpdatedAt(Instant.now());
-        userProfileRepository.save(user);
-        UpdateSettingsDTO dto = IUserProfileMapper.INSTANCE.toUserProfileWithoutKeyDTO(user);
-        rabbitMQProducer.publishProfileUpdated(dto);
-    }
-
-    @Transactional(readOnly = true)
-    public PrivacySettingsResponseDTO getPrivacySettings(String userId) {
-        UserProfile user = userProfileRepository.findById(UUID.fromString(userId))
-                .orElseThrow(() -> new RuntimeException("USER_NOT_FOUND"));
-
-        PrivacySettings privacy = user.getPrivacySettings();
-
-        return PrivacySettingsResponseDTO.builder()
-                .onlineStatusVisibility(privacy.getOnlineStatusVisibility())
-                .lastSeenVisibility(privacy.getLastSeenVisibility())
-                .profilePhotoVisibility(privacy.getProfilePhotoVisibility())
-                .aboutVisibility(privacy.getAboutVisibility())
-                .readReceipts(privacy.isReadReceipts())
-                .build();
-    }
-
-    public LastSeenDTO getLastSeen(String targetUserId, String requesterId) {
-        if (targetUserId.equals(requesterId)) {
-            UserProfile user = userProfileRepository.findById(UUID.fromString(targetUserId))
-                    .orElseThrow(() -> new RuntimeException("USER_NOT_FOUND"));
-            return LastSeenDTO.builder().lastSeen(user.getLastSeen().toString()).build();
-        }
-
-        UserProfile targetUser = userProfileRepository.findById(UUID.fromString(targetUserId))
-                .orElseThrow(() -> new RuntimeException("USER_NOT_FOUND"));
-        UserProfile requesterUser = userProfileRepository.findById(UUID.fromString(requesterId))
-                .orElseThrow(() -> new RuntimeException("USER_NOT_FOUND"));
-
-        if (requesterUser.getPrivacySettings().getLastSeenVisibility() == VisibilityOption.NOBODY) {
-            return LastSeenDTO.builder().lastSeen(null).build();
-        }
-
-        VisibilityOption visibility = targetUser.getPrivacySettings().getLastSeenVisibility();
-
-        boolean allowed = switch (visibility) {
-            case EVERYONE -> true;
-            case NOBODY -> false;
-            case MY_CONTACTS -> {
-                String outKey = "rel:out:" + targetUserId;
-                yield Boolean.TRUE.equals(redisTemplate.opsForSet().isMember(outKey, requesterId));
-            }
-        };
-
-        if (!allowed) {
-            return LastSeenDTO.builder().lastSeen(null).build();
-        }
-
-        return LastSeenDTO.builder().lastSeen(targetUser.getLastSeen().toString()).build();
     }
 }
